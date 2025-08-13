@@ -67,4 +67,4 @@ gastropartner-backend/.venv/
 
 # Misc
 *.log
-.cache/
+.cache/.serena/
