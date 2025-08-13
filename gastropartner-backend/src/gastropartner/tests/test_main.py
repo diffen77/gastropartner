@@ -1,5 +1,5 @@
 """Tests för main module."""
-import pytest
+
 from fastapi.testclient import TestClient
 
 from gastropartner.main import app
