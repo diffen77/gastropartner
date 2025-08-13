@@ -1,0 +1,44 @@
+services:
+  # Backend API Service
+  - type: web
+    name: gastropartner-backend
+    runtime: python
+    region: frankfurt
+    plan: starter
+    branch: main
+    buildCommand: cd gastropartner-backend && pip install uv && uv sync --frozen --no-dev
+    startCommand: cd gastropartner-backend && uv run uvicorn src.gastropartner.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11"
+      - key: SUPABASE_URL
+        sync: false  # Set manually in dashboard for security
+      - key: SUPABASE_ANON_KEY
+        sync: false  # Set manually in dashboard for security
+      - key: ENVIRONMENT
+        value: "production"
+
+  # Frontend Static Site
+  - type: static
+    name: gastropartner-frontend
+    region: frankfurt
+    branch: main
+    buildCommand: cd gastropartner-frontend && npm ci && npm run build
+    staticPublishPath: gastropartner-frontend/build
+    pullRequestPreviewsEnabled: false
+    autoDeploy: true
+    envVars:
+      - key: REACT_APP_API_URL
+        value: "https://gastropartner-backend.onrender.com"
+      - key: NODE_ENV
+        value: "production"
+
+# Optional: Database configuration if you need one later
+# databases:
+#   - name: gastropartner-db
+#     databaseName: gastropartner
+#     user: gastropartner_user
+#     region: frankfurt
+#     plan: free
