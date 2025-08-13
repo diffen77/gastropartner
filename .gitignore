@@ -58,7 +58,6 @@ gastropartner-frontend/build/
 .DS_Store
 
 # UV
-gastropartner-backend/uv.lock
 gastropartner-backend/.venv/
 
 # Supabase
