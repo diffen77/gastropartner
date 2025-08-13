@@ -2,7 +2,7 @@
 
 from functools import lru_cache
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -25,14 +25,13 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
 
-    class Config:
-        """Pydantic configuration."""
-
-        env_file = ".env.development"
-        case_sensitive = False
+    model_config = SettingsConfigDict(
+        env_file=".env.development",
+        case_sensitive=False,
+    )
 
 
 @lru_cache
 def get_settings() -> Settings:
     """Get cached settings instance."""
-    return Settings()
+    return Settings()  # type: ignore[call-arg]
