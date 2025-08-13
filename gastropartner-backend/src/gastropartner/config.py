@@ -1,6 +1,6 @@
 """Configuration module för GastroPartner."""
+
 from functools import lru_cache
-from typing import Optional
 
 from pydantic_settings import BaseSettings
 
@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # Supabase (hämtas från environment)
     supabase_url: str
     supabase_anon_key: str
-    supabase_service_key: Optional[str] = None  # Endast för admin operations
+    supabase_service_key: str | None = None  # Endast för admin operations
 
     # Frontend URL för CORS
     frontend_url: str = "http://localhost:3000"
@@ -32,7 +32,7 @@ class Settings(BaseSettings):
         case_sensitive = False
 
 
-@lru_cache()
+@lru_cache
 def get_settings() -> Settings:
     """Get cached settings instance."""
     return Settings()
