@@ -12,6 +12,7 @@ from gastropartner.api import (
     freemium,
     ingredients,
     menu_items,
+    multitenant,
     organizations,
     recipes,
     superadmin,
@@ -49,6 +50,7 @@ app.add_middleware(
 
 # Include API routers
 app.include_router(auth.router, prefix="/api/v1")
+app.include_router(multitenant.router, prefix="/api/v1")
 app.include_router(organizations.router, prefix="/api/v1")
 app.include_router(freemium.router, prefix="/api/v1")
 app.include_router(ingredients.router, prefix="/api/v1")
