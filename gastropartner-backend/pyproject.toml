@@ -12,6 +12,8 @@ dependencies = [
     "supabase>=2.10.0",
     "python-dotenv>=1.0.0",
     "httpx>=0.28.0",
+    "email-validator>=2.2.0",
+    "pyjwt>=2.10.1",
 ]
 
 [project.optional-dependencies]
@@ -58,4 +60,5 @@ dev = [
     "pytest-asyncio>=1.1.0",
     "pytest-cov>=6.2.1",
     "ruff>=0.12.8",
+    "pip-audit>=2.7.0",
 ]

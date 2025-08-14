@@ -7,6 +7,15 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from gastropartner.api import (
+    auth,
+    freemium,
+    ingredients,
+    menu_items,
+    organizations,
+    recipes,
+    superadmin,
+)
 from gastropartner.config import get_settings
 
 settings = get_settings()
@@ -37,6 +46,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include API routers
+app.include_router(auth.router, prefix="/api/v1")
+app.include_router(organizations.router, prefix="/api/v1")
+app.include_router(freemium.router, prefix="/api/v1")
+app.include_router(ingredients.router, prefix="/api/v1")
+app.include_router(recipes.router, prefix="/api/v1")
+app.include_router(menu_items.router, prefix="/api/v1")
+app.include_router(superadmin.router)
 
 
 @app.get("/")

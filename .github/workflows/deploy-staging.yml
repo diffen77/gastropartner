@@ -1,0 +1,59 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [staging, develop]
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/develop'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    # Backend deployment to Render staging
+    - name: Deploy Backend to Staging
+      uses: johnbeynon/render-deploy-action@v0.0.8
+      with:
+        service-id: ${{ secrets.RENDER_STAGING_BACKEND_SERVICE_ID }}
+        api-key: ${{ secrets.RENDER_API_KEY }}
+        wait-for-success: true
+    
+    # Frontend deployment to Render staging
+    - name: Deploy Frontend to Staging
+      uses: johnbeynon/render-deploy-action@v0.0.8
+      with:
+        service-id: ${{ secrets.RENDER_STAGING_FRONTEND_SERVICE_ID }}
+        api-key: ${{ secrets.RENDER_API_KEY }}
+        wait-for-success: true
+    
+    # Health check staging deployment
+    - name: Health Check Staging
+      run: |
+        echo "Waiting for staging deployment to be ready..."
+        sleep 60
+        
+        # Check backend health
+        curl -f ${{ secrets.STAGING_BACKEND_URL }}/health || exit 1
+        
+        # Check frontend availability
+        curl -f ${{ secrets.STAGING_FRONTEND_URL }} || exit 1
+        
+        echo "✅ Staging deployment successful!"
+    
+    # Notify on success
+    - name: Notify Success
+      if: success()
+      run: |
+        echo "🚀 Staging deployment completed successfully"
+        echo "Backend: ${{ secrets.STAGING_BACKEND_URL }}"
+        echo "Frontend: ${{ secrets.STAGING_FRONTEND_URL }}"
+    
+    # Notify on failure
+    - name: Notify Failure
+      if: failure()
+      run: |
+        echo "❌ Staging deployment failed"
+        echo "Check the logs above for details"
