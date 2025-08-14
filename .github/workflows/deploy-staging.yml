@@ -19,7 +19,6 @@ jobs:
       with:
         service-id: ${{ secrets.RENDER_STAGING_BACKEND_SERVICE_ID }}
         api-key: ${{ secrets.RENDER_API_KEY }}
-        wait-for-success: true
     
     # Frontend deployment to Render staging
     - name: Deploy Frontend to Staging
@@ -27,19 +26,18 @@ jobs:
       with:
         service-id: ${{ secrets.RENDER_STAGING_FRONTEND_SERVICE_ID }}
         api-key: ${{ secrets.RENDER_API_KEY }}
-        wait-for-success: true
     
     # Health check staging deployment
     - name: Health Check Staging
       run: |
         echo "Waiting for staging deployment to be ready..."
-        sleep 60
+        sleep 90
         
         # Check backend health
-        curl -f ${{ secrets.STAGING_BACKEND_URL }}/health || exit 1
+        curl -f https://gastropartner-backend-staging.onrender.com/health || exit 1
         
         # Check frontend availability
-        curl -f ${{ secrets.STAGING_FRONTEND_URL }} || exit 1
+        curl -f https://gastropartner-frontend-staging.onrender.com || exit 1
         
         echo "✅ Staging deployment successful!"
     
@@ -48,8 +46,8 @@ jobs:
       if: success()
       run: |
         echo "🚀 Staging deployment completed successfully"
-        echo "Backend: ${{ secrets.STAGING_BACKEND_URL }}"
-        echo "Frontend: ${{ secrets.STAGING_FRONTEND_URL }}"
+        echo "Backend: https://gastropartner-backend-staging.onrender.com"
+        echo "Frontend: https://gastropartner-frontend-staging.onrender.com"
     
     # Notify on failure
     - name: Notify Failure
