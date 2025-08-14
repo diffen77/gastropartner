@@ -11,6 +11,7 @@ import { EmptyState } from './components/EmptyState';
 import { MenuItemForm } from './components/MenuItems/MenuItemForm';
 import SuperAdminDashboard from './components/SuperAdmin/SuperAdminDashboard';
 import FreemiumTest from './pages/FreemiumTest';
+import { Ingredients } from './pages/Ingredients';
 import { apiClient, MenuItem, MenuItemCreate } from './utils/api';
 
 interface ApiHealth {
@@ -242,6 +243,7 @@ function App() {
             <main className="app-main">
               <Routes>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/ingredienser" element={<Ingredients />} />
                 <Route path="/matratter" element={<Dashboard />} />
                 <Route path="/superadmin" element={<SuperAdminDashboard />} />
                 <Route path="/freemium-test" element={<FreemiumTest />} />

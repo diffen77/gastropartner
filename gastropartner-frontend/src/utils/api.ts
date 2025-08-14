@@ -26,6 +26,28 @@ interface MenuItemCreate {
   recipe_id?: string;
 }
 
+interface Ingredient {
+  ingredient_id: string;
+  name: string;
+  category: string;
+  unit: string;
+  cost_per_unit: number;
+  supplier?: string;
+  notes?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface IngredientCreate {
+  name: string;
+  category: string;
+  unit: string;
+  cost_per_unit: number;
+  supplier?: string;
+  notes?: string;
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -129,7 +151,32 @@ class ApiClient {
   async deleteMenuItem(id: string): Promise<{ message: string; success: boolean }> {
     return this.delete(`/api/v1/menu-items/${id}`);
   }
+
+  // Ingredients API
+  async getIngredients(): Promise<Ingredient[]> {
+    return this.get<Ingredient[]>('/api/v1/ingredients');
+  }
+
+  async createIngredient(data: IngredientCreate): Promise<Ingredient> {
+    return this.post<Ingredient>('/api/v1/ingredients', data);
+  }
+
+  async getIngredient(id: string): Promise<Ingredient> {
+    return this.get<Ingredient>(`/api/v1/ingredients/${id}`);
+  }
+
+  async updateIngredient(id: string, data: Partial<IngredientCreate>): Promise<Ingredient> {
+    return this.put<Ingredient>(`/api/v1/ingredients/${id}`, data);
+  }
+
+  async deleteIngredient(id: string): Promise<{ message: string; success: boolean }> {
+    return this.delete(`/api/v1/ingredients/${id}`);
+  }
+
+  async getIngredientCategories(): Promise<string[]> {
+    return this.get<string[]>('/api/v1/ingredients/categories');
+  }
 }
 
 export const apiClient = new ApiClient();
-export { ApiClient, type MenuItem, type MenuItemCreate };
+export { ApiClient, type MenuItem, type MenuItemCreate, type Ingredient, type IngredientCreate };

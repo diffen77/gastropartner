@@ -4,7 +4,23 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, computed_field
+
+
+class TenantMixin(BaseModel):
+    """Mixin för models that belong to an organization (tenant)."""
+    
+    organization_id: UUID
+    
+    @computed_field
+    @property
+    def tenant_key(self) -> str:
+        """Return a string key identifying the tenant."""
+        return str(self.organization_id)
+    
+    def belongs_to_organization(self, organization_id: UUID) -> bool:
+        """Check if this model belongs to the specified organization."""
+        return self.organization_id == organization_id
 
 
 class UserBase(BaseModel):
@@ -159,11 +175,10 @@ class IngredientUpdate(BaseModel):
     is_active: bool | None = None
 
 
-class Ingredient(IngredientBase):
+class Ingredient(IngredientBase, TenantMixin):
     """Complete ingredient model."""
 
     ingredient_id: UUID = Field(default_factory=uuid4)
-    organization_id: UUID
     is_active: bool = True
     created_at: datetime
     updated_at: datetime
@@ -242,11 +257,10 @@ class RecipeUpdate(BaseModel):
     is_active: bool | None = None
 
 
-class Recipe(RecipeBase):
+class Recipe(RecipeBase, TenantMixin):
     """Complete recipe model."""
 
     recipe_id: UUID = Field(default_factory=uuid4)
-    organization_id: UUID
     ingredients: list[RecipeIngredient] = Field(default_factory=list)
     total_cost: float = Field(default=0.0, ge=0)  # Calculated field
     cost_per_serving: float = Field(default=0.0, ge=0)  # Calculated field
@@ -288,11 +302,10 @@ class MenuItemUpdate(BaseModel):
     is_active: bool | None = None
 
 
-class MenuItem(MenuItemBase):
+class MenuItem(MenuItemBase, TenantMixin):
     """Complete menu item model."""
 
     menu_item_id: UUID = Field(default_factory=uuid4)
-    organization_id: UUID
     recipe_id: UUID | None = None
     recipe: Recipe | None = None  # Populated via join
     food_cost: float = Field(default=0.0, ge=0)  # Calculated field
