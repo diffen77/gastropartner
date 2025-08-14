@@ -11,3 +11,5 @@ describe('App Environment', () => {
     expect(typeof expect).toBe('function');
   });
 });
+
+export {};
