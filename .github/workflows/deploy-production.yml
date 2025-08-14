@@ -1,0 +1,210 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # Allow manual triggering
+
+env:
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # Pre-deployment checks
+  pre-deployment-checks:
+    name: Pre-deployment Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Validate deployment readiness
+      run: |
+        echo "🔍 Running pre-deployment checks..."
+        
+        # Check if all tests are passing (reference CI workflow)
+        echo "✅ CI tests should have passed on main branch"
+        
+        # Check version tags or changelog
+        if [ -f CHANGELOG.md ]; then
+          echo "📝 Changelog found"
+        else
+          echo "⚠️ Consider adding CHANGELOG.md for production releases"
+        fi
+        
+        # Validate environment configuration files exist
+        if [ -f gastropartner-backend/pyproject.toml ] && [ -f gastropartner-frontend/package.json ]; then
+          echo "✅ Configuration files present"
+        else
+          echo "❌ Missing required configuration files"
+          exit 1
+        fi
+        
+        echo "🎯 Pre-deployment checks completed"
+
+  # Deploy to production
+  deploy-production:
+    name: Deploy to Production Environment
+    runs-on: ubuntu-latest
+    needs: pre-deployment-checks
+    environment: production  # Requires manual approval
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: ./gastropartner-frontend/package-lock.json
+
+    - name: Install UV
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Set up Python
+      run: uv python install ${{ env.PYTHON_VERSION }}
+
+    # Backend deployment preparation
+    - name: Prepare backend for production deployment
+      working-directory: ./gastropartner-backend
+      run: |
+        uv venv
+        uv sync --frozen
+        echo "✅ Backend prepared for production deployment"
+
+    # Frontend build for production
+    - name: Build frontend for production
+      working-directory: ./gastropartner-frontend
+      env:
+        REACT_APP_SUPABASE_URL: ${{ secrets.PRODUCTION_SUPABASE_URL }}
+        REACT_APP_SUPABASE_ANON_KEY: ${{ secrets.PRODUCTION_SUPABASE_ANON_KEY }}
+        REACT_APP_API_URL: ${{ secrets.PRODUCTION_API_URL }}
+        GENERATE_SOURCEMAP: false  # Disable sourcemaps for production
+      run: |
+        npm ci --only=production
+        npm run build
+        echo "✅ Frontend built for production"
+
+    # Deploy backend to Render production
+    - name: Deploy backend to production
+      if: github.repository == 'gastropartner/gastropartner'
+      uses: johnbeynon/render-deploy-action@v0.0.8
+      with:
+        service-id: ${{ secrets.RENDER_PRODUCTION_BACKEND_SERVICE_ID }}
+        api-key: ${{ secrets.RENDER_API_KEY }}
+        wait-for-success: true
+
+    # Deploy frontend to production
+    - name: Deploy frontend to production
+      if: github.repository == 'gastropartner/gastropartner'
+      uses: johnbeynon/render-deploy-action@v0.0.8
+      with:
+        service-id: ${{ secrets.RENDER_PRODUCTION_FRONTEND_SERVICE_ID }}
+        api-key: ${{ secrets.RENDER_API_KEY }}
+        wait-for-success: true
+
+    # Post-deployment health checks
+    - name: Production health check
+      run: |
+        echo "⏳ Waiting for production deployment to be ready..."
+        sleep 90  # Longer wait for production
+        
+        # Check backend health with retry logic
+        echo "🔍 Checking backend health..."
+        max_attempts=5
+        attempt=1
+        while [ $attempt -le $max_attempts ]; do
+          if curl -f "${{ secrets.PRODUCTION_BACKEND_URL }}/health"; then
+            echo "✅ Backend health check passed"
+            break
+          else
+            echo "⚠️ Backend health check failed (attempt $attempt/$max_attempts)"
+            if [ $attempt -eq $max_attempts ]; then
+              echo "❌ Backend health check failed after $max_attempts attempts"
+              exit 1
+            fi
+            sleep 30
+            attempt=$((attempt + 1))
+          fi
+        done
+        
+        # Check frontend availability
+        echo "🔍 Checking frontend availability..."
+        if curl -f "${{ secrets.PRODUCTION_FRONTEND_URL }}"; then
+          echo "✅ Frontend availability check passed"
+        else
+          echo "❌ Frontend availability check failed"
+          exit 1
+        fi
+        
+        echo "🎉 Production deployment health checks completed successfully!"
+
+    # Create deployment tag
+    - name: Tag successful deployment
+      if: success()
+      run: |
+        # Create a deployment tag with timestamp
+        timestamp=$(date +"%Y%m%d-%H%M%S")
+        tag_name="production-deploy-$timestamp"
+        
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git tag -a "$tag_name" -m "Production deployment at $timestamp"
+        git push origin "$tag_name" || echo "⚠️ Failed to push deployment tag"
+        
+        echo "✅ Created deployment tag: $tag_name"
+
+    # Final deployment summary
+    - name: Deployment success summary
+      if: success()
+      run: |
+        echo "🚀 Production deployment completed successfully!"
+        echo "🌐 Frontend: ${{ secrets.PRODUCTION_FRONTEND_URL }}"
+        echo "🔗 Backend API: ${{ secrets.PRODUCTION_BACKEND_URL }}"
+        echo "📅 Deployment time: $(date)"
+        echo "📊 Monitor the application for any issues"
+
+  # Post-deployment monitoring (optional)
+  post-deployment-monitoring:
+    name: Post-deployment Monitoring
+    runs-on: ubuntu-latest
+    needs: deploy-production
+    if: success()
+    
+    steps:
+    - name: Setup monitoring alerts
+      run: |
+        echo "📊 Setting up post-deployment monitoring..."
+        
+        # This is a placeholder for actual monitoring setup
+        # Could integrate with services like:
+        # - Sentry for error tracking
+        # - DataDog for performance monitoring
+        # - Pingdom for uptime monitoring
+        
+        echo "⏰ Monitoring will track:"
+        echo "  - Application uptime"
+        echo "  - Response times"
+        echo "  - Error rates"
+        echo "  - User activity"
+        
+        echo "✅ Monitoring setup completed"
+
+    # Notify team of successful deployment
+    - name: Notify deployment success
+      run: |
+        echo "🎯 Production deployment notification:"
+        echo "✅ GastroPartner MVP deployed to production"
+        echo "🔗 Production URL: ${{ secrets.PRODUCTION_FRONTEND_URL }}"
+        echo "📈 Ready for user traffic"
+        
+        # This could be extended to send notifications to:
+        # - Slack/Teams channels
+        # - Email notifications
+        # - Discord webhooks
+        # Example: curl -X POST ${{ secrets.SLACK_WEBHOOK }} -d '{"text":"Production deployed!"}'

@@ -8,8 +8,10 @@ import { Sidebar } from './components/Sidebar';
 import { MetricsCard } from './components/MetricsCard';
 import { SearchableTable, TableColumn } from './components/SearchableTable';
 import { EmptyState } from './components/EmptyState';
+import { MenuItemForm } from './components/MenuItems/MenuItemForm';
 import SuperAdminDashboard from './components/SuperAdmin/SuperAdminDashboard';
 import FreemiumTest from './pages/FreemiumTest';
+import { apiClient, MenuItem, MenuItemCreate } from './utils/api';
 
 interface ApiHealth {
   status: string;
@@ -43,6 +45,21 @@ function Dashboard() {
   const [apiStatus, setApiStatus] = useState<string>('checking...');
   const [apiData, setApiData] = useState<ApiHealth | null>(null);
   const [backendMessage, setBackendMessage] = useState<string>('');
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>('');
+
+  const loadMenuItems = async () => {
+    try {
+      const items = await apiClient.getMenuItems();
+      setMenuItems(items);
+      setError('');
+    } catch (err) {
+      console.error('Failed to load menu items:', err);
+      setError('Kunde inte ladda maträtter');
+    }
+  };
 
   useEffect(() => {
     // Kontrollera backend health
@@ -65,20 +82,55 @@ function Dashboard() {
       .catch(() => {
         setBackendMessage('Kunde inte ansluta till backend');
       });
+
+    // Ladda maträtter
+    loadMenuItems();
   }, []);
+
+  const handleCreateMenuItem = async (data: MenuItemCreate) => {
+    setIsLoading(true);
+    try {
+      await apiClient.createMenuItem(data);
+      await loadMenuItems(); // Reload the list
+      setError('');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Ett fel uppstod';
+      setError(errorMessage);
+      throw err; // Re-throw to let the form handle it
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const columns: TableColumn[] = [
     { key: 'name', label: 'Namn', sortable: true },
-    { key: 'marginal', label: 'Marginal %', sortable: true },
-    { key: 'marginalKr', label: 'Marginal kr', sortable: true },
-    { key: 'price', label: 'Pris', sortable: true },
+    { key: 'margin_percentage', label: 'Marginal %', sortable: true },
+    { key: 'margin', label: 'Marginal kr', sortable: true },
+    { key: 'selling_price', label: 'Pris', sortable: true },
   ];
 
-  const sampleData = [
-    { name: 'Pulled Pork Sandwich', marginal: '45%', marginalKr: '67 kr', price: '149 kr' },
-    { name: 'BBQ Ribs', marginal: '52%', marginalKr: '89 kr', price: '179 kr' },
-    { name: 'Brisket Platter', marginal: '38%', marginalKr: '76 kr', price: '199 kr' },
-  ];
+  // Transform menu items for the table
+  const tableData = menuItems.map(item => ({
+    name: item.name,
+    margin_percentage: item.margin_percentage ? `${item.margin_percentage.toFixed(1)}%` : '-',
+    margin: item.margin ? `${item.margin.toFixed(0)} kr` : '-',
+    selling_price: `${item.selling_price.toFixed(0)} kr`,
+    category: item.category,
+  }));
+
+  // Calculate metrics
+  const activeItems = menuItems.filter(item => item.is_active);
+  const avgMargin = activeItems.length > 0 
+    ? activeItems.reduce((sum, item) => sum + (item.margin_percentage || 0), 0) / activeItems.length 
+    : 0;
+  
+  const bestItem = activeItems.reduce((best, item) => 
+    (item.margin_percentage || 0) > (best?.margin_percentage || 0) ? item : best, null as MenuItem | null);
+  
+  const worstItem = activeItems.reduce((worst, item) => 
+    (item.margin_percentage || 0) < (worst?.margin_percentage || 0) ? item : worst, null as MenuItem | null);
+  
+  const profitableCount = activeItems.filter(item => (item.margin_percentage || 0) > 30).length;
 
   return (
     <div className="main-content">
@@ -86,7 +138,10 @@ function Dashboard() {
         title="Maträtter" 
         subtitle="Skapa maträtter från dina recept"
       >
-        <button className="btn btn--primary">
+        <button 
+          className="btn btn--primary"
+          onClick={() => setIsFormOpen(true)}
+        >
           <span>+</span> Ny Matträtt
         </button>
       </PageHeader>
@@ -94,30 +149,38 @@ function Dashboard() {
       <div className="dashboard-content">
         <OrganizationSelector />
         
+        {error && (
+          <div className="error-banner">
+            <span>⚠️ {error}</span>
+          </div>
+        )}
+        
         <div className="metrics-grid">
           <MetricsCard
             icon="📊"
             title="GENOMSNITTLIG MARGINAL"
-            value="0.0%"
-            subtitle="0.00 kr/portion"
-            color="danger"
+            value={`${avgMargin.toFixed(1)}%`}
+            subtitle={activeItems.length > 0 ? `${(activeItems.reduce((sum, item) => sum + (item.margin || 0), 0) / activeItems.length).toFixed(0)} kr/portion` : "0.00 kr/portion"}
+            color={avgMargin > 30 ? "success" : avgMargin > 15 ? "warning" : "danger"}
           />
           <MetricsCard
             icon="🍽️"
             title="BÄSTA MATTRÄTT"
-            value="Ingen data"
-            color="neutral"
+            value={bestItem ? bestItem.name : "Ingen data"}
+            subtitle={bestItem ? `${bestItem.margin_percentage?.toFixed(1)}%` : undefined}
+            color="success"
           />
           <MetricsCard
             icon="📈"
             title="SÄMSTA MATTRÄTT"
-            value="Ingen data"
-            color="neutral"
+            value={worstItem ? worstItem.name : "Ingen data"}
+            subtitle={worstItem ? `${worstItem.margin_percentage?.toFixed(1)}%` : undefined}
+            color="danger"
           />
           <MetricsCard
             icon="💰"
             title="LÖNSAMHETSFÖRDELNING"
-            value="0"
+            value={profitableCount.toString()}
             subtitle="Lönsamma"
             trend="neutral"
             color="success"
@@ -125,18 +188,18 @@ function Dashboard() {
         </div>
 
         <div className="table-section">
-          {sampleData.length === 0 ? (
+          {tableData.length === 0 ? (
             <EmptyState
               icon="👨‍🍳"
               title="Inga maträtter än"
               description="Skapa din första matträtt från dina recept"
               actionLabel="Skapa Matträtt"
-              onAction={() => console.log('Create dish')}
+              onAction={() => setIsFormOpen(true)}
             />
           ) : (
             <SearchableTable
               columns={columns}
-              data={sampleData}
+              data={tableData}
               searchPlaceholder="Sök maträtter..."
               emptyMessage="Inga maträtter hittades"
             />
@@ -158,6 +221,13 @@ function Dashboard() {
           {backendMessage && <p>{backendMessage}</p>}
         </div>
       </div>
+
+      <MenuItemForm
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        onSubmit={handleCreateMenuItem}
+        isLoading={isLoading}
+      />
     </div>
   );
 }
