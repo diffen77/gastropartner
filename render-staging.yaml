@@ -1,0 +1,44 @@
+services:
+  # Backend API Service - Staging
+  - type: web
+    name: gastropartner-backend-staging
+    runtime: python
+    region: frankfurt
+    plan: starter
+    branch: staging
+    buildCommand: cd gastropartner-backend && pip install uv && uv sync --frozen --no-dev
+    startCommand: cd gastropartner-backend && uv run uvicorn src.gastropartner.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11"
+      - key: SUPABASE_URL
+        sync: false  # Set manually in dashboard for staging Supabase project
+      - key: SUPABASE_ANON_KEY
+        sync: false  # Set manually in dashboard for staging Supabase project
+      - key: SUPABASE_SERVICE_KEY
+        sync: false  # Set manually in dashboard for staging Supabase project
+      - key: ENVIRONMENT
+        value: "staging"
+      - key: LOG_LEVEL
+        value: "DEBUG"
+
+  # Frontend Static Site - Staging
+  - type: static
+    name: gastropartner-frontend-staging
+    region: frankfurt
+    branch: staging
+    buildCommand: cd gastropartner-frontend && npm ci && npm run build
+    staticPublishPath: gastropartner-frontend/build
+    pullRequestPreviewsEnabled: true
+    autoDeploy: true
+    envVars:
+      - key: REACT_APP_API_URL
+        value: "https://gastropartner-backend-staging.onrender.com"
+      - key: REACT_APP_ENV
+        value: "staging"
+      - key: NODE_ENV
+        value: "production"
+      - key: GENERATE_SOURCEMAP
+        value: "true"  # Enable source maps for debugging in staging

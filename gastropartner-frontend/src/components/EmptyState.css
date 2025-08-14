@@ -1,0 +1,106 @@
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--color-neutral-600);
+}
+
+.empty-state--small {
+  padding: var(--spacing-lg);
+  min-height: 200px;
+}
+
+.empty-state--medium {
+  padding: var(--spacing-2xl);
+  min-height: 300px;
+}
+
+.empty-state--large {
+  padding: var(--spacing-2xl);
+  min-height: 400px;
+}
+
+.empty-state__content {
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.empty-state__icon {
+  font-size: 64px;
+  opacity: 0.5;
+  margin-bottom: var(--spacing-sm);
+}
+
+.empty-state--small .empty-state__icon {
+  font-size: 48px;
+}
+
+.empty-state--large .empty-state__icon {
+  font-size: 80px;
+}
+
+.empty-state__title {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--color-neutral-800);
+}
+
+.empty-state--small .empty-state__title {
+  font-size: var(--font-size-lg);
+}
+
+.empty-state--large .empty-state__title {
+  font-size: var(--font-size-2xl);
+}
+
+.empty-state__description {
+  margin: 0;
+  font-size: var(--font-size-base);
+  color: var(--color-neutral-600);
+  line-height: 1.5;
+}
+
+.empty-state--small .empty-state__description {
+  font-size: var(--font-size-sm);
+}
+
+.empty-state__action {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-xl);
+  background: var(--color-primary-blue);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.empty-state__action:hover {
+  background: #3367D6;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-elevated);
+}
+
+.empty-state__action:active {
+  transform: translateY(0);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .empty-state--medium,
+  .empty-state--large {
+    padding: var(--spacing-lg);
+    min-height: 250px;
+  }
+  
+  .empty-state__content {
+    max-width: 300px;
+  }
+}

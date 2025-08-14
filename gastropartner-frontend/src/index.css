@@ -1,10 +1,65 @@
+:root {
+  /* Design System Colors */
+  --color-primary-orange: #FF6B35;
+  --color-primary-blue: #4285F4;
+  --color-success: #34A853;
+  --color-danger: #EA4335;
+  --color-warning: #FBBC04;
+  
+  /* Neutral Colors */
+  --color-neutral-50: #F8F9FA;
+  --color-neutral-100: #F1F3F4;
+  --color-neutral-200: #E8EAED;
+  --color-neutral-300: #DADCE0;
+  --color-neutral-400: #BDC1C6;
+  --color-neutral-500: #9AA0A6;
+  --color-neutral-600: #80868B;
+  --color-neutral-700: #5F6368;
+  --color-neutral-800: #3C4043;
+  --color-neutral-900: #202124;
+  
+  /* Layout */
+  --sidebar-width: 280px;
+  --header-height: 64px;
+  --content-padding: 24px;
+  --border-radius: 8px;
+  --border-radius-large: 12px;
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.1);
+  --shadow-elevated: 0 4px 12px rgba(0,0,0,0.15);
+  
+  /* Typography */
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 32px;
+  
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-neutral-50);
+  color: var(--color-neutral-900);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
 }
 
 code {
