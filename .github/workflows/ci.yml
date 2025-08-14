@@ -96,6 +96,10 @@ jobs:
     
     - name: Build production bundle
       working-directory: ./gastropartner-frontend
+      env:
+        REACT_APP_SUPABASE_URL: https://example.supabase.co
+        REACT_APP_SUPABASE_ANON_KEY: dummy-key-for-ci-build
+        REACT_APP_API_URL: http://localhost:8000
       run: npm run build
     
     - name: Check bundle size
