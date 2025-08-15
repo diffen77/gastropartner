@@ -3,15 +3,24 @@ import './App.css';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
+import { AuthForm } from './components/Auth/AuthForm';
 import { OrganizationSelector } from './components/Organizations/OrganizationSelector';
 import { Sidebar } from './components/Sidebar';
 import { MetricsCard } from './components/MetricsCard';
 import { SearchableTable, TableColumn } from './components/SearchableTable';
 import { EmptyState } from './components/EmptyState';
 import { MenuItemForm } from './components/MenuItems/MenuItemForm';
+import { FeedbackButton } from './components/UserTesting/FeedbackButton';
 import SuperAdminDashboard from './components/SuperAdmin/SuperAdminDashboard';
 import FreemiumTest from './pages/FreemiumTest';
 import { Ingredients } from './pages/Ingredients';
+import { Recipes } from './pages/Recipes';
+import { MenuItems } from './pages/MenuItems';
+import CostControlDashboard from './components/CostControl/CostControlDashboard';
+import UserTestingDashboard from './pages/UserTestingDashboard';
+import { Sales } from './pages/Sales';
+import { Modules } from './pages/Modules';
+import { Settings } from './pages/Settings';
 import { apiClient, MenuItem, MenuItemCreate } from './utils/api';
 
 interface ApiHealth {
@@ -233,24 +242,62 @@ function Dashboard() {
   );
 }
 
+function LoginPage() {
+  const [authMode, setAuthMode] = React.useState<'login' | 'register'>('login');
+
+  return (
+    <div className="protected-route__auth">
+      <div className="auth-container">
+        <div className="auth-container__header">
+          <h1>GastroPartner</h1>
+          <p>SaaS för restauranger och livsmedelsproducenter</p>
+        </div>
+        <AuthForm mode={authMode} onModeChange={setAuthMode} />
+      </div>
+    </div>
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
       <Router>
-        <ProtectedRoute>
-          <div className="app-layout">
-            <Sidebar />
-            <main className="app-main">
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/ingredienser" element={<Ingredients />} />
-                <Route path="/matratter" element={<Dashboard />} />
-                <Route path="/superadmin" element={<SuperAdminDashboard />} />
-                <Route path="/freemium-test" element={<FreemiumTest />} />
-              </Routes>
-            </main>
-          </div>
-        </ProtectedRoute>
+        <Routes>
+          {/* Public route for authentication */}
+          <Route 
+            path="/login" 
+            element={<LoginPage />} 
+          />
+          
+          {/* Protected routes */}
+          <Route 
+            path="/*" 
+            element={
+              <ProtectedRoute>
+                <div className="app-layout">
+                  <Sidebar />
+                  <main className="app-main">
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/dashboard" element={<Dashboard />} />
+                      <Route path="/ingredienser" element={<Ingredients />} />
+                      <Route path="/recept" element={<Recipes />} />
+                      <Route path="/matratter" element={<MenuItems />} />
+                      <Route path="/kostnadsanalys" element={<CostControlDashboard />} />
+                      <Route path="/user-testing" element={<UserTestingDashboard />} />
+                      <Route path="/forsaljning" element={<Sales />} />
+                      <Route path="/moduler" element={<Modules />} />
+                      <Route path="/installningar" element={<Settings />} />
+                      <Route path="/superadmin" element={<SuperAdminDashboard />} />
+                      <Route path="/freemium-test" element={<FreemiumTest />} />
+                    </Routes>
+                    <FeedbackButton />
+                  </main>
+                </div>
+              </ProtectedRoute>
+            } 
+          />
+        </Routes>
       </Router>
     </AuthProvider>
   );

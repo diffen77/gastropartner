@@ -30,6 +30,11 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 
+# Test reports
+reports/
+*.xml
+*.json
+
 # Node
 node_modules/
 npm-debug.log*

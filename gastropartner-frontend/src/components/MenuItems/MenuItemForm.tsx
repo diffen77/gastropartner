@@ -141,6 +141,7 @@ export function MenuItemForm({ isOpen, onClose, onSubmit, isLoading = false }: M
               onChange={handleInputChange}
               className={errors.name ? 'error' : ''}
               placeholder="Ange maträttens namn"
+              autoComplete="off"
               disabled={isLoading}
             />
             {errors.name && <span className="error-message">{errors.name}</span>}

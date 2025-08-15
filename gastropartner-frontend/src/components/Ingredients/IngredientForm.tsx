@@ -138,6 +138,7 @@ export function IngredientForm({ isOpen, onClose, onSubmit, isLoading = false }:
               onChange={handleInputChange}
               className={errors.name ? 'error' : ''}
               placeholder="t.ex. Laxfilé"
+              autoComplete="off"
               disabled={isLoading}
             />
             {errors.name && <span className="error-text">{errors.name}</span>}
@@ -207,6 +208,7 @@ export function IngredientForm({ isOpen, onClose, onSubmit, isLoading = false }:
               value={formData.supplier}
               onChange={handleInputChange}
               placeholder="t.ex. ICA, Menigo, Kött & Fisk AB"
+              autoComplete="off"
               disabled={isLoading}
             />
           </div>

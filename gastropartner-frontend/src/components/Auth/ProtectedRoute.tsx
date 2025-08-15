@@ -3,8 +3,8 @@
  */
 
 import React from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { AuthForm } from './AuthForm';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -13,7 +13,7 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
   const { session, loading } = useAuth();
-  const [authMode, setAuthMode] = React.useState<'login' | 'register'>('login');
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -26,22 +26,17 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
     );
   }
 
-  if (!session) {
+  // Check for development token as fallback if no session
+  const devToken = localStorage.getItem('auth_token');
+  const isAuthenticated = session || devToken;
+
+  if (!isAuthenticated) {
     if (fallback) {
       return <>{fallback}</>;
     }
 
-    return (
-      <div className="protected-route__auth">
-        <div className="auth-container">
-          <div className="auth-container__header">
-            <h1>GastroPartner</h1>
-            <p>SaaS för restauranger och livsmedelsproducenter</p>
-          </div>
-          <AuthForm mode={authMode} onModeChange={setAuthMode} />
-        </div>
-      </div>
-    );
+    // Redirect to login page, preserving the intended destination
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   return <>{children}</>;

@@ -71,14 +71,8 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    // Get session with timeout to avoid hanging
-    const sessionPromise = supabase.auth.getSession();
-    const timeoutPromise = new Promise<never>((_, reject) => 
-      setTimeout(() => reject(new Error('Session fetch timeout in API client')), 5000)
-    );
-    
-    const session = await Promise.race([sessionPromise, timeoutPromise]);
-    const token = session.data.session?.access_token;
+    // Use development token from localStorage directly to avoid session fetch loops
+    const token = localStorage.getItem('auth_token');
 
     const url = `${this.baseUrl}${endpoint}`;
     const config: RequestInit = {
@@ -93,10 +87,35 @@ class ApiClient {
     const response = await fetch(url, config);
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({
-        message: `HTTP ${response.status}: ${response.statusText}`,
-      }));
-      throw new Error(error.message || 'API request failed');
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      
+      try {
+        const error = await response.json();
+        
+        // Handle FastAPI validation errors (422)
+        if (response.status === 422 && error.detail) {
+          if (Array.isArray(error.detail)) {
+            // Multiple validation errors
+            errorMessage = error.detail
+              .map((err: any) => `${err.loc?.[1] || 'field'}: ${err.msg}`)
+              .join(', ');
+          } else if (typeof error.detail === 'string') {
+            // Single error message
+            errorMessage = error.detail;
+          } else {
+            // Object with message
+            errorMessage = error.detail.message || error.message || errorMessage;
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
+        } else if (error.detail) {
+          errorMessage = typeof error.detail === 'string' ? error.detail : errorMessage;
+        }
+      } catch {
+        // If parsing fails, keep the generic HTTP error message
+      }
+      
+      throw new Error(errorMessage);
     }
 
     return response.json();
@@ -120,10 +139,35 @@ class ApiClient {
     const response = await fetch(url, config);
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({
-        message: `HTTP ${response.status}: ${response.statusText}`,
-      }));
-      throw new Error(error.message || 'API request failed');
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      
+      try {
+        const error = await response.json();
+        
+        // Handle FastAPI validation errors (422)
+        if (response.status === 422 && error.detail) {
+          if (Array.isArray(error.detail)) {
+            // Multiple validation errors
+            errorMessage = error.detail
+              .map((err: any) => `${err.loc?.[1] || 'field'}: ${err.msg}`)
+              .join(', ');
+          } else if (typeof error.detail === 'string') {
+            // Single error message
+            errorMessage = error.detail;
+          } else {
+            // Object with message
+            errorMessage = error.detail.message || error.message || errorMessage;
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
+        } else if (error.detail) {
+          errorMessage = typeof error.detail === 'string' ? error.detail : errorMessage;
+        }
+      } catch {
+        // If parsing fails, keep the generic HTTP error message
+      }
+      
+      throw new Error(errorMessage);
     }
 
     return response.json();
@@ -151,22 +195,21 @@ class ApiClient {
     });
   }
 
+  async devLogin(email: string, password: string): Promise<AuthResponse> {
+    console.log('🔧 Using development login for:', email);
+    return this.request<AuthResponse>('/api/v1/auth/dev-login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+  }
+
   async getCurrentUser(accessToken?: string): Promise<User> {
     if (accessToken) {
       // Use provided token directly
       return this.requestWithToken<User>('/api/v1/auth/me', accessToken);
     }
     
-    // Verify we have a valid session before making the request
-    const sessionPromise = supabase.auth.getSession();
-    const timeoutPromise = new Promise<never>((_, reject) => 
-      setTimeout(() => reject(new Error('Session check timeout in getCurrentUser')), 5000)
-    );
-    
-    const session = await Promise.race([sessionPromise, timeoutPromise]);
-    if (!session.data.session || !session.data.session.access_token) {
-      throw new Error('No valid session found');
-    }
+    // Use the standard request method which will get token from localStorage
     return this.request<User>('/api/v1/auth/me');
   }
 

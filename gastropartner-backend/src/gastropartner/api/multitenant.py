@@ -1,14 +1,13 @@
 """Multitenant API endpoints för organization management."""
 
+from datetime import UTC
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from supabase import Client
 
 from gastropartner.core.auth import get_current_active_user
-from gastropartner.core.database import get_supabase_client
 from gastropartner.core.models import MessageResponse, User
-from gastropartner.core.multitenant import get_multitenant_service, MultitenantService
+from gastropartner.core.multitenant import MultitenantService, get_multitenant_service
 
 router = APIRouter(prefix="/organizations", tags=["organizations"])
 
@@ -23,6 +22,22 @@ async def list_user_organizations(
     multitenant_service: MultitenantService = Depends(get_multitenant_service),
 ):
     """List all organizations the current user belongs to."""
+    # For development user, return a basic development organization
+    if str(current_user.id) == "12345678-1234-1234-1234-123456789012":
+        from datetime import datetime
+        return [{
+            "role": "owner",
+            "joined_at": datetime.now(UTC).isoformat(),
+            "organization": {
+                "organization_id": "87654321-4321-4321-4321-210987654321",
+                "name": "Development Organization",
+                "slug": "dev-org",
+                "plan": "free",
+                "description": "Default organization for development",
+                "created_at": datetime.now(UTC).isoformat()
+            }
+        }]
+
     return await multitenant_service.get_user_organizations(current_user.id)
 
 
@@ -59,14 +74,14 @@ async def invite_user_to_organization(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid role. Must be 'member', 'admin', or 'owner'"
         )
-    
+
     await multitenant_service.invite_user_to_organization(
         inviter_user_id=current_user.id,
         organization_id=organization_id,
         invitee_user_id=user_id,
         role=role,
     )
-    
+
     return MessageResponse(
         message=f"User invited to organization with role '{role}'",
         success=True
@@ -91,13 +106,13 @@ async def remove_user_from_organization(
         organization_id=organization_id,
         target_user_id=user_id,
     )
-    
+
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to remove user from organization"
         )
-    
+
     action = "left" if current_user.id == user_id else "removed from"
     return MessageResponse(
         message=f"User {action} organization successfully",
@@ -124,14 +139,14 @@ async def update_user_role(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid role. Must be 'member', 'admin', or 'owner'"
         )
-    
+
     await multitenant_service.update_user_role(
         updater_user_id=current_user.id,
         organization_id=organization_id,
         target_user_id=user_id,
         new_role=new_role,
     )
-    
+
     return MessageResponse(
         message=f"User role updated to '{new_role}' successfully",
         success=True
@@ -155,13 +170,13 @@ async def check_organization_access(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid role. Must be 'member', 'admin', or 'owner'"
         )
-    
+
     access_info = await multitenant_service.check_user_organization_access(
         user_id=current_user.id,
         organization_id=organization_id,
         required_role=required_role,
     )
-    
+
     return {
         "has_access": True,
         "role": access_info["role"],

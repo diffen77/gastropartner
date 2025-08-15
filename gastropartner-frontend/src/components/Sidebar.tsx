@@ -16,6 +16,8 @@ const navigationItems: NavigationItem[] = [
   { id: 'ingredients', label: 'Ingredienser', icon: '🥕', path: '/ingredienser' },
   { id: 'recipes', label: 'Recept', icon: '📝', path: '/recept' },
   { id: 'dishes', label: 'Maträtter', icon: '🍽️', path: '/matratter' },
+  { id: 'cost-control', label: 'Kostnadsanalys', icon: '📈', path: '/kostnadsanalys' },
+  { id: 'user-testing', label: 'User Testing', icon: '🧪', path: '/user-testing' },
   { id: 'sales', label: 'Försäljning', icon: '💰', path: '/forsaljning' },
   { id: 'modules', label: 'Moduler', icon: '🧩', path: '/moduler' },
   { id: 'settings', label: 'Inställningar', icon: '⚙️', path: '/installningar' },

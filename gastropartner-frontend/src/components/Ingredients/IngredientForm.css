@@ -1,3 +1,57 @@
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: white;
+  border-radius: var(--border-radius-large, 12px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: modalAppear 0.2s ease-out;
+  padding: 1.5rem;
+}
+
+@keyframes modalAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--color-neutral-200, #E8EAED);
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: var(--color-neutral-900, #202124);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
 /* Ingredient Form Styles */
 .ingredient-form {
   display: flex;
@@ -15,7 +69,7 @@
 
 .form-group label {
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-neutral-900, #202124);
   font-size: 0.875rem;
   margin-bottom: 0.25rem;
 }
@@ -24,12 +78,12 @@
 .form-group select,
 .form-group textarea {
   padding: 0.75rem;
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
+  border: 1px solid var(--color-neutral-300, #DADCE0);
+  border-radius: var(--border-radius, 8px);
   font-size: 1rem;
   font-family: inherit;
-  background: var(--bg-white);
-  color: var(--text-primary);
+  background: white;
+  color: var(--color-neutral-900, #202124);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -37,25 +91,25 @@
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-light);
+  border-color: var(--color-primary-blue, #4285F4);
+  box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.2);
 }
 
 .form-group input.error,
 .form-group select.error,
 .form-group textarea.error {
-  border-color: var(--color-danger);
+  border-color: var(--color-danger, #EA4335);
 }
 
 .form-group input.error:focus,
 .form-group select.error:focus,
 .form-group textarea.error:focus {
-  box-shadow: 0 0 0 3px var(--color-danger-light);
+  box-shadow: 0 0 0 3px rgba(234, 67, 53, 0.2);
 }
 
 .form-group input::placeholder,
 .form-group textarea::placeholder {
-  color: var(--text-secondary);
+  color: var(--color-neutral-600, #80868B);
 }
 
 .form-group textarea {
@@ -70,7 +124,7 @@
 }
 
 .error-text {
-  color: var(--color-danger);
+  color: var(--color-danger, #EA4335);
   font-size: 0.875rem;
   font-weight: 500;
   margin-top: 0.25rem;
@@ -82,7 +136,7 @@
   gap: 1rem;
   margin-top: 1rem;
   padding-top: 1.5rem;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--color-neutral-200, #E8EAED);
 }
 
 /* Responsive */
@@ -131,7 +185,21 @@ select:focus {
 .form-group input:disabled,
 .form-group select:disabled,
 .form-group textarea:disabled {
-  background: var(--bg-light);
-  color: var(--text-disabled);
+  background: var(--color-neutral-100, #F1F3F4);
+  color: var(--color-neutral-500, #9AA0A6);
   cursor: not-allowed;
+}
+
+/* Responsive design for modal */
+@media (max-width: 640px) {
+  .modal-content {
+    margin: 1rem;
+    max-height: calc(100vh - 2rem);
+    padding: 1rem;
+  }
+  
+  .modal-header {
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+  }
 }

@@ -46,6 +46,27 @@ indent-style = "space"
 testpaths = ["src/gastropartner/tests"]
 python_files = ["test_*.py", "*_test.py"]
 asyncio_mode = "auto"
+# Always generate reports, even on test failures
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    # Generate JUnit XML report
+    "--junit-xml=reports/junit/pytest.xml",
+    "--junit-prefix=gastropartner",
+    # Generate coverage reports
+    "--cov=src/gastropartner",
+    "--cov-report=html:reports/htmlcov",
+    "--cov-report=xml:reports/coverage.xml", 
+    "--cov-report=json:reports/coverage.json",
+    "--cov-report=term-missing",
+    # Don't fail coverage on test failures
+    "--no-cov-on-fail",
+]
+# Create reports directory structure
+junit_family = "xunit2"
+junit_logging = "all"
+junit_log_passing_tests = true
 
 [tool.mypy]
 python_version = "3.11"

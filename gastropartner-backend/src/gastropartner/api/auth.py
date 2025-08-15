@@ -259,3 +259,69 @@ async def auth_status(
         ],
         "multitenant": True,
     }
+
+
+@router.post(
+    "/dev-login",
+    response_model=AuthResponse,
+    summary="Development login (bypasses email confirmation)",
+    description="⚠️ DEVELOPMENT ONLY - Login without email confirmation",
+)
+async def dev_login(
+    login_data: LoginRequest,
+    supabase: Client = Depends(get_supabase_client),
+) -> AuthResponse:
+    """
+    Development login that bypasses email confirmation.
+    
+    ⚠️ FOR DEVELOPMENT USE ONLY - DO NOT USE IN PRODUCTION
+    """
+    try:
+        # For development, accept any email/password for simplicity
+        # In a real dev environment, you might want basic validation
+
+        # Simple validation - just check password is not empty
+        if not login_data.password or len(login_data.password) < 1:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Password cannot be empty",
+            )
+
+        # Create a development user response
+        user_data = {
+            "id": "12345678-1234-1234-1234-123456789012",
+            "email": login_data.email,
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z",
+            "email_confirmed_at": "2024-01-01T00:00:00Z",
+            "last_sign_in_at": "2024-01-01T00:00:00Z",
+            "user_metadata": {"full_name": "Development User"}
+        }
+
+        # Create a simple dev token (this is NOT secure - dev only!)
+        dev_token = f"dev_token_{login_data.email.replace('@', '_').replace('.', '_')}"
+
+        user = User(
+            id=user_data["id"],
+            email=user_data["email"],
+            full_name=user_data["user_metadata"]["full_name"],
+            created_at=user_data["created_at"],
+            updated_at=user_data["updated_at"],
+            email_confirmed_at=user_data["email_confirmed_at"],
+            last_sign_in_at=user_data["last_sign_in_at"],
+        )
+
+        return AuthResponse(
+            access_token=dev_token,
+            refresh_token=f"{dev_token}_refresh",
+            user=user,
+            expires_in=3600,  # 1 hour
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Development login failed: {e!s}",
+        ) from e

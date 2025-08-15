@@ -1,23 +1,24 @@
 """Data models för GastroPartner."""
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Any
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, computed_field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, computed_field, field_validator
 
 
 class TenantMixin(BaseModel):
     """Mixin för models that belong to an organization (tenant)."""
-    
+
     organization_id: UUID
-    
+
     @computed_field
     @property
     def tenant_key(self) -> str:
         """Return a string key identifying the tenant."""
         return str(self.organization_id)
-    
+
     def belongs_to_organization(self, organization_id: UUID) -> bool:
         """Check if this model belongs to the specified organization."""
         return self.organization_id == organization_id
@@ -153,9 +154,19 @@ class IngredientBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     category: str | None = Field(None, max_length=100)
     unit: str = Field(default="kg", max_length=20)
-    cost_per_unit: float = Field(ge=0, decimal_places=2)
+    cost_per_unit: Decimal = Field(ge=0, decimal_places=2)
     supplier: str | None = Field(None, max_length=255)
     notes: str | None = Field(None, max_length=1000)
+
+    @field_validator("cost_per_unit", mode="before")
+    @classmethod
+    def convert_cost_to_decimal(cls, v):
+        """Convert float/int/string to Decimal for proper handling."""
+        if v is None:
+            return v
+        if isinstance(v, int | float | str):
+            return Decimal(str(v))
+        return v
 
 
 class IngredientCreate(IngredientBase):
@@ -169,10 +180,20 @@ class IngredientUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=255)
     category: str | None = Field(None, max_length=100)
     unit: str | None = Field(None, max_length=20)
-    cost_per_unit: float | None = Field(None, ge=0, decimal_places=2)
+    cost_per_unit: Decimal | None = Field(None, ge=0, decimal_places=2)
     supplier: str | None = Field(None, max_length=255)
     notes: str | None = Field(None, max_length=1000)
     is_active: bool | None = None
+
+    @field_validator("cost_per_unit", mode="before")
+    @classmethod
+    def convert_cost_to_decimal(cls, v):
+        """Convert float/int/string to Decimal for proper handling."""
+        if v is None:
+            return v
+        if isinstance(v, int | float | str):
+            return Decimal(str(v))
+        return v
 
 
 class Ingredient(IngredientBase, TenantMixin):
@@ -186,6 +207,9 @@ class Ingredient(IngredientBase, TenantMixin):
     model_config = ConfigDict(
         from_attributes=True,
         use_enum_values=True,
+        json_encoders={
+            Decimal: float,  # Convert Decimal to float for JSON
+        }
     )
 
 
@@ -194,9 +218,19 @@ class RecipeIngredientBase(BaseModel):
     """Base recipe ingredient model."""
 
     ingredient_id: UUID
-    quantity: float = Field(gt=0, decimal_places=3)
+    quantity: Decimal = Field(gt=0, decimal_places=3)
     unit: str = Field(..., max_length=20)
     notes: str | None = Field(None, max_length=500)
+
+    @field_validator("quantity", mode="before")
+    @classmethod
+    def convert_quantity_to_decimal(cls, v):
+        """Convert float/int/string to Decimal for proper handling."""
+        if v is None:
+            return v
+        if isinstance(v, int | float | str):
+            return Decimal(str(v))
+        return v
 
 
 class RecipeIngredientCreate(RecipeIngredientBase):
@@ -207,9 +241,19 @@ class RecipeIngredientCreate(RecipeIngredientBase):
 class RecipeIngredientUpdate(BaseModel):
     """Recipe ingredient update model."""
 
-    quantity: float | None = Field(None, gt=0, decimal_places=3)
+    quantity: Decimal | None = Field(None, gt=0, decimal_places=3)
     unit: str | None = Field(None, max_length=20)
     notes: str | None = Field(None, max_length=500)
+
+    @field_validator("quantity", mode="before")
+    @classmethod
+    def convert_quantity_to_decimal(cls, v):
+        """Convert float/int/string to Decimal for proper handling."""
+        if v is None:
+            return v
+        if isinstance(v, int | float | str):
+            return Decimal(str(v))
+        return v
 
 
 class RecipeIngredient(RecipeIngredientBase):
@@ -262,8 +306,8 @@ class Recipe(RecipeBase, TenantMixin):
 
     recipe_id: UUID = Field(default_factory=uuid4)
     ingredients: list[RecipeIngredient] = Field(default_factory=list)
-    total_cost: float = Field(default=0.0, ge=0)  # Calculated field
-    cost_per_serving: float = Field(default=0.0, ge=0)  # Calculated field
+    total_cost: Decimal = Field(default=Decimal("0.0"), ge=0)  # Calculated field
+    cost_per_serving: Decimal = Field(default=Decimal("0.0"), ge=0)  # Calculated field
     is_active: bool = True
     created_at: datetime
     updated_at: datetime
@@ -281,8 +325,18 @@ class MenuItemBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     description: str | None = Field(None, max_length=1000)
     category: str | None = Field(None, max_length=100)
-    selling_price: float = Field(ge=0, decimal_places=2)
-    target_food_cost_percentage: float = Field(default=30.0, ge=0, le=100, decimal_places=2)
+    selling_price: Decimal = Field(ge=0, decimal_places=2)
+    target_food_cost_percentage: Decimal = Field(default=Decimal("30.0"), ge=0, le=100, decimal_places=2)
+
+    @field_validator("selling_price", "target_food_cost_percentage", mode="before")
+    @classmethod
+    def convert_decimal_fields(cls, v):
+        """Convert float/int/string to Decimal for proper handling."""
+        if v is None:
+            return v
+        if isinstance(v, int | float | str):
+            return Decimal(str(v))
+        return v
 
 
 class MenuItemCreate(MenuItemBase):
@@ -296,10 +350,20 @@ class MenuItemUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=255)
     description: str | None = Field(None, max_length=1000)
     category: str | None = Field(None, max_length=100)
-    selling_price: float | None = Field(None, ge=0, decimal_places=2)
-    target_food_cost_percentage: float | None = Field(None, ge=0, le=100, decimal_places=2)
+    selling_price: Decimal | None = Field(None, ge=0, decimal_places=2)
+    target_food_cost_percentage: Decimal | None = Field(None, ge=0, le=100, decimal_places=2)
     recipe_id: UUID | None = None
     is_active: bool | None = None
+
+    @field_validator("selling_price", "target_food_cost_percentage", mode="before")
+    @classmethod
+    def convert_decimal_fields(cls, v):
+        """Convert float/int/string to Decimal for proper handling."""
+        if v is None:
+            return v
+        if isinstance(v, int | float | str):
+            return Decimal(str(v))
+        return v
 
 
 class MenuItem(MenuItemBase, TenantMixin):
@@ -308,10 +372,10 @@ class MenuItem(MenuItemBase, TenantMixin):
     menu_item_id: UUID = Field(default_factory=uuid4)
     recipe_id: UUID | None = None
     recipe: Recipe | None = None  # Populated via join
-    food_cost: float = Field(default=0.0, ge=0)  # Calculated field
-    food_cost_percentage: float = Field(default=0.0, ge=0)  # Calculated field
-    margin: float = Field(default=0.0)  # Calculated field
-    margin_percentage: float = Field(default=0.0)  # Calculated field
+    food_cost: Decimal = Field(default=Decimal("0.0"), ge=0)  # Calculated field
+    food_cost_percentage: Decimal = Field(default=Decimal("0.0"), ge=0)  # Calculated field
+    margin: Decimal = Field(default=Decimal("0.0"))  # Calculated field
+    margin_percentage: Decimal = Field(default=Decimal("0.0"))  # Calculated field
     is_active: bool = True
     created_at: datetime
     updated_at: datetime
@@ -326,14 +390,34 @@ class MenuItem(MenuItemBase, TenantMixin):
 class CostAnalysis(BaseModel):
     """Cost analysis for recipes and menu items."""
 
-    total_ingredient_cost: float = Field(ge=0)
-    cost_per_serving: float = Field(ge=0)
-    selling_price: float | None = Field(None, ge=0)
-    food_cost_percentage: float | None = Field(None, ge=0, le=100)
-    margin: float | None = None
-    margin_percentage: float | None = None
-    target_food_cost_percentage: float | None = Field(None, ge=0, le=100)
-    recommended_selling_price: float | None = Field(None, ge=0)
+    total_ingredient_cost: Decimal = Field(ge=0)
+    cost_per_serving: Decimal = Field(ge=0)
+    selling_price: Decimal | None = Field(None, ge=0)
+    food_cost_percentage: Decimal | None = Field(None, ge=0, le=100)
+    margin: Decimal | None = None
+    margin_percentage: Decimal | None = None
+    target_food_cost_percentage: Decimal | None = Field(None, ge=0, le=100)
+    recommended_selling_price: Decimal | None = Field(None, ge=0)
+
+    @field_validator(
+        "total_ingredient_cost",
+        "cost_per_serving",
+        "selling_price",
+        "food_cost_percentage",
+        "margin",
+        "margin_percentage",
+        "target_food_cost_percentage",
+        "recommended_selling_price",
+        mode="before"
+    )
+    @classmethod
+    def convert_decimal_fields(cls, v):
+        """Convert float/int/string to Decimal for proper handling."""
+        if v is None:
+            return v
+        if isinstance(v, int | float | str):
+            return Decimal(str(v))
+        return v
 
 
 class UsageLimitsCheck(BaseModel):
@@ -349,3 +433,178 @@ class UsageLimitsCheck(BaseModel):
     can_add_recipe: bool
     can_add_menu_item: bool
     upgrade_needed: bool
+
+
+# ===== USER TESTING MODELS =====
+
+# User feedback models
+class UserFeedbackBase(BaseModel):
+    """Base user feedback model."""
+
+    feedback_type: str = Field(..., pattern="^(bug|feature_request|general|usability|satisfaction)$")
+    title: str = Field(..., min_length=1, max_length=255)
+    description: str = Field(..., min_length=1, max_length=2000)
+    rating: int | None = Field(None, ge=1, le=5)
+    page_url: str | None = Field(None, max_length=500)
+    user_agent: str | None = Field(None, max_length=500)
+    priority: str = Field(default="medium", pattern="^(low|medium|high|critical)$")
+
+
+class UserFeedbackCreate(UserFeedbackBase):
+    """User feedback creation model."""
+    pass
+
+
+class UserFeedbackUpdate(BaseModel):
+    """User feedback update model."""
+
+    status: str | None = Field(None, pattern="^(open|in_progress|resolved|closed)$")
+    priority: str | None = Field(None, pattern="^(low|medium|high|critical)$")
+    admin_notes: str | None = Field(None, max_length=2000)
+
+
+class UserFeedback(UserFeedbackBase, TenantMixin):
+    """Complete user feedback model."""
+
+    feedback_id: UUID = Field(default_factory=uuid4)
+    user_id: UUID
+    status: str = Field(default="open", pattern="^(open|in_progress|resolved|closed)$")
+    admin_notes: str | None = Field(None, max_length=2000)
+    created_at: datetime
+    updated_at: datetime
+    resolved_at: datetime | None = None
+
+    model_config = ConfigDict(
+        from_attributes=True,
+        use_enum_values=True,
+    )
+
+
+# Onboarding tracking models
+class OnboardingStepBase(BaseModel):
+    """Base onboarding step model."""
+
+    step_name: str = Field(..., max_length=100)
+    step_order: int = Field(ge=1)
+    title: str = Field(..., min_length=1, max_length=255)
+    description: str = Field(..., min_length=1, max_length=1000)
+    action_required: bool = True
+    estimated_time_minutes: int | None = Field(None, ge=1)
+
+
+class OnboardingStepCreate(OnboardingStepBase):
+    """Onboarding step creation model."""
+    pass
+
+
+class OnboardingStep(OnboardingStepBase):
+    """Complete onboarding step model."""
+
+    step_id: UUID = Field(default_factory=uuid4)
+    is_active: bool = True
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(
+        from_attributes=True,
+        use_enum_values=True,
+    )
+
+
+class UserOnboardingProgressBase(BaseModel):
+    """Base user onboarding progress model."""
+
+    step_id: UUID
+    completed: bool = False
+    completion_time_seconds: int | None = Field(None, ge=0)
+    notes: str | None = Field(None, max_length=1000)
+
+
+class UserOnboardingProgressCreate(UserOnboardingProgressBase):
+    """User onboarding progress creation model."""
+    pass
+
+
+class UserOnboardingProgressUpdate(BaseModel):
+    """User onboarding progress update model."""
+
+    completed: bool | None = None
+    completion_time_seconds: int | None = Field(None, ge=0)
+    notes: str | None = Field(None, max_length=1000)
+
+
+class UserOnboardingProgress(UserOnboardingProgressBase, TenantMixin):
+    """Complete user onboarding progress model."""
+
+    progress_id: UUID = Field(default_factory=uuid4)
+    user_id: UUID
+    step: OnboardingStep | None = None  # Populated via join
+    started_at: datetime
+    completed_at: datetime | None = None
+
+    model_config = ConfigDict(
+        from_attributes=True,
+        use_enum_values=True,
+    )
+
+
+# User analytics models
+class UserAnalyticsEventBase(BaseModel):
+    """Base user analytics event model."""
+
+    event_type: str = Field(..., max_length=100)
+    event_name: str = Field(..., max_length=100)
+    page_url: str | None = Field(None, max_length=500)
+    element_id: str | None = Field(None, max_length=100)
+    element_text: str | None = Field(None, max_length=255)
+    session_id: str | None = Field(None, max_length=255)
+    user_agent: str | None = Field(None, max_length=500)
+    properties: dict[str, Any] = Field(default_factory=dict)
+
+
+class UserAnalyticsEventCreate(UserAnalyticsEventBase):
+    """User analytics event creation model."""
+    pass
+
+
+class UserAnalyticsEvent(UserAnalyticsEventBase, TenantMixin):
+    """Complete user analytics event model."""
+
+    event_id: UUID = Field(default_factory=uuid4)
+    user_id: UUID | None = None  # Can be anonymous
+    created_at: datetime
+
+    model_config = ConfigDict(
+        from_attributes=True,
+        use_enum_values=True,
+    )
+
+
+# User testing metrics models
+class UserTestingMetrics(BaseModel):
+    """User testing metrics summary."""
+
+    total_users: int = Field(ge=0)
+    active_users_today: int = Field(ge=0)
+    active_users_week: int = Field(ge=0)
+    active_users_month: int = Field(ge=0)
+    avg_session_duration_minutes: float = Field(ge=0)
+    total_feedback_items: int = Field(ge=0)
+    unresolved_feedback: int = Field(ge=0)
+    onboarding_completion_rate: float = Field(ge=0, le=100)
+    avg_onboarding_time_minutes: float = Field(ge=0)
+    most_used_features: list[dict[str, Any]] = Field(default_factory=list)
+    conversion_rate: float = Field(ge=0, le=100)
+
+
+class OnboardingStatus(BaseModel):
+    """User onboarding status summary."""
+
+    user_id: UUID
+    total_steps: int = Field(ge=0)
+    completed_steps: int = Field(ge=0)
+    completion_percentage: float = Field(ge=0, le=100)
+    current_step: OnboardingStep | None = None
+    estimated_time_remaining_minutes: int | None = Field(None, ge=0)
+    started_at: datetime | None = None
+    last_activity_at: datetime | None = None
