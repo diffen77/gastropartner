@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from supabase import Client
 
 from gastropartner.core.auth import get_current_active_user, get_user_organization
-from gastropartner.core.database import get_supabase_client
+from gastropartner.core.database import get_supabase_client, get_supabase_client_with_auth
 from gastropartner.core.freemium import get_freemium_service
 from gastropartner.core.models import (
     Ingredient,
@@ -104,8 +104,11 @@ async def create_ingredient(
     await freemium_service.enforce_ingredient_limit(organization_id)
 
     try:
+        # Get Supabase client with user authentication context
+        user_supabase = get_supabase_client_with_auth(str(current_user.id))
+        
         # Create ingredient
-        response = supabase.table("ingredients").insert({
+        response = user_supabase.table("ingredients").insert({
             "organization_id": str(organization_id),
             "name": ingredient_data.name,
             "category": ingredient_data.category,

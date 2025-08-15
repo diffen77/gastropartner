@@ -1,0 +1,3 @@
+"""
+GastroPartner Test Suite
+"""

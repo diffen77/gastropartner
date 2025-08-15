@@ -1,7 +1,8 @@
 """Tests för multitenant functionality."""
 
-import pytest
 from uuid import uuid4
+
+import pytest
 
 from gastropartner.core.multitenant import MultitenantService
 
@@ -26,7 +27,7 @@ class TestMultitenantService:
         user_id = uuid4()
         organization_id = uuid4()
         inviter_id = uuid4()
-        
+
         # This would test the role validation logic
         # Actual implementation would require test database setup
         assert multitenant_service is not None
@@ -44,14 +45,14 @@ class TestTenantMixin:
     def test_tenant_key_generation(self):
         """Test that tenant key is generated correctly."""
         from gastropartner.core.models import TenantMixin
-        
+
         # Create a simple test model
         class TestModel(TenantMixin):
             name: str = "test"
-        
+
         org_id = uuid4()
         model = TestModel(organization_id=org_id, name="test")
-        
+
         assert model.tenant_key == str(org_id)
         assert model.belongs_to_organization(org_id)
         assert not model.belongs_to_organization(uuid4())
@@ -62,9 +63,10 @@ class TestDataModelTenancy:
 
     def test_ingredient_model_has_tenancy(self):
         """Test that Ingredient model has tenant support."""
-        from gastropartner.core.models import Ingredient
         from datetime import datetime
-        
+
+        from gastropartner.core.models import Ingredient
+
         org_id = uuid4()
         ingredient = Ingredient(
             organization_id=org_id,
@@ -74,15 +76,16 @@ class TestDataModelTenancy:
             created_at=datetime.now(),
             updated_at=datetime.now(),
         )
-        
+
         assert ingredient.tenant_key == str(org_id)
         assert ingredient.belongs_to_organization(org_id)
 
     def test_recipe_model_has_tenancy(self):
         """Test that Recipe model has tenant support."""
-        from gastropartner.core.models import Recipe
         from datetime import datetime
-        
+
+        from gastropartner.core.models import Recipe
+
         org_id = uuid4()
         recipe = Recipe(
             organization_id=org_id,
@@ -91,15 +94,16 @@ class TestDataModelTenancy:
             created_at=datetime.now(),
             updated_at=datetime.now(),
         )
-        
+
         assert recipe.tenant_key == str(org_id)
         assert recipe.belongs_to_organization(org_id)
 
     def test_menu_item_model_has_tenancy(self):
         """Test that MenuItem model has tenant support."""
-        from gastropartner.core.models import MenuItem
         from datetime import datetime
-        
+
+        from gastropartner.core.models import MenuItem
+
         org_id = uuid4()
         menu_item = MenuItem(
             organization_id=org_id,
@@ -108,6 +112,6 @@ class TestDataModelTenancy:
             created_at=datetime.now(),
             updated_at=datetime.now(),
         )
-        
+
         assert menu_item.tenant_key == str(org_id)
         assert menu_item.belongs_to_organization(org_id)

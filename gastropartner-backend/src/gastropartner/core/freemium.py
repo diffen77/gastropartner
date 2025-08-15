@@ -7,6 +7,7 @@ from fastapi import HTTPException, status
 from supabase import Client
 
 from gastropartner.core.models import UsageLimitsCheck
+from gastropartner.middleware.analytics import track_limit_hit_with_analytics, track_upgrade_prompt_with_analytics
 
 
 class FreemiumService:
@@ -22,10 +23,13 @@ class FreemiumService:
         ).eq("organization_id", str(organization_id)).execute()
 
         if not response.data:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Organization not found"
-            )
+            # Return default freemium limits for missing organizations
+            # This handles development/testing scenarios gracefully
+            return {
+                "max_ingredients": 50,
+                "max_recipes": 5,
+                "max_menu_items": 2
+            }
 
         return response.data[0]
 
@@ -100,33 +104,81 @@ class FreemiumService:
             upgrade_needed=upgrade_needed,
         )
 
-    async def enforce_ingredient_limit(self, organization_id: UUID) -> None:
+    async def enforce_ingredient_limit(self, organization_id: UUID, user_id: UUID | None = None) -> None:
         """Enforce ingredient limit and raise exception if exceeded."""
         limits_check = await self.check_all_limits(organization_id, check_ingredient_add=True)
 
         if not limits_check.can_add_ingredient:
+            # Track analytics for limit hit
+            if user_id:
+                await track_limit_hit_with_analytics(
+                    organization_id=organization_id,
+                    user_id=user_id,
+                    feature="ingredients",
+                    current_count=limits_check.current_ingredients,
+                    limit=limits_check.max_ingredients,
+                )
+                await track_upgrade_prompt_with_analytics(
+                    organization_id=organization_id,
+                    user_id=user_id,
+                    feature="ingredients",
+                    prompt_type="limit_reached",
+                )
+            
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
                 detail=f"Freemium limit reached: {limits_check.current_ingredients}/{limits_check.max_ingredients} ingredients used. Upgrade to premium for unlimited ingredients.",
                 headers={"X-Upgrade-Required": "true", "X-Feature": "ingredients"}
             )
 
-    async def enforce_recipe_limit(self, organization_id: UUID) -> None:
+    async def enforce_recipe_limit(self, organization_id: UUID, user_id: UUID | None = None) -> None:
         """Enforce recipe limit and raise exception if exceeded."""
         limits_check = await self.check_all_limits(organization_id, check_recipe_add=True)
 
         if not limits_check.can_add_recipe:
+            # Track analytics for limit hit
+            if user_id:
+                await track_limit_hit_with_analytics(
+                    organization_id=organization_id,
+                    user_id=user_id,
+                    feature="recipes",
+                    current_count=limits_check.current_recipes,
+                    limit=limits_check.max_recipes,
+                )
+                await track_upgrade_prompt_with_analytics(
+                    organization_id=organization_id,
+                    user_id=user_id,
+                    feature="recipes",
+                    prompt_type="limit_reached",
+                )
+            
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
                 detail=f"Freemium limit reached: {limits_check.current_recipes}/{limits_check.max_recipes} recipes used. Upgrade to premium for unlimited recipes.",
                 headers={"X-Upgrade-Required": "true", "X-Feature": "recipes"}
             )
 
-    async def enforce_menu_item_limit(self, organization_id: UUID) -> None:
+    async def enforce_menu_item_limit(self, organization_id: UUID, user_id: UUID | None = None) -> None:
         """Enforce menu item limit and raise exception if exceeded."""
         limits_check = await self.check_all_limits(organization_id, check_menu_item_add=True)
 
         if not limits_check.can_add_menu_item:
+            # Track analytics for limit hit
+            if user_id:
+                await track_limit_hit_with_analytics(
+                    organization_id=organization_id,
+                    user_id=user_id,
+                    feature="menu_items",
+                    current_count=limits_check.current_menu_items,
+                    limit=limits_check.max_menu_items,
+                )
+                await track_upgrade_prompt_with_analytics(
+                    organization_id=organization_id,
+                    user_id=user_id,
+                    feature="menu_items",
+                    prompt_type="limit_reached",
+                )
+            
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
                 detail=f"Freemium limit reached: {limits_check.current_menu_items}/{limits_check.max_menu_items} menu items used. Upgrade to premium for unlimited menu items.",

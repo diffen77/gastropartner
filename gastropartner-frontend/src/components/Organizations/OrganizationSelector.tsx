@@ -88,6 +88,7 @@ export function OrganizationSelector() {
               name="name"
               value={createFormData.name}
               onChange={handleCreateInputChange}
+              autoComplete="organization"
               required
               disabled={creating}
               placeholder="T.ex. Min Restaurang"

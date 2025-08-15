@@ -1,7 +1,7 @@
 """Base repository pattern för multitenant data access."""
 
-from abc import ABC, abstractmethod
-from typing import Any, Generic, TypeVar, cast
+from abc import ABC
+from typing import Any, Generic, TypeVar
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -42,21 +42,21 @@ class BaseRepository(ABC, Generic[ModelType, CreateType, UpdateType]):
         """Create new record with tenant isolation."""
         create_data = data.model_dump(exclude_unset=True)
         create_data["organization_id"] = str(organization_id)
-        
+
         if additional_fields:
             create_data.update(additional_fields)
 
         try:
             response = self.supabase.table(self.table_name).insert(create_data).execute()
-            
+
             if not response.data:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail=f"Failed to create {self.table_name[:-1]}"
                 )
-            
+
             return self._to_model(response.data[0])
-            
+
         except HTTPException:
             raise
         except Exception as e:
@@ -75,15 +75,15 @@ class BaseRepository(ABC, Generic[ModelType, CreateType, UpdateType]):
             response = self.supabase.table(self.table_name).select("*").eq(
                 self.primary_key, str(record_id)
             ).eq("organization_id", str(organization_id)).execute()
-            
+
             if not response.data:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"{self.table_name[:-1].title()} not found"
                 )
-            
+
             return self._to_model(response.data[0])
-            
+
         except HTTPException:
             raise
         except Exception as e:
@@ -105,20 +105,20 @@ class BaseRepository(ABC, Generic[ModelType, CreateType, UpdateType]):
             query = self.supabase.table(self.table_name).select("*").eq(
                 "organization_id", str(organization_id)
             )
-            
+
             if filters:
                 for key, value in filters.items():
                     if value is not None:
                         query = query.eq(key, value)
-            
+
             if order_by:
                 query = query.order(order_by)
-            
+
             query = query.range(offset, offset + limit - 1)
             response = query.execute()
-            
+
             return [self._to_model(item) for item in response.data]
-            
+
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -134,27 +134,27 @@ class BaseRepository(ABC, Generic[ModelType, CreateType, UpdateType]):
         """Update record with tenant isolation."""
         # First verify record exists and belongs to organization
         await self.get_by_id(record_id, organization_id)
-        
+
         update_data = data.model_dump(exclude_unset=True)
         if not update_data:
             # No changes, return current record
             return await self.get_by_id(record_id, organization_id)
-        
+
         update_data["updated_at"] = "now()"
-        
+
         try:
             response = self.supabase.table(self.table_name).update(update_data).eq(
                 self.primary_key, str(record_id)
             ).eq("organization_id", str(organization_id)).execute()
-            
+
             if not response.data:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail=f"Failed to update {self.table_name[:-1]}"
                 )
-            
+
             return self._to_model(response.data[0])
-            
+
         except HTTPException:
             raise
         except Exception as e:
@@ -172,7 +172,7 @@ class BaseRepository(ABC, Generic[ModelType, CreateType, UpdateType]):
         """Delete record with tenant isolation."""
         # First verify record exists and belongs to organization
         await self.get_by_id(record_id, organization_id)
-        
+
         try:
             if soft_delete:
                 # Soft delete by setting is_active = false
@@ -187,9 +187,9 @@ class BaseRepository(ABC, Generic[ModelType, CreateType, UpdateType]):
                 response = self.supabase.table(self.table_name).delete().eq(
                     self.primary_key, str(record_id)
                 ).eq("organization_id", str(organization_id)).execute()
-            
+
             return response.data is not None
-            
+
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -206,15 +206,15 @@ class BaseRepository(ABC, Generic[ModelType, CreateType, UpdateType]):
             query = self.supabase.table(self.table_name).select(
                 self.primary_key, count="exact"
             ).eq("organization_id", str(organization_id))
-            
+
             if filters:
                 for key, value in filters.items():
                     if value is not None:
                         query = query.eq(key, value)
-            
+
             response = query.execute()
             return response.count or 0
-            
+
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -226,7 +226,7 @@ class IngredientRepository(BaseRepository[Any, Any, Any]):
     """Repository för ingredients."""
 
     def __init__(self, supabase: Client):
-        from gastropartner.core.models import Ingredient, IngredientCreate, IngredientUpdate
+        from gastropartner.core.models import Ingredient
         super().__init__(
             supabase=supabase,
             table_name="ingredients",
@@ -240,15 +240,15 @@ class IngredientRepository(BaseRepository[Any, Any, Any]):
             response = self.supabase.table("ingredients").select("category").eq(
                 "organization_id", str(organization_id)
             ).eq("is_active", True).execute()
-            
+
             # Extract unique categories, filter out nulls
             categories = list(set(
                 item["category"] for item in response.data
                 if item["category"] is not None
             ))
-            
+
             return sorted(categories)
-            
+
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -260,7 +260,7 @@ class RecipeRepository(BaseRepository[Any, Any, Any]):
     """Repository för recipes."""
 
     def __init__(self, supabase: Client):
-        from gastropartner.core.models import Recipe, RecipeCreate, RecipeUpdate
+        from gastropartner.core.models import Recipe
         super().__init__(
             supabase=supabase,
             table_name="recipes",
@@ -285,15 +285,15 @@ class RecipeRepository(BaseRepository[Any, Any, Any]):
             """).eq("recipe_id", str(recipe_id)).eq(
                 "organization_id", str(organization_id)
             ).execute()
-            
+
             if not response.data:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Recipe not found"
                 )
-            
+
             return response.data[0]
-            
+
         except HTTPException:
             raise
         except Exception as e:
@@ -307,7 +307,7 @@ class MenuItemRepository(BaseRepository[Any, Any, Any]):
     """Repository för menu items."""
 
     def __init__(self, supabase: Client):
-        from gastropartner.core.models import MenuItem, MenuItemCreate, MenuItemUpdate
+        from gastropartner.core.models import MenuItem
         super().__init__(
             supabase=supabase,
             table_name="menu_items",
@@ -334,15 +334,15 @@ class MenuItemRepository(BaseRepository[Any, Any, Any]):
             """).eq("menu_item_id", str(menu_item_id)).eq(
                 "organization_id", str(organization_id)
             ).execute()
-            
+
             if not response.data:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Menu item not found"
                 )
-            
+
             return response.data[0]
-            
+
         except HTTPException:
             raise
         except Exception as e:
@@ -364,28 +364,28 @@ class OrganizationRepository:
             response = self.supabase.table("organizations").select("*").eq(
                 "organization_id", str(organization_id)
             ).execute()
-            
+
             if not response.data:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Organization not found"
                 )
-            
+
             # Verify user has access to this organization
             access_response = self.supabase.table("organization_users").select(
                 "role"
             ).eq("organization_id", str(organization_id)).eq(
                 "user_id", str(user_id)
             ).execute()
-            
+
             if not access_response.data:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Access denied to organization"
                 )
-            
+
             return response.data[0]
-            
+
         except HTTPException:
             raise
         except Exception as e:
@@ -402,9 +402,9 @@ class OrganizationRepository:
                 joined_at,
                 organizations (*)
             """).eq("user_id", str(user_id)).execute()
-            
+
             return response.data
-            
+
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

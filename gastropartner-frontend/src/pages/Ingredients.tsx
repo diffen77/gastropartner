@@ -76,7 +76,7 @@ export function Ingredients() {
   const tableData = ingredients.map(ingredient => ({
     name: ingredient.name,
     category: ingredient.category,
-    cost_per_unit: `${ingredient.cost_per_unit.toFixed(2)} kr/${ingredient.unit}`,
+    cost_per_unit: `${Number(ingredient.cost_per_unit).toFixed(2)} kr/${ingredient.unit}`,
     unit: ingredient.unit,
     supplier: ingredient.supplier || '-',
   }));
@@ -86,14 +86,14 @@ export function Ingredients() {
   const categories = Array.from(new Set(activeIngredients.map(item => item.category)));
   
   const avgCost = activeIngredients.length > 0 
-    ? activeIngredients.reduce((sum, item) => sum + item.cost_per_unit, 0) / activeIngredients.length 
+    ? activeIngredients.reduce((sum, item) => sum + Number(item.cost_per_unit), 0) / activeIngredients.length 
     : 0;
   
   const mostExpensive = activeIngredients.reduce((max, item) => 
-    item.cost_per_unit > (max?.cost_per_unit || 0) ? item : max, null as Ingredient | null);
+    Number(item.cost_per_unit) > Number(max?.cost_per_unit || 0) ? item : max, null as Ingredient | null);
   
   const cheapest = activeIngredients.reduce((min, item) => 
-    item.cost_per_unit < (min?.cost_per_unit || Infinity) ? item : min, null as Ingredient | null);
+    Number(item.cost_per_unit) < Number(min?.cost_per_unit || Infinity) ? item : min, null as Ingredient | null);
 
   return (
     <div className="main-content">
@@ -137,14 +137,14 @@ export function Ingredients() {
             icon="📈"
             title="DYRASTE INGREDIENS"
             value={mostExpensive ? mostExpensive.name : "Ingen data"}
-            subtitle={mostExpensive ? `${mostExpensive.cost_per_unit.toFixed(2)} kr/${mostExpensive.unit}` : undefined}
+            subtitle={mostExpensive ? `${Number(mostExpensive.cost_per_unit).toFixed(2)} kr/${mostExpensive.unit}` : undefined}
             color="danger"
           />
           <MetricsCard
             icon="💸"
             title="BILLIGASTE INGREDIENS"
             value={cheapest ? cheapest.name : "Ingen data"}
-            subtitle={cheapest ? `${cheapest.cost_per_unit.toFixed(2)} kr/${cheapest.unit}` : undefined}
+            subtitle={cheapest ? `${Number(cheapest.cost_per_unit).toFixed(2)} kr/${cheapest.unit}` : undefined}
             color="success"
           />
         </div>

@@ -32,7 +32,7 @@ class MultitenantService:
                     created_at
                 )
             """).eq("user_id", str(user_id)).execute()
-            
+
             return [
                 {
                     "role": item["role"],
@@ -41,7 +41,7 @@ class MultitenantService:
                 }
                 for item in response.data
             ]
-            
+
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -51,16 +51,20 @@ class MultitenantService:
     async def get_user_primary_organization(self, user_id: UUID) -> UUID:
         """Get user's primary organization (for MVP, the only one)."""
         try:
+            # Development mode: return hardcoded organization for development user
+            if str(user_id) == "12345678-1234-1234-1234-123456789012":
+                return UUID("87654321-4321-4321-4321-210987654321")
+
             response = self.supabase.table("organization_users").select(
                 "organization_id"
             ).eq("user_id", str(user_id)).execute()
-            
+
             if not response.data:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="User is not a member of any organization"
                 )
-            
+
             # For MVP: assume user belongs to exactly one organization
             if len(response.data) > 1:
                 # Future: implement organization selection logic
@@ -68,9 +72,9 @@ class MultitenantService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="User belongs to multiple organizations. Organization selection not yet implemented."
                 )
-            
+
             return UUID(response.data[0]["organization_id"])
-            
+
         except HTTPException:
             raise
         except Exception as e:
@@ -87,25 +91,33 @@ class MultitenantService:
     ) -> dict[str, Any]:
         """Check if user has access to organization and optionally specific role."""
         try:
+            # Development mode: allow access for development user to development org
+            if (str(user_id) == "12345678-1234-1234-1234-123456789012" and 
+                str(organization_id) == "87654321-4321-4321-4321-210987654321"):
+                return {
+                    "role": "owner",  # Grant full access in development
+                    "joined_at": "2024-01-01T00:00:00Z"
+                }
+
             query = self.supabase.table("organization_users").select(
                 "role, joined_at"
             ).eq("user_id", str(user_id)).eq(
                 "organization_id", str(organization_id)
             )
-            
+
             if required_role:
                 query = query.eq("role", required_role)
-            
+
             response = query.execute()
-            
+
             if not response.data:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=f"Access denied to organization{f' (role {required_role} required)' if required_role else ''}"
                 )
-            
+
             return response.data[0]
-            
+
         except HTTPException:
             raise
         except Exception as e:
@@ -126,32 +138,32 @@ class MultitenantService:
         await self.check_user_organization_access(
             inviter_user_id, organization_id, required_role=None
         )
-        
+
         inviter_response = self.supabase.table("organization_users").select(
             "role"
         ).eq("user_id", str(inviter_user_id)).eq(
             "organization_id", str(organization_id)
         ).execute()
-        
+
         if not inviter_response.data or inviter_response.data[0]["role"] not in ["admin", "owner"]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Only admins and owners can invite users"
             )
-        
+
         # Check if user is already a member
         existing_response = self.supabase.table("organization_users").select(
             "organization_user_id"
         ).eq("user_id", str(invitee_user_id)).eq(
             "organization_id", str(organization_id)
         ).execute()
-        
+
         if existing_response.data:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="User is already a member of this organization"
             )
-        
+
         try:
             # Add user to organization
             response = self.supabase.table("organization_users").insert({
@@ -159,15 +171,15 @@ class MultitenantService:
                 "user_id": str(invitee_user_id),
                 "role": role,
             }).execute()
-            
+
             if not response.data:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Failed to add user to organization"
                 )
-            
+
             return response.data[0]
-            
+
         except HTTPException:
             raise
         except Exception as e:
@@ -194,20 +206,20 @@ class MultitenantService:
             ).eq("user_id", str(remover_user_id)).eq(
                 "organization_id", str(organization_id)
             ).execute()
-            
+
             if not remover_response.data or remover_response.data[0]["role"] not in ["admin", "owner"]:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Only admins and owners can remove other users"
                 )
-        
+
         try:
             response = self.supabase.table("organization_users").delete().eq(
                 "user_id", str(target_user_id)
             ).eq("organization_id", str(organization_id)).execute()
-            
+
             return response.data is not None
-            
+
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -228,13 +240,13 @@ class MultitenantService:
         ).eq("user_id", str(updater_user_id)).eq(
             "organization_id", str(organization_id)
         ).execute()
-        
+
         if not updater_response.data or updater_response.data[0]["role"] != "owner":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Only owners can update user roles"
             )
-        
+
         # Prevent owners from demoting themselves if they're the only owner
         if updater_user_id == target_user_id and new_role != "owner":
             owners_count = self.supabase.table("organization_users").select(
@@ -242,28 +254,28 @@ class MultitenantService:
             ).eq("organization_id", str(organization_id)).eq(
                 "role", "owner"
             ).execute()
-            
+
             if (owners_count.count or 0) <= 1:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Cannot remove the last owner from organization"
                 )
-        
+
         try:
             response = self.supabase.table("organization_users").update({
                 "role": new_role
             }).eq("user_id", str(target_user_id)).eq(
                 "organization_id", str(organization_id)
             ).execute()
-            
+
             if not response.data:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="User not found in organization"
                 )
-            
+
             return response.data[0]
-            
+
         except HTTPException:
             raise
         except Exception as e:

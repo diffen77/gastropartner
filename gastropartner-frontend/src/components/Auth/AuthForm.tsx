@@ -3,6 +3,7 @@
  */
 
 import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface AuthFormProps {
@@ -13,6 +14,8 @@ interface AuthFormProps {
 
 export function AuthForm({ mode, onModeChange, onSuccess }: AuthFormProps) {
   const { signIn, signUp } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -20,6 +23,7 @@ export function AuthForm({ mode, onModeChange, onSuccess }: AuthFormProps) {
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -27,12 +31,59 @@ export function AuthForm({ mode, onModeChange, onSuccess }: AuthFormProps) {
       ...prev,
       [name]: value,
     }));
+    
+    // Clear validation error when user starts typing
+    if (validationErrors[name]) {
+      setValidationErrors(prev => {
+        const { [name]: removed, ...rest } = prev;
+        return rest;
+      });
+    }
+    
+    // Clear general message when user makes changes
+    if (message) {
+      setMessage(null);
+    }
+  };
+
+  const validateForm = () => {
+    const errors: { [key: string]: string } = {};
+    
+    // Email validation
+    if (!formData.email) {
+      errors.email = 'E-post krävs';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Ogiltig e-postadress';
+    }
+    
+    // Password validation
+    if (!formData.password) {
+      errors.password = 'Lösenord krävs';
+    } else if (formData.password.length < 8) {
+      errors.password = 'Lösenord måste vara minst 8 tecken långt';
+    }
+    
+    // Full name validation for registration
+    if (mode === 'register' && !formData.fullName.trim()) {
+      errors.fullName = 'Fullt namn krävs';
+    }
+    
+    return errors;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage(null);
+    setValidationErrors({});
+
+    // Client-side validation
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      setLoading(false);
+      return;
+    }
 
     try {
       let result;
@@ -45,9 +96,19 @@ export function AuthForm({ mode, onModeChange, onSuccess }: AuthFormProps) {
 
       if (result.success) {
         setMessage({ type: 'success', text: result.message });
-        if (mode === 'login' && onSuccess) {
-          onSuccess();
+        
+        if (mode === 'login') {
+          // Redirect after successful login
+          const from = location.state?.from?.pathname || '/dashboard';
+          setTimeout(() => {
+            navigate(from, { replace: true });
+          }, 500); // Small delay to show success message
+          
+          if (onSuccess) {
+            onSuccess();
+          }
         }
+        
         // Clear form on successful registration
         if (mode === 'register') {
           setFormData({ email: '', password: '', fullName: '' });
@@ -89,10 +150,14 @@ export function AuthForm({ mode, onModeChange, onSuccess }: AuthFormProps) {
               name="fullName"
               value={formData.fullName}
               onChange={handleInputChange}
-              className="auth-form__input"
+              className={`auth-form__input ${validationErrors.fullName ? 'auth-form__input--error' : ''}`}
+              autoComplete="name"
               required
               disabled={loading}
             />
+            {validationErrors.fullName && (
+              <div className="auth-form__error">{validationErrors.fullName}</div>
+            )}
           </div>
         )}
 
@@ -106,10 +171,14 @@ export function AuthForm({ mode, onModeChange, onSuccess }: AuthFormProps) {
             name="email"
             value={formData.email}
             onChange={handleInputChange}
-            className="auth-form__input"
+            className={`auth-form__input ${validationErrors.email ? 'auth-form__input--error' : ''}`}
+            autoComplete="email"
             required
             disabled={loading}
           />
+          {validationErrors.email && (
+            <div className="auth-form__error">{validationErrors.email}</div>
+          )}
         </div>
 
         <div className="auth-form__field">
@@ -122,11 +191,15 @@ export function AuthForm({ mode, onModeChange, onSuccess }: AuthFormProps) {
             name="password"
             value={formData.password}
             onChange={handleInputChange}
-            className="auth-form__input"
+            className={`auth-form__input ${validationErrors.password ? 'auth-form__input--error' : ''}`}
+            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
             minLength={8}
             required
             disabled={loading}
           />
+          {validationErrors.password && (
+            <div className="auth-form__error">{validationErrors.password}</div>
+          )}
           {mode === 'register' && (
             <small className="auth-form__hint">
               Minst 8 tecken

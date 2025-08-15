@@ -48,6 +48,103 @@ interface IngredientCreate {
   notes?: string;
 }
 
+interface RecipeIngredient {
+  recipe_ingredient_id: string;
+  recipe_id: string;
+  ingredient_id: string;
+  quantity: number;
+  unit: string;
+  notes?: string;
+  ingredient?: Ingredient;
+}
+
+interface RecipeIngredientCreate {
+  ingredient_id: string;
+  quantity: number;
+  unit: string;
+  notes?: string;
+}
+
+interface Recipe {
+  recipe_id: string;
+  name: string;
+  description?: string;
+  servings: number;
+  prep_time_minutes?: number;
+  cook_time_minutes?: number;
+  instructions?: string;
+  notes?: string;
+  ingredients?: RecipeIngredient[];
+  total_cost?: number;
+  cost_per_serving?: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface RecipeCreate {
+  name: string;
+  description?: string;
+  servings: number;
+  prep_time_minutes?: number;
+  cook_time_minutes?: number;
+  instructions?: string;
+  notes?: string;
+  ingredients?: RecipeIngredientCreate[];
+}
+
+// User Testing interfaces
+interface UserFeedback {
+  feedback_id: string;
+  user_id: string;
+  organization_id: string;
+  feedback_type: 'bug' | 'feature_request' | 'general' | 'usability' | 'satisfaction';
+  title: string;
+  description: string;
+  rating?: number;
+  page_url?: string;
+  user_agent?: string;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  admin_notes?: string;
+  created_at: string;
+  updated_at: string;
+  resolved_at?: string;
+}
+
+interface UserFeedbackCreate {
+  feedback_type: 'bug' | 'feature_request' | 'general' | 'usability' | 'satisfaction';
+  title: string;
+  description: string;
+  rating?: number;
+  page_url?: string;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+}
+
+interface UserTestingMetrics {
+  total_users: number;
+  active_users_today: number;
+  active_users_week: number;
+  active_users_month: number;
+  avg_session_duration_minutes: number;
+  total_feedback_items: number;
+  unresolved_feedback: number;
+  onboarding_completion_rate: number;
+  avg_onboarding_time_minutes: number;
+  most_used_features: Array<{ feature: string; count: number }>;
+  conversion_rate: number;
+}
+
+interface UserAnalyticsEvent {
+  event_type: string;
+  event_name: string;
+  page_url?: string;
+  element_id?: string;
+  element_text?: string;
+  session_id?: string;
+  properties?: Record<string, any>;
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -58,7 +155,13 @@ class ApiClient {
   private async getAuthHeaders(): Promise<HeadersInit> {
     // For now, we'll implement a simple token-based auth
     // In the future, this should get the token from AuthContext
-    const token = localStorage.getItem('auth_token');
+    let token = localStorage.getItem('auth_token');
+    
+    // Development fallback: use development token if no auth token exists
+    if (!token && process.env.NODE_ENV === 'development') {
+      token = 'dev_token_development@gastropartner.nu';
+    }
+    
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
@@ -133,11 +236,11 @@ class ApiClient {
 
   // Menu Items API
   async getMenuItems(): Promise<MenuItem[]> {
-    return this.get<MenuItem[]>('/api/v1/menu-items');
+    return this.get<MenuItem[]>('/api/v1/menu-items/');
   }
 
   async createMenuItem(data: MenuItemCreate): Promise<MenuItem> {
-    return this.post<MenuItem>('/api/v1/menu-items', data);
+    return this.post<MenuItem>('/api/v1/menu-items/', data);
   }
 
   async getMenuItem(id: string): Promise<MenuItem> {
@@ -154,11 +257,11 @@ class ApiClient {
 
   // Ingredients API
   async getIngredients(): Promise<Ingredient[]> {
-    return this.get<Ingredient[]>('/api/v1/ingredients');
+    return this.get<Ingredient[]>('/api/v1/ingredients/');
   }
 
   async createIngredient(data: IngredientCreate): Promise<Ingredient> {
-    return this.post<Ingredient>('/api/v1/ingredients', data);
+    return this.post<Ingredient>('/api/v1/ingredients/', data);
   }
 
   async getIngredient(id: string): Promise<Ingredient> {
@@ -176,7 +279,74 @@ class ApiClient {
   async getIngredientCategories(): Promise<string[]> {
     return this.get<string[]>('/api/v1/ingredients/categories');
   }
+
+  // Recipes API
+  async getRecipes(): Promise<Recipe[]> {
+    return this.get<Recipe[]>('/api/v1/recipes/');
+  }
+
+  async createRecipe(data: RecipeCreate): Promise<Recipe> {
+    return this.post<Recipe>('/api/v1/recipes/', data);
+  }
+
+  async getRecipe(id: string): Promise<Recipe> {
+    return this.get<Recipe>(`/api/v1/recipes/${id}`);
+  }
+
+  async updateRecipe(id: string, data: Partial<RecipeCreate>): Promise<Recipe> {
+    return this.put<Recipe>(`/api/v1/recipes/${id}`, data);
+  }
+
+  async deleteRecipe(id: string): Promise<{ message: string; success: boolean }> {
+    return this.delete(`/api/v1/recipes/${id}`);
+  }
+
+  async getRecipeCostAnalysis(id: string, servings?: number): Promise<any> {
+    const params = servings ? `?servings=${servings}` : '';
+    return this.get(`/api/v1/recipes/${id}/cost-analysis${params}`);
+  }
+
+  // User Testing API
+  async createFeedback(data: UserFeedbackCreate): Promise<UserFeedback> {
+    return this.post<UserFeedback>('/api/v1/user-testing/feedback', data);
+  }
+
+  async getFeedback(statusFilter?: string, feedbackType?: string): Promise<UserFeedback[]> {
+    let endpoint = '/api/v1/user-testing/feedback';
+    const params = new URLSearchParams();
+    
+    if (statusFilter) params.append('status_filter', statusFilter);
+    if (feedbackType) params.append('feedback_type', feedbackType);
+    
+    if (params.toString()) {
+      endpoint += `?${params.toString()}`;
+    }
+    
+    return this.get<UserFeedback[]>(endpoint);
+  }
+
+  async getUserTestingMetrics(days: number = 30): Promise<UserTestingMetrics> {
+    return this.get<UserTestingMetrics>(`/api/v1/user-testing/analytics/metrics?days=${days}`);
+  }
+
+  async trackAnalyticsEvent(data: UserAnalyticsEvent): Promise<{ status: string }> {
+    return this.post<{ status: string }>('/api/v1/user-testing/analytics/event', data);
+  }
 }
 
 export const apiClient = new ApiClient();
-export { ApiClient, type MenuItem, type MenuItemCreate, type Ingredient, type IngredientCreate };
+export { 
+  ApiClient, 
+  type MenuItem, 
+  type MenuItemCreate, 
+  type Ingredient, 
+  type IngredientCreate,
+  type Recipe,
+  type RecipeCreate,
+  type RecipeIngredient,
+  type RecipeIngredientCreate,
+  type UserFeedback,
+  type UserFeedbackCreate,
+  type UserTestingMetrics,
+  type UserAnalyticsEvent
+};

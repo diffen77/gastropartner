@@ -102,6 +102,7 @@ export function SearchableTable({
               type="text"
               className="search-input__field"
               placeholder={searchPlaceholder}
+              autoComplete="off"
               disabled
             />
           </div>
@@ -130,6 +131,7 @@ export function SearchableTable({
             placeholder={searchPlaceholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            autoComplete="off"
           />
         </div>
       </div>
