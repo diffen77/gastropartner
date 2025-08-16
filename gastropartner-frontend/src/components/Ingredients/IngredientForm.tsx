@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './IngredientForm.css';
-import { IngredientCreate } from '../../utils/api';
+import { IngredientCreate, Ingredient } from '../../utils/api';
 
 interface IngredientFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: IngredientCreate) => Promise<void>;
   isLoading?: boolean;
+  editingIngredient?: Ingredient | null;
 }
 
-export function IngredientForm({ isOpen, onClose, onSubmit, isLoading = false }: IngredientFormProps) {
+export function IngredientForm({ isOpen, onClose, onSubmit, isLoading = false, editingIngredient }: IngredientFormProps) {
   const [formData, setFormData] = useState<IngredientCreate>({
     name: '',
     category: '',
@@ -20,6 +21,30 @@ export function IngredientForm({ isOpen, onClose, onSubmit, isLoading = false }:
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Populate form when editing
+  useEffect(() => {
+    if (editingIngredient) {
+      setFormData({
+        name: editingIngredient.name,
+        category: editingIngredient.category || '',
+        unit: editingIngredient.unit,
+        cost_per_unit: Number(editingIngredient.cost_per_unit),
+        supplier: editingIngredient.supplier || '',
+        notes: editingIngredient.notes || ''
+      });
+    } else {
+      setFormData({
+        name: '',
+        category: '',
+        unit: '',
+        cost_per_unit: 0,
+        supplier: '',
+        notes: ''
+      });
+    }
+    setErrors({});
+  }, [editingIngredient]);
 
   const categories = [
     'Kött',
@@ -117,7 +142,7 @@ export function IngredientForm({ isOpen, onClose, onSubmit, isLoading = false }:
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Ny Ingrediens</h2>
+          <h2>{editingIngredient ? 'Redigera Ingrediens' : 'Ny Ingrediens'}</h2>
           <button 
             className="btn btn--icon btn--ghost" 
             onClick={handleClose}
@@ -240,7 +265,7 @@ export function IngredientForm({ isOpen, onClose, onSubmit, isLoading = false }:
               className="btn btn--primary" 
               disabled={isLoading}
             >
-              {isLoading ? 'Sparar...' : 'Spara Ingrediens'}
+              {isLoading ? 'Sparar...' : (editingIngredient ? 'Uppdatera Ingrediens' : 'Spara Ingrediens')}
             </button>
           </div>
         </form>

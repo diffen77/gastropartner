@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { MetricsCard } from '../components/MetricsCard';
 import { SearchableTable, TableColumn } from '../components/SearchableTable';
+import { UITextAnalyzerComponent } from '../components/UserTesting/UITextAnalyzer';
+import { TestResultsViewer } from '../components/TestResults/TestResultsViewer';
 import { apiClient } from '../utils/api';
 import './UserTestingDashboard.css';
 
@@ -57,6 +59,8 @@ export default function UserTestingDashboard() {
   const [feedback, setFeedback] = useState<UserFeedback[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [showUIAnalyzer, setShowUIAnalyzer] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'tests'>('overview');
 
   useEffect(() => {
     loadData();
@@ -181,7 +185,30 @@ export default function UserTestingDashboard() {
       <PageHeader 
         title="User Testing Dashboard" 
         subtitle="Övervaka användarfeedback och testmätvärden"
-      />
+      >
+        <div className="dashboard-header-actions">
+          <div className="dashboard-tabs">
+            <button
+              className={`dashboard-tab ${activeTab === 'overview' ? 'dashboard-tab--active' : ''}`}
+              onClick={() => setActiveTab('overview')}
+            >
+              📊 Overview
+            </button>
+            <button
+              className={`dashboard-tab ${activeTab === 'tests' ? 'dashboard-tab--active' : ''}`}
+              onClick={() => setActiveTab('tests')}
+            >
+              🧪 Test Results
+            </button>
+          </div>
+          <button 
+            className="btn btn--primary"
+            onClick={() => setShowUIAnalyzer(true)}
+          >
+            🔍 Analysera UI-texter
+          </button>
+        </div>
+      </PageHeader>
 
       <div className="dashboard-content">
         {error && (
@@ -190,7 +217,7 @@ export default function UserTestingDashboard() {
           </div>
         )}
 
-        {metrics && (
+        {activeTab === 'overview' && metrics && (
           <>
             {/* User Activity Metrics */}
             <section className="metrics-section">
@@ -288,19 +315,33 @@ export default function UserTestingDashboard() {
           </>
         )}
 
-        {/* Recent Feedback */}
-        <section className="metrics-section">
-          <h2 className="section-title">💬 Senaste Feedback</h2>
-          <div className="table-section">
-            <SearchableTable
-              columns={feedbackColumns}
-              data={feedbackTableData}
-              searchPlaceholder="Sök feedback..."
-              emptyMessage="Ingen feedback hittades"
-            />
-          </div>
-        </section>
+        {activeTab === 'overview' && (
+          <section className="metrics-section">
+            <h2 className="section-title">💬 Senaste Feedback</h2>
+            <div className="table-section">
+              <SearchableTable
+                columns={feedbackColumns}
+                data={feedbackTableData}
+                searchPlaceholder="Sök feedback..."
+                emptyMessage="Ingen feedback hittades"
+              />
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'tests' && (
+          <section className="metrics-section">
+            <TestResultsViewer refreshInterval={30000} />
+          </section>
+        )}
       </div>
+
+      {/* UI Text Analyzer Modal */}
+      <UITextAnalyzerComponent
+        isOpen={showUIAnalyzer}
+        onClose={() => setShowUIAnalyzer(false)}
+        autoAnalyze={true}
+      />
     </div>
   );
 }

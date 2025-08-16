@@ -48,6 +48,16 @@ interface IngredientCreate {
   notes?: string;
 }
 
+interface IngredientUpdate {
+  name?: string;
+  category?: string;
+  unit?: string;
+  cost_per_unit?: number;
+  supplier?: string;
+  notes?: string;
+  is_active?: boolean;
+}
+
 interface RecipeIngredient {
   recipe_ingredient_id: string;
   recipe_id: string;
@@ -341,6 +351,7 @@ export {
   type MenuItemCreate, 
   type Ingredient, 
   type IngredientCreate,
+  type IngredientUpdate,
   type Recipe,
   type RecipeCreate,
   type RecipeIngredient,
