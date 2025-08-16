@@ -1,3 +1,0 @@
-"""
-Visual design test modules
-"""

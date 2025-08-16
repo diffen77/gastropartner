@@ -4,7 +4,7 @@ import { MetricsCard } from '../components/MetricsCard';
 import { SearchableTable, TableColumn } from '../components/SearchableTable';
 import { EmptyState } from '../components/EmptyState';
 import { IngredientForm } from '../components/Ingredients/IngredientForm';
-import { apiClient, Ingredient, IngredientCreate } from '../utils/api';
+import { apiClient, Ingredient, IngredientCreate, IngredientUpdate } from '../utils/api';
 
 function PageHeader({ title, subtitle, children }: { 
   title: string; 
@@ -33,6 +33,7 @@ export function Ingredients() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(null);
 
   const loadIngredients = async () => {
     try {
@@ -49,10 +50,16 @@ export function Ingredients() {
     loadIngredients();
   }, []);
 
-  const handleCreateIngredient = async (data: IngredientCreate) => {
+  const handleSubmitIngredient = async (data: IngredientCreate) => {
     setIsLoading(true);
     try {
-      await apiClient.createIngredient(data);
+      if (editingIngredient) {
+        // Update existing ingredient
+        await apiClient.updateIngredient(editingIngredient.ingredient_id, data);
+      } else {
+        // Create new ingredient
+        await apiClient.createIngredient(data);
+      }
       await loadIngredients(); // Reload the list
       setError('');
     } catch (err) {
@@ -64,12 +71,72 @@ export function Ingredients() {
     }
   };
 
+  const handleEditIngredient = (ingredient: Ingredient) => {
+    setEditingIngredient(ingredient);
+    setIsFormOpen(true);
+  };
+
+  const handleDeleteIngredient = async (ingredient: Ingredient) => {
+    if (!window.confirm(`Är du säker på att du vill ta bort "${ingredient.name}"?`)) {
+      return;
+    }
+
+    try {
+      await apiClient.deleteIngredient(ingredient.ingredient_id);
+      await loadIngredients(); // Reload the list
+      setError('');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Ett fel uppstod';
+      setError(errorMessage);
+    }
+  };
+
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setEditingIngredient(null);
+  };
+
   const columns: TableColumn[] = [
     { key: 'name', label: 'Namn', sortable: true },
     { key: 'category', label: 'Kategori', sortable: true },
     { key: 'cost_per_unit', label: 'Kostnad', sortable: true },
     { key: 'unit', label: 'Enhet', sortable: true },
     { key: 'supplier', label: 'Leverantör', sortable: true },
+    { 
+      key: 'actions', 
+      label: 'Åtgärder', 
+      sortable: false,
+      render: (_, row) => {
+        // Find the original ingredient from the row data
+        const ingredient = ingredients.find(ing => ing.name === row.name && ing.category === row.category);
+        if (!ingredient) return null;
+
+        return (
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              className="btn btn--small btn--secondary"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEditIngredient(ingredient);
+              }}
+              title="Redigera ingrediens"
+            >
+              ✏️
+            </button>
+            <button
+              className="btn btn--small btn--danger"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteIngredient(ingredient);
+              }}
+              title="Ta bort ingrediens"
+            >
+              🗑️
+            </button>
+          </div>
+        );
+      }
+    },
   ];
 
   // Transform ingredients for the table
@@ -171,9 +238,10 @@ export function Ingredients() {
 
       <IngredientForm
         isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        onSubmit={handleCreateIngredient}
+        onClose={handleCloseForm}
+        onSubmit={handleSubmitIngredient}
         isLoading={isLoading}
+        editingIngredient={editingIngredient}
       />
     </div>
   );

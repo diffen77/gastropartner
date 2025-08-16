@@ -1,0 +1,354 @@
+name: Visual Regression Testing
+
+on:
+  push:
+    branches: [ main, staging, develop ]
+  pull_request:
+    branches: [ main, staging ]
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      update_baselines:
+        description: 'Update baselines instead of comparing'
+        required: false
+        default: 'false'
+        type: boolean
+      test_environment:
+        description: 'Environment to test against'
+        required: false
+        default: 'staging'
+        type: choice
+        options:
+        - local
+        - staging
+        - production
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  visual-regression:
+    name: Visual Regression Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    strategy:
+      matrix:
+        browser: [chromium, firefox, webkit]
+        viewport: [desktop, tablet, mobile]
+        include:
+          - browser: chromium
+            viewport: desktop
+            primary: true
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'playwright-intelligent/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: playwright-intelligent
+        run: |
+          npm ci
+          npx playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Wait for staging deployment (if staging)
+        if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
+        run: |
+          echo "Waiting for staging deployment to be ready..."
+          timeout 300 bash -c 'until curl -f -s https://gastropartner-staging.netlify.app/; do sleep 10; done'
+
+      - name: Determine test environment
+        id: env-config
+        run: |
+          if [[ "${{ github.event.inputs.test_environment }}" != "" ]]; then
+            echo "TEST_ENV=${{ github.event.inputs.test_environment }}" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "TEST_ENV=production" >> $GITHUB_ENV
+            echo "BASE_URL=https://gastropartner.nu" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == "refs/heads/staging" ]]; then
+            echo "TEST_ENV=staging" >> $GITHUB_ENV
+            echo "BASE_URL=https://gastropartner-staging.netlify.app" >> $GITHUB_ENV
+          else
+            echo "TEST_ENV=staging" >> $GITHUB_ENV
+            echo "BASE_URL=https://gastropartner-staging.netlify.app" >> $GITHUB_ENV
+          fi
+          
+          if [[ "${{ github.event.inputs.update_baselines }}" == "true" ]]; then
+            echo "UPDATE_BASELINES=true" >> $GITHUB_ENV
+          else
+            echo "UPDATE_BASELINES=false" >> $GITHUB_ENV
+          fi
+
+      - name: Cache visual baselines
+        if: env.UPDATE_BASELINES != 'true'
+        uses: actions/cache@v3
+        with:
+          path: playwright-intelligent/test-results/visual/baselines
+          key: visual-baselines-${{ matrix.browser }}-${{ matrix.viewport }}-${{ hashFiles('gastropartner-frontend/src/**/*') }}
+          restore-keys: |
+            visual-baselines-${{ matrix.browser }}-${{ matrix.viewport }}-
+            visual-baselines-${{ matrix.browser }}-
+            visual-baselines-
+
+      - name: Run visual regression tests
+        working-directory: playwright-intelligent
+        env:
+          CI: true
+          VISUAL_THRESHOLD: '0.1'
+          SKIP_SLOW_TESTS: 'true'
+        run: |
+          # Set viewport-specific configuration
+          case "${{ matrix.viewport }}" in
+            desktop)
+              export VIEWPORT_WIDTH=1920
+              export VIEWPORT_HEIGHT=1080
+              ;;
+            tablet)
+              export VIEWPORT_WIDTH=768
+              export VIEWPORT_HEIGHT=1024
+              ;;
+            mobile)
+              export VIEWPORT_WIDTH=375
+              export VIEWPORT_HEIGHT=812
+              ;;
+          esac
+          
+          # Run visual tests
+          npm run visual:ci -- \
+            --project=${{ matrix.browser }} \
+            --reporter=json,html \
+            --output-dir=test-results/visual-${{ matrix.browser }}-${{ matrix.viewport }}
+
+      - name: Upload visual test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-test-results-${{ matrix.browser }}-${{ matrix.viewport }}
+          path: |
+            playwright-intelligent/test-results/visual-${{ matrix.browser }}-${{ matrix.viewport }}/
+            playwright-intelligent/test-results/visual/reports/
+            playwright-intelligent/test-results/visual/diff/
+          retention-days: 30
+
+      - name: Upload visual baselines (on update)
+        if: env.UPDATE_BASELINES == 'true' && matrix.primary
+        uses: actions/upload-artifact@v4
+        with:
+          name: updated-visual-baselines
+          path: playwright-intelligent/test-results/visual/baselines/
+          retention-days: 90
+
+      - name: Comment PR with visual diff results
+        if: github.event_name == 'pull_request' && matrix.primary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Read test results
+            const resultsPath = 'playwright-intelligent/test-results/visual-${{ matrix.browser }}-${{ matrix.viewport }}/results.json';
+            let testResults = null;
+            
+            try {
+              if (fs.existsSync(resultsPath)) {
+                testResults = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
+              }
+            } catch (error) {
+              console.log('Could not read test results:', error);
+            }
+            
+            if (testResults) {
+              const { suites } = testResults;
+              let passedTests = 0;
+              let failedTests = 0;
+              let totalTests = 0;
+              
+              suites.forEach(suite => {
+                suite.specs.forEach(spec => {
+                  totalTests++;
+                  if (spec.ok) {
+                    passedTests++;
+                  } else {
+                    failedTests++;
+                  }
+                });
+              });
+              
+              const body = `## 📸 Visual Regression Test Results
+              
+              **Browser:** ${{ matrix.browser }}
+              **Viewport:** ${{ matrix.viewport }}
+              **Environment:** ${process.env.TEST_ENV}
+              
+              | Status | Count |
+              |--------|-------|
+              | ✅ Passed | ${passedTests} |
+              | ❌ Failed | ${failedTests} |
+              | 📊 Total | ${totalTests} |
+              
+              ${failedTests > 0 ? 
+                '⚠️ **Visual differences detected!** Please review the uploaded artifacts.' :
+                '🎉 **All visual tests passed!** No visual regressions detected.'
+              }
+              
+              **Test artifacts:** Available in the workflow run under "Artifacts"
+              `;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            }
+
+  visual-regression-summary:
+    name: Visual Regression Summary
+    runs-on: ubuntu-latest
+    needs: visual-regression
+    if: always()
+    
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: visual-artifacts
+
+      - name: Generate summary report
+        run: |
+          echo "# 📸 Visual Regression Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ env.TEST_ENV }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Update Baselines:** ${{ env.UPDATE_BASELINES }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Count artifacts
+          artifact_count=$(find visual-artifacts -name "*.png" -o -name "*.json" | wc -l)
+          echo "**Total Artifacts:** $artifact_count" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # List artifacts by type
+          echo "## 📁 Generated Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if find visual-artifacts -name "*diff*" -type f | grep -q .; then
+            echo "### 🔍 Visual Differences" >> $GITHUB_STEP_SUMMARY
+            find visual-artifacts -name "*diff*" -type f | head -10 | while read file; do
+              echo "- $(basename "$file")" >> $GITHUB_STEP_SUMMARY
+            done
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if find visual-artifacts -name "*report*" -type f | grep -q .; then
+            echo "### 📊 Test Reports" >> $GITHUB_STEP_SUMMARY
+            find visual-artifacts -name "*report*" -type f | head -5 | while read file; do
+              echo "- $(basename "$file")" >> $GITHUB_STEP_SUMMARY
+            done
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "## 💡 Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ env.UPDATE_BASELINES }}" == "true" ]]; then
+            echo "- ✅ Baselines have been updated" >> $GITHUB_STEP_SUMMARY
+            echo "- 📤 Download and commit updated baselines if needed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- 🔍 Review visual differences in the artifacts" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ If differences are expected, update baselines" >> $GITHUB_STEP_SUMMARY
+            echo "- 🚀 Re-run workflow with 'Update baselines' option if needed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Check if visual tests failed
+        if: contains(needs.visual-regression.result, 'failure') && env.UPDATE_BASELINES != 'true'
+        run: |
+          echo "❌ Visual regression tests failed"
+          echo "Visual differences were detected. Please review the artifacts."
+          exit 1
+
+  update-baselines-pr:
+    name: Create Baseline Update PR
+    runs-on: ubuntu-latest
+    needs: visual-regression
+    if: github.event.inputs.update_baselines == 'true' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download updated baselines
+        uses: actions/download-artifact@v4
+        with:
+          name: updated-visual-baselines
+          path: playwright-intelligent/test-results/visual/baselines/
+
+      - name: Create baseline update branch
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # Create new branch
+          branch_name="update-visual-baselines-$(date +%Y%m%d-%H%M%S)"
+          git checkout -b "$branch_name"
+          
+          # Add updated baselines
+          git add playwright-intelligent/test-results/visual/baselines/
+          
+          # Check if there are changes
+          if git diff --cached --quiet; then
+            echo "No baseline changes to commit"
+            exit 0
+          fi
+          
+          # Commit changes
+          git commit -m "chore: update visual regression baselines
+          
+          Automated baseline update from visual regression workflow.
+          
+          - Updated: $(git diff --cached --name-only | wc -l) baseline images
+          - Triggered by: ${{ github.actor }}
+          - Workflow: ${{ github.run_id }}"
+          
+          # Push branch
+          git push origin "$branch_name"
+          
+          # Create PR
+          gh pr create \
+            --title "🎨 Update Visual Regression Baselines" \
+            --body "## 📸 Visual Regression Baseline Update
+          
+          This PR contains updated visual regression baselines generated automatically.
+          
+          **Details:**
+          - **Triggered by:** @${{ github.actor }}
+          - **Workflow:** [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          - **Environment:** ${{ env.TEST_ENV }}
+          - **Updated files:** $(git diff HEAD~1 --name-only | wc -l) baseline images
+          
+          **Review checklist:**
+          - [ ] Visual changes are intentional and approved
+          - [ ] No sensitive information in screenshots
+          - [ ] Baselines represent desired visual state
+          
+          This PR should be reviewed and merged if the visual changes are correct and intentional." \
+            --label "automated,visual-testing" \
+            --head "$branch_name" \
+            --base main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

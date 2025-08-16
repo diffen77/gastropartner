@@ -18,6 +18,7 @@ from gastropartner.api import (
     organizations,
     recipes,
     superadmin,
+    testing,
     user_testing,
 )
 from gastropartner.config import get_settings
@@ -117,6 +118,7 @@ app.include_router(recipes.router, prefix="/api/v1")
 app.include_router(menu_items.router, prefix="/api/v1")
 # app.include_router(analytics.router)  # Temporarily disabled - has Supabase client field type issues
 app.include_router(user_testing.router, prefix="/api/v1")
+app.include_router(testing.router)
 app.include_router(superadmin.router)
 
 # Fix trailing slash handling by adding dual patterns

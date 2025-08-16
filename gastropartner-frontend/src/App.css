@@ -106,6 +106,40 @@
   background: var(--color-neutral-200);
 }
 
+.btn--danger {
+  background: var(--color-danger);
+  color: white;
+}
+
+.btn--danger:hover {
+  background: #c53030;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-elevated);
+}
+
+.btn--small {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  min-height: 32px;
+}
+
+.btn--icon {
+  padding: var(--spacing-xs);
+  min-width: 32px;
+  justify-content: center;
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--color-neutral-600);
+  border: 1px solid transparent;
+}
+
+.btn--ghost:hover {
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-800);
+}
+
 /* System Status (temporary) */
 .system-status {
   background: white;
