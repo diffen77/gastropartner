@@ -435,6 +435,39 @@ class UsageLimitsCheck(BaseModel):
     upgrade_needed: bool
 
 
+# ===== FEATURE FLAGS MODELS =====
+
+class FeatureFlagsBase(BaseModel):
+    """Base feature flags model."""
+    
+    show_recipe_prep_time: bool = False
+    show_recipe_cook_time: bool = False
+    show_recipe_instructions: bool = False
+    show_recipe_notes: bool = False
+
+
+class FeatureFlagsUpdate(BaseModel):
+    """Feature flags update model."""
+    
+    show_recipe_prep_time: bool | None = None
+    show_recipe_cook_time: bool | None = None
+    show_recipe_instructions: bool | None = None
+    show_recipe_notes: bool | None = None
+
+
+class FeatureFlags(FeatureFlagsBase, TenantMixin):
+    """Complete feature flags model."""
+    
+    flags_id: UUID = Field(default_factory=uuid4)
+    created_at: datetime
+    updated_at: datetime
+    
+    model_config = ConfigDict(
+        from_attributes=True,
+        use_enum_values=True,
+    )
+
+
 # ===== USER TESTING MODELS =====
 
 # User feedback models

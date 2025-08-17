@@ -6,10 +6,13 @@ Provides system-wide administrative functionality.
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from gastropartner.middleware.superadmin import require_superadmin
+from gastropartner.core.models import FeatureFlagsUpdate
+from gastropartner.core.repository import FeatureFlagsRepository
+from gastropartner.core.database import get_supabase_admin_client
 
 logger = logging.getLogger(__name__)
 
@@ -188,3 +191,84 @@ async def broadcast_system_notification(message: str, level: str = "info"):
 
     # TODO: Implement system notification broadcasting
     return {"message": "Notification broadcasted successfully", "recipients": 0}
+
+
+# Feature Flags Management
+
+@router.get("/feature-flags/{agency_id}")
+async def get_agency_feature_flags(agency_id: str):
+    """
+    Get feature flags for a specific agency.
+    Only accessible by superadmin.
+    """
+    logger.info(f"Superadmin requested feature flags for agency: {agency_id}")
+    
+    try:
+        supabase = get_supabase_admin_client()
+        if not supabase:
+            raise HTTPException(status_code=500, detail="Admin client not configured")
+            
+        feature_flags_repo = FeatureFlagsRepository(supabase)
+        flags = await feature_flags_repo.get_or_create_for_agency(agency_id)
+        
+        return flags
+        
+    except Exception as e:
+        logger.error(f"Error getting feature flags for agency {agency_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/feature-flags/{agency_id}")
+async def update_agency_feature_flags(agency_id: str, updates: FeatureFlagsUpdate):
+    """
+    Update feature flags for a specific agency.
+    Only accessible by superadmin.
+    """
+    logger.info(f"Superadmin updating feature flags for agency: {agency_id}")
+    
+    try:
+        supabase = get_supabase_admin_client()
+        if not supabase:
+            raise HTTPException(status_code=500, detail="Admin client not configured")
+            
+        feature_flags_repo = FeatureFlagsRepository(supabase)
+        
+        # Convert to dict and filter out None values
+        update_data = {k: v for k, v in updates.model_dump().items() if v is not None}
+        
+        if not update_data:
+            raise HTTPException(status_code=400, detail="No updates provided")
+            
+        updated_flags = await feature_flags_repo.update_for_agency(agency_id, update_data)
+        
+        logger.info(f"Updated feature flags for agency {agency_id}: {update_data}")
+        return updated_flags
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating feature flags for agency {agency_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/feature-flags")
+async def list_all_feature_flags():
+    """
+    List feature flags for all agencies.
+    Only accessible by superadmin.
+    """
+    logger.info("Superadmin requested all feature flags")
+    
+    try:
+        supabase = get_supabase_admin_client()
+        if not supabase:
+            raise HTTPException(status_code=500, detail="Admin client not configured")
+            
+        # Get all feature flags directly using admin client
+        response = supabase.table("feature_flags").select("*").execute()
+        
+        return {"feature_flags": response.data}
+        
+    except Exception as e:
+        logger.error(f"Error listing all feature flags: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
