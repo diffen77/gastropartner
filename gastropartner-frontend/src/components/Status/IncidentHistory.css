@@ -1,0 +1,243 @@
+.incident-history {
+  width: 100%;
+}
+
+.incident-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.incident-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.incident-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 12px -1px rgba(0, 0, 0, 0.15);
+}
+
+/* Status-based border colors */
+.incident-card--investigating {
+  border-left-color: #f59e0b; /* amber */
+}
+
+.incident-card--identified {
+  border-left-color: #3b82f6; /* blue */
+}
+
+.incident-card--monitoring {
+  border-left-color: #8b5cf6; /* purple */
+}
+
+.incident-card--resolved {
+  border-left-color: #22c55e; /* green */
+  opacity: 0.8;
+}
+
+.incident-header {
+  margin-bottom: 1rem;
+}
+
+.incident-title-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.incident-severity {
+  flex-shrink: 0;
+}
+
+.severity-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 12px;
+  color: white;
+  font-weight: bold;
+}
+
+.incident-title {
+  flex: 1;
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+  line-height: 1.4;
+}
+
+.incident-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.incident-time {
+  display: flex;
+  align-items: center;
+}
+
+.incident-duration {
+  font-weight: 500;
+  color: #374151;
+}
+
+.incident-description {
+  margin-bottom: 1rem;
+}
+
+.incident-description p {
+  margin: 0;
+  color: #374151;
+  line-height: 1.6;
+}
+
+.affected-services {
+  margin-bottom: 1rem;
+}
+
+.affected-services strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.service-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.service-tag {
+  background-color: #f3f4f6;
+  color: #374151;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid #e5e7eb;
+}
+
+.incident-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.incident-id {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-family: monospace;
+}
+
+.incident-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.incident-action {
+  background: none;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.incident-action:hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.no-incidents {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.no-incidents__icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.no-incidents h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.no-incidents p {
+  margin: 0;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.incident-history__footer {
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.view-all-button {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.view-all-button:hover {
+  background-color: #2563eb;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .incident-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .incident-meta {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .incident-footer {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  
+  .incident-actions {
+    justify-content: center;
+  }
+  
+  .service-tags {
+    justify-content: flex-start;
+  }
+}

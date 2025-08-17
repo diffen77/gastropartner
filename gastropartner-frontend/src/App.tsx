@@ -21,6 +21,7 @@ import UserTestingDashboard from './pages/UserTestingDashboard';
 import { Sales } from './pages/Sales';
 import { Modules } from './pages/Modules';
 import { Settings } from './pages/Settings';
+import Status from './pages/Status';
 import { apiClient, MenuItem, MenuItemCreate } from './utils/api';
 
 interface ApiHealth {
@@ -267,6 +268,12 @@ function App() {
           <Route 
             path="/login" 
             element={<LoginPage />} 
+          />
+          
+          {/* Public status page */}
+          <Route 
+            path="/status" 
+            element={<Status />} 
           />
           
           {/* Protected routes */}

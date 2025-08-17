@@ -1,0 +1,350 @@
+name: Synthetic Monitoring
+
+on:
+  schedule:
+    # Run every 5 minutes for critical checks
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # Allow manual triggering
+    inputs:
+      environment:
+        description: 'Environment to test'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+        - production
+        - staging
+      test_type:
+        description: 'Type of test to run'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - health_checks
+        - api_endpoints
+        - user_journeys
+
+env:
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  health-checks:
+    name: Health Check Monitoring
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [production, staging]
+        include:
+          - environment: production
+            base_url: https://gastropartner-backend.onrender.com
+          - environment: staging
+            base_url: https://gastropartner-backend-staging.onrender.com
+    
+    steps:
+    - name: Basic Health Check
+      run: |
+        echo "🔍 Testing basic health endpoint for ${{ matrix.environment }}"
+        
+        response=$(curl -s -w "%{http_code}" -o response.json "${{ matrix.base_url }}/health/")
+        http_code=${response: -3}
+        
+        echo "HTTP Status: $http_code"
+        
+        if [ "$http_code" -eq 200 ]; then
+          echo "✅ Basic health check passed"
+          cat response.json | jq .
+        else
+          echo "❌ Basic health check failed"
+          cat response.json
+          exit 1
+        fi
+    
+    - name: Detailed Health Check
+      run: |
+        echo "🔍 Testing detailed health endpoint for ${{ matrix.environment }}"
+        
+        response=$(curl -s -w "%{http_code}" -o response.json "${{ matrix.base_url }}/health/detailed")
+        http_code=${response: -3}
+        
+        echo "HTTP Status: $http_code"
+        
+        if [ "$http_code" -eq 200 ]; then
+          echo "✅ Detailed health check passed"
+          
+          # Check if any service is unhealthy
+          unhealthy_services=$(cat response.json | jq -r '.services[] | select(.status == "unhealthy") | .service')
+          
+          if [ -n "$unhealthy_services" ]; then
+            echo "⚠️ Some services are unhealthy:"
+            echo "$unhealthy_services"
+            # Don't fail for degraded services, only unhealthy ones
+            overall_status=$(cat response.json | jq -r '.status')
+            if [ "$overall_status" = "unhealthy" ]; then
+              exit 1
+            fi
+          else
+            echo "✅ All services healthy"
+          fi
+        else
+          echo "❌ Detailed health check failed"
+          cat response.json
+          exit 1
+        fi
+    
+    - name: Readiness Probe
+      run: |
+        echo "🔍 Testing readiness probe for ${{ matrix.environment }}"
+        
+        response=$(curl -s -w "%{http_code}" -o response.json "${{ matrix.base_url }}/health/readiness")
+        http_code=${response: -3}
+        
+        if [ "$http_code" -eq 200 ]; then
+          echo "✅ Readiness probe passed"
+        else
+          echo "❌ Service not ready"
+          cat response.json
+          exit 1
+        fi
+
+  api-endpoint-tests:
+    name: API Endpoint Tests
+    runs-on: ubuntu-latest
+    needs: health-checks
+    if: ${{ !failure() }} # Run even if health checks have warnings
+    strategy:
+      matrix:
+        environment: [production, staging]
+        include:
+          - environment: production
+            base_url: https://gastropartner-backend.onrender.com
+          - environment: staging
+            base_url: https://gastropartner-backend-staging.onrender.com
+    
+    steps:
+    - name: Test Root Endpoint
+      run: |
+        echo "🔍 Testing root endpoint"
+        
+        response=$(curl -s -w "%{http_code}" -o response.json "${{ matrix.base_url }}/")
+        http_code=${response: -3}
+        
+        if [ "$http_code" -eq 200 ]; then
+          echo "✅ Root endpoint accessible"
+          message=$(cat response.json | jq -r '.message')
+          echo "Message: $message"
+        else
+          echo "❌ Root endpoint failed"
+          exit 1
+        fi
+    
+    - name: Test API Documentation
+      run: |
+        echo "🔍 Testing API documentation"
+        
+        response=$(curl -s -w "%{http_code}" -o /dev/null "${{ matrix.base_url }}/docs")
+        http_code=${response: -3}
+        
+        if [ "$http_code" -eq 200 ]; then
+          echo "✅ API docs accessible"
+        else
+          echo "❌ API docs failed"
+          exit 1
+        fi
+    
+    - name: Test OpenAPI Schema
+      run: |
+        echo "🔍 Testing OpenAPI schema"
+        
+        response=$(curl -s -w "%{http_code}" -o response.json "${{ matrix.base_url }}/openapi.json")
+        http_code=${response: -3}
+        
+        if [ "$http_code" -eq 200 ]; then
+          echo "✅ OpenAPI schema accessible"
+          # Validate it's valid JSON
+          cat response.json | jq . > /dev/null
+          echo "✅ OpenAPI schema is valid JSON"
+        else
+          echo "❌ OpenAPI schema failed"
+          exit 1
+        fi
+
+  synthetic-user-journeys:
+    name: Synthetic User Journeys
+    runs-on: ubuntu-latest
+    needs: [health-checks, api-endpoint-tests]
+    if: ${{ !failure() }}
+    strategy:
+      matrix:
+        environment: [production, staging]
+        include:
+          - environment: production
+            base_url: https://gastropartner-backend.onrender.com
+            api_key: ${{ secrets.SYNTHETIC_TEST_API_KEY_PROD }}
+          - environment: staging
+            base_url: https://gastropartner-backend-staging.onrender.com
+            api_key: ${{ secrets.SYNTHETIC_TEST_API_KEY_STAGING }}
+    
+    steps:
+    - name: Test Authentication Flow
+      run: |
+        echo "🔍 Testing authentication flow for ${{ matrix.environment }}"
+        
+        if [ -z "${{ matrix.api_key }}" ]; then
+          echo "⚠️ Synthetic test API key not configured, skipping user journey tests"
+          exit 0
+        fi
+        
+        response=$(curl -s -w "%{http_code}" -o response.json \
+          -X POST "${{ matrix.base_url }}/health/synthetic/test?test_type=auth_flow&api_key=${{ matrix.api_key }}")
+        http_code=${response: -3}
+        
+        if [ "$http_code" -eq 200 ]; then
+          echo "✅ Authentication flow test passed"
+          cat response.json | jq .
+        else
+          echo "❌ Authentication flow test failed"
+          cat response.json
+          exit 1
+        fi
+    
+    - name: Test Database CRUD Operations
+      run: |
+        echo "🔍 Testing database CRUD operations for ${{ matrix.environment }}"
+        
+        if [ -z "${{ matrix.api_key }}" ]; then
+          echo "⚠️ Synthetic test API key not configured, skipping database tests"
+          exit 0
+        fi
+        
+        response=$(curl -s -w "%{http_code}" -o response.json \
+          -X POST "${{ matrix.base_url }}/health/synthetic/test?test_type=database_crud&api_key=${{ matrix.api_key }}")
+        http_code=${response: -3}
+        
+        if [ "$http_code" -eq 200 ]; then
+          echo "✅ Database CRUD test passed"
+          cat response.json | jq .
+        else
+          echo "❌ Database CRUD test failed"
+          cat response.json
+          exit 1
+        fi
+    
+    - name: Test Critical API Endpoints
+      run: |
+        echo "🔍 Testing critical API endpoints for ${{ matrix.environment }}"
+        
+        if [ -z "${{ matrix.api_key }}" ]; then
+          echo "⚠️ Synthetic test API key not configured, skipping API tests"
+          exit 0
+        fi
+        
+        response=$(curl -s -w "%{http_code}" -o response.json \
+          -X POST "${{ matrix.base_url }}/health/synthetic/test?test_type=api_endpoints&api_key=${{ matrix.api_key }}")
+        http_code=${response: -3}
+        
+        if [ "$http_code" -eq 200 ]; then
+          echo "✅ API endpoints test passed"
+          cat response.json | jq .
+        else
+          echo "❌ API endpoints test failed"
+          cat response.json
+          exit 1
+        fi
+
+  performance-monitoring:
+    name: Performance Monitoring
+    runs-on: ubuntu-latest
+    needs: health-checks
+    if: ${{ !failure() }}
+    strategy:
+      matrix:
+        environment: [production, staging]
+        include:
+          - environment: production
+            base_url: https://gastropartner-backend.onrender.com
+          - environment: staging
+            base_url: https://gastropartner-backend-staging.onrender.com
+    
+    steps:
+    - name: Measure Response Times
+      run: |
+        echo "📊 Measuring response times for ${{ matrix.environment }}"
+        
+        # Test multiple endpoints and measure response times
+        endpoints=("/" "/health/" "/health/detailed" "/docs")
+        
+        for endpoint in "${endpoints[@]}"; do
+          echo "Testing $endpoint"
+          
+          # Measure response time using curl
+          response_time=$(curl -s -w "%{time_total}" -o /dev/null "${{ matrix.base_url }}$endpoint")
+          response_time_ms=$(echo "$response_time * 1000" | bc)
+          
+          echo "Response time: ${response_time_ms}ms"
+          
+          # Alert if response time is too high
+          if (( $(echo "$response_time > 5.0" | bc -l) )); then
+            echo "⚠️ Slow response time for $endpoint: ${response_time_ms}ms"
+          else
+            echo "✅ Good response time for $endpoint: ${response_time_ms}ms"
+          fi
+        done
+    
+    - name: Check System Metrics
+      run: |
+        echo "📊 Checking system metrics for ${{ matrix.environment }}"
+        
+        response=$(curl -s -w "%{http_code}" -o response.json "${{ matrix.base_url }}/health/metrics")
+        http_code=${response: -3}
+        
+        if [ "$http_code" -eq 200 ]; then
+          echo "✅ Metrics endpoint accessible"
+          
+          # Extract key metrics
+          uptime=$(cat response.json | jq -r '.uptime_seconds')
+          memory_mb=$(cat response.json | jq -r '.metrics.memory.used_mb // "N/A"')
+          cpu_percent=$(cat response.json | jq -r '.metrics.cpu.percent // "N/A"')
+          
+          echo "Uptime: ${uptime}s"
+          echo "Memory usage: ${memory_mb}MB"
+          echo "CPU usage: ${cpu_percent}%"
+          
+          # Check for high resource usage
+          if [ "$memory_mb" != "N/A" ] && (( $(echo "$memory_mb > 512" | bc -l) )); then
+            echo "⚠️ High memory usage: ${memory_mb}MB"
+          fi
+          
+          if [ "$cpu_percent" != "N/A" ] && (( $(echo "$cpu_percent > 80" | bc -l) )); then
+            echo "⚠️ High CPU usage: ${cpu_percent}%"
+          fi
+        else
+          echo "❌ Could not get system metrics"
+          cat response.json
+        fi
+
+  alert-on-failure:
+    name: Alert on Critical Failures
+    runs-on: ubuntu-latest
+    needs: [health-checks, api-endpoint-tests, synthetic-user-journeys, performance-monitoring]
+    if: ${{ failure() && github.event_name == 'schedule' }}
+    
+    steps:
+    - name: Send Failure Alert
+      run: |
+        echo "🚨 Synthetic monitoring detected critical failures"
+        echo "Failed jobs: ${{ toJson(needs) }}"
+        
+        # TODO: Implement actual alerting (email, Slack, PagerDuty)
+        # For now, just log the failure
+        echo "This would trigger alerts to:"
+        echo "- Operations team email"
+        echo "- Slack #alerts channel"
+        echo "- PagerDuty (if configured)"
+        
+        # Create a summary of what failed
+        echo "Failed monitoring checks at $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+        echo "Repository: ${{ github.repository }}"
+        echo "Workflow: ${{ github.workflow }}"
+        echo "Run ID: ${{ github.run_id }}"
