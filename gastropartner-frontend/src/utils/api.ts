@@ -166,6 +166,43 @@ interface UserAnalyticsEvent {
   properties?: Record<string, any>;
 }
 
+export interface User {
+  id: string;
+  email: string;
+  full_name?: string;
+  created_at: string;
+  updated_at?: string;
+  email_confirmed_at?: string;
+  last_sign_in_at?: string;
+}
+
+export interface Organization {
+  organization_id: string;
+  id?: string; // Alias for organization_id
+  name: string;
+  slug?: string;
+  description?: string;
+  owner_id: string;
+  created_at: string;
+  updated_at?: string;
+  max_ingredients: number;
+  max_recipes: number;
+  max_menu_items: number;
+  current_ingredients: number;
+  current_recipes: number;
+  current_menu_items: number;
+}
+
+export interface OrganizationCreate {
+  name: string;
+  description?: string;
+}
+
+export interface OrganizationUpdate {
+  name?: string;
+  description?: string;
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -357,6 +394,36 @@ class ApiClient {
   // Feature Flags
   async getFeatureFlags(): Promise<FeatureFlags> {
     return this.get<FeatureFlags>('/api/v1/feature-flags/');
+  }
+
+  // Organizations API
+  async getOrganizations(token?: string): Promise<Organization[]> {
+    return this.get<Organization[]>('/api/v1/organizations/');
+  }
+
+  async createOrganization(data: OrganizationCreate): Promise<Organization> {
+    return this.post<Organization>('/api/v1/organizations/', data);
+  }
+
+  async getOrganization(id: string): Promise<Organization> {
+    return this.get<Organization>(`/api/v1/organizations/${id}`);
+  }
+
+  async updateOrganization(id: string, data: OrganizationUpdate): Promise<Organization> {
+    return this.put<Organization>(`/api/v1/organizations/${id}`, data);
+  }
+
+  async deleteOrganization(id: string): Promise<{ message: string; success: boolean }> {
+    return this.delete(`/api/v1/organizations/${id}`);
+  }
+
+  async getOrganizationUsage(id: string): Promise<any> {
+    return this.get(`/api/v1/organizations/${id}/usage`);
+  }
+
+  // User Auth API
+  async getCurrentUser(token?: string): Promise<User> {
+    return this.get<User>('/api/v1/auth/me');
   }
 }
 

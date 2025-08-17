@@ -72,13 +72,13 @@ async def get_upgrade_prompts(
     "/plan-comparison",
     response_model=dict[str, Any],
     summary="Get plan comparison",
-    description="Get comparison between free and premium plans (public endpoint)"
+    description="Get comparison between free and enterprise plans (public endpoint)"
 )
 async def get_plan_comparison() -> dict[str, Any]:
     """
     Get plan comparison data for upgrade decision.
     
-    Shows what users get with free vs premium plans.
+    Shows what users get with free vs enterprise plans for recipe module.
     """
     return {
         "current_plan": "free",
@@ -96,7 +96,7 @@ async def get_plan_comparison() -> dict[str, Any]:
                     "exports": {"enabled": False, "description": "No data exports"},
                 },
             },
-            "premium": {
+            "enterprise": {
                 "price": 299,
                 "currency": "SEK",
                 "billing_period": "month",

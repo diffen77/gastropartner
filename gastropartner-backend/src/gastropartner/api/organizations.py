@@ -177,8 +177,38 @@ async def list_user_organizations(
     # For development user, return a default organization immediately
     if str(current_user.id) == "12345678-1234-1234-1234-123456789012":
         from datetime import datetime
+        
+        # Calculate current usage for development organization
+        dev_org_id = "87654321-4321-4321-4321-210987654321"
+        
+        try:
+            # Count current ingredients
+            ingredients_count = supabase.table("ingredients").select(
+                "ingredient_id", count="exact"
+            ).eq("organization_id", dev_org_id).eq("is_active", True).execute()
+            current_ingredients = ingredients_count.count or 0
+            
+            # Count current recipes
+            recipes_count = supabase.table("recipes").select(
+                "recipe_id", count="exact"
+            ).eq("organization_id", dev_org_id).eq("is_active", True).execute()
+            current_recipes = recipes_count.count or 0
+            
+            # Count current menu items
+            menu_items_count = supabase.table("menu_items").select(
+                "menu_item_id", count="exact"
+            ).eq("organization_id", dev_org_id).eq("is_active", True).execute()
+            current_menu_items = menu_items_count.count or 0
+            
+        except Exception as e:
+            print(f"Failed to get usage counts for dev org: {e}")
+            # Fallback to 0 if database queries fail
+            current_ingredients = 0
+            current_recipes = 0
+            current_menu_items = 0
+        
         return [Organization(
-            organization_id="87654321-4321-4321-4321-210987654321",
+            organization_id=dev_org_id,
             name="Development Organization",
             description="Default organization for development",
             owner_id=current_user.id,
@@ -187,6 +217,9 @@ async def list_user_organizations(
             max_ingredients=1000,
             max_recipes=500,
             max_menu_items=200,
+            current_ingredients=current_ingredients,
+            current_recipes=current_recipes,
+            current_menu_items=current_menu_items,
         )]
 
     try:
@@ -209,7 +242,45 @@ async def list_user_organizations(
         if not response.data:
             return []
 
-        return [Organization(**org) for org in response.data]
+        # Calculate current usage for each organization
+        organizations = []
+        for org_data in response.data:
+            try:
+                org_id = org_data["organization_id"]
+                
+                # Count current ingredients
+                ingredients_count = supabase.table("ingredients").select(
+                    "ingredient_id", count="exact"
+                ).eq("organization_id", org_id).eq("is_active", True).execute()
+                current_ingredients = ingredients_count.count or 0
+                
+                # Count current recipes
+                recipes_count = supabase.table("recipes").select(
+                    "recipe_id", count="exact"
+                ).eq("organization_id", org_id).eq("is_active", True).execute()
+                current_recipes = recipes_count.count or 0
+                
+                # Count current menu items
+                menu_items_count = supabase.table("menu_items").select(
+                    "menu_item_id", count="exact"
+                ).eq("organization_id", org_id).eq("is_active", True).execute()
+                current_menu_items = menu_items_count.count or 0
+                
+                # Update organization data with current counts
+                org_data["current_ingredients"] = current_ingredients
+                org_data["current_recipes"] = current_recipes
+                org_data["current_menu_items"] = current_menu_items
+                
+            except Exception as e:
+                print(f"Failed to get usage counts for org {org_data.get('organization_id', 'unknown')}: {e}")
+                # Fallback to existing values or 0 if not set
+                org_data["current_ingredients"] = org_data.get("current_ingredients", 0)
+                org_data["current_recipes"] = org_data.get("current_recipes", 0)
+                org_data["current_menu_items"] = org_data.get("current_menu_items", 0)
+            
+            organizations.append(Organization(**org_data))
+
+        return organizations
 
     except Exception:
         # If tables don't exist yet, return empty list instead of error
@@ -257,7 +328,43 @@ async def get_organization(
             detail="Organization not found",
         )
 
-    return Organization(**response.data[0])
+    org_data = response.data[0]
+    
+    try:
+        # Calculate current usage for this organization
+        org_id = str(organization_id)
+        
+        # Count current ingredients
+        ingredients_count = supabase.table("ingredients").select(
+            "ingredient_id", count="exact"
+        ).eq("organization_id", org_id).eq("is_active", True).execute()
+        current_ingredients = ingredients_count.count or 0
+        
+        # Count current recipes
+        recipes_count = supabase.table("recipes").select(
+            "recipe_id", count="exact"
+        ).eq("organization_id", org_id).eq("is_active", True).execute()
+        current_recipes = recipes_count.count or 0
+        
+        # Count current menu items
+        menu_items_count = supabase.table("menu_items").select(
+            "menu_item_id", count="exact"
+        ).eq("organization_id", org_id).eq("is_active", True).execute()
+        current_menu_items = menu_items_count.count or 0
+        
+        # Update organization data with current counts
+        org_data["current_ingredients"] = current_ingredients
+        org_data["current_recipes"] = current_recipes
+        org_data["current_menu_items"] = current_menu_items
+        
+    except Exception as e:
+        print(f"Failed to get usage counts for org {organization_id}: {e}")
+        # Fallback to existing values or 0 if not set
+        org_data["current_ingredients"] = org_data.get("current_ingredients", 0)
+        org_data["current_recipes"] = org_data.get("current_recipes", 0)
+        org_data["current_menu_items"] = org_data.get("current_menu_items", 0)
+
+    return Organization(**org_data)
 
 
 @router.put(

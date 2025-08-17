@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RecipeCreate, Ingredient, RecipeIngredientCreate, FeatureFlags, apiClient } from '../../utils/api';
+import { RecipeCreate, Recipe, Ingredient, RecipeIngredientCreate, FeatureFlags, apiClient } from '../../utils/api';
 import { useFreemium } from '../../hooks/useFreemium';
 import { calculateIngredientCost, getCompatibleUnits } from '../../utils/unitConversion';
 import { UNITS, renderUnitOptions } from '../../utils/units';
@@ -10,13 +10,14 @@ interface RecipeFormProps {
   onClose: () => void;
   onSubmit: (data: RecipeCreate) => Promise<void>;
   isLoading?: boolean;
+  editingRecipe?: Recipe | null;
 }
 
 interface RecipeIngredientFormData extends RecipeIngredientCreate {
   id: string; // temporary ID for form management
 }
 
-export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false }: RecipeFormProps) {
+export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false, editingRecipe = null }: RecipeFormProps) {
   const { canAddRecipe, isAtLimit } = useFreemium();
   const [formData, setFormData] = useState<RecipeCreate>({
     name: '',
@@ -40,16 +41,22 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false }: Rec
     if (isOpen) {
       loadIngredients();
       loadFeatureFlags();
-      resetForm();
+      if (editingRecipe) {
+        populateFormForEdit(editingRecipe);
+      } else {
+        resetForm();
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, editingRecipe]);
 
   const loadIngredients = async () => {
     try {
       const ingredients = await apiClient.getIngredients();
-      setAvailableIngredients(ingredients.filter(ing => ing.is_active));
+      const activeIngredients = ingredients.filter(ing => ing.is_active);
+      setAvailableIngredients(activeIngredients);
     } catch (err) {
       console.error('Failed to load ingredients:', err);
+      setError('Failed to load ingredients. Please try refreshing the page.');
     }
   };
 
@@ -85,6 +92,32 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false }: Rec
       ingredients: [],
     });
     setRecipeIngredients([]);
+    setError('');
+    setShowUpgradePrompt(false);
+  };
+
+  const populateFormForEdit = (recipe: Recipe) => {
+    setFormData({
+      name: recipe.name,
+      description: recipe.description || '',
+      servings: recipe.servings,
+      prep_time_minutes: recipe.prep_time_minutes,
+      cook_time_minutes: recipe.cook_time_minutes,
+      instructions: recipe.instructions || '',
+      notes: recipe.notes || '',
+      ingredients: [],
+    });
+
+    // Convert recipe ingredients to form format
+    const formIngredients: RecipeIngredientFormData[] = recipe.ingredients?.map((ri, index) => ({
+      id: `edit-${index}`,
+      ingredient_id: ri.ingredient_id,
+      quantity: ri.quantity,
+      unit: ri.unit,
+      notes: ri.notes || '',
+    })) || [];
+    
+    setRecipeIngredients(formIngredients);
     setError('');
     setShowUpgradePrompt(false);
   };
@@ -134,9 +167,12 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false }: Rec
 
   const addIngredient = () => {
     if (availableIngredients.length === 0) {
-      setError('Inga ingredienser tillgängliga. Skapa ingredienser först.');
+      setError('Inga ingredienser tillgängliga. Gå till ingredienser-sidan och skapa ingredienser först.');
       return;
     }
+
+    console.log('🆕 Adding new ingredient. Available ingredients:', availableIngredients);
+    console.log('First available ingredient:', availableIngredients[0]);
 
     const newIngredient: RecipeIngredientFormData = {
       id: `temp-${Date.now()}`,
@@ -146,17 +182,33 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false }: Rec
       notes: '',
     };
 
-    setRecipeIngredients([...recipeIngredients, newIngredient]);
+    console.log('New ingredient created:', newIngredient);
+    
+    setRecipeIngredients(prevIngredients => {
+      console.log('Previous ingredients before adding:', prevIngredients);
+      const updatedIngredients = [...prevIngredients, newIngredient];
+      console.log('Updated ingredients after adding:', updatedIngredients);
+      return updatedIngredients;
+    });
   };
 
   const removeIngredient = (id: string) => {
-    setRecipeIngredients(recipeIngredients.filter(ri => ri.id !== id));
+    setRecipeIngredients(prevIngredients => 
+      prevIngredients.filter(ri => ri.id !== id)
+    );
   };
 
   const updateIngredient = (id: string, field: keyof RecipeIngredientFormData, value: any) => {
-    setRecipeIngredients(recipeIngredients.map(ri => 
-      ri.id === id ? { ...ri, [field]: value } : ri
-    ));
+    console.log(`🔄 updateIngredient called: id=${id}, field=${field}, value=${value}`);
+    
+    setRecipeIngredients(prevIngredients => {
+      console.log('Previous ingredients in functional update:', prevIngredients);
+      const updatedIngredients = prevIngredients.map(ri => 
+        ri.id === id ? { ...ri, [field]: value } : ri
+      );
+      console.log('Updated ingredients in functional update:', updatedIngredients);
+      return updatedIngredients;
+    });
   };
 
   const calculateEstimatedCost = (): number => {
@@ -185,16 +237,16 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false }: Rec
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content recipe-form" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Nytt Recept</h2>
+          <h2>{editingRecipe ? 'Redigera Recept' : 'Nytt Recept'}</h2>
           <button className="modal-close" onClick={onClose}>&times;</button>
         </div>
 
         {showUpgradePrompt ? (
           <div className="upgrade-modal">
             <div className="upgrade-content">
-              <h3>Uppgradera till Premium</h3>
-              <p>Du har nått gränsen för gratis recept (5/5).</p>
-              <p>Uppgradera till premium för:</p>
+              <h3>Uppgradera till Enterprise</h3>
+              <p>Du har nått gränsen för receptmodulen (5/5).</p>
+              <p>Uppgradera till enterprise för:</p>
               <ul>
                 <li>• Obegränsade recept</li>
                 <li>• Avancerade kostkalkyleringar</li>
@@ -323,7 +375,11 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false }: Rec
                           <select
                             value={ri.ingredient_id}
                             onChange={(e) => {
+                              console.log(`🎯 Dropdown onChange: Selected ${e.target.value} for ingredient row ${ri.id}`);
+                              console.log('Current ri.ingredient_id:', ri.ingredient_id);
                               const selectedIngredient = availableIngredients.find(ing => ing.ingredient_id === e.target.value);
+                              console.log('Found ingredient:', selectedIngredient?.name);
+                              
                               updateIngredient(ri.id, 'ingredient_id', e.target.value);
                               if (selectedIngredient) {
                                 updateIngredient(ri.id, 'unit', selectedIngredient.unit);
@@ -442,7 +498,10 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false }: Rec
                 className="btn btn--primary"
                 disabled={isLoading || formData.name.trim() === ''}
               >
-                {isLoading ? 'Sparar...' : 'Spara Recept'}
+                {isLoading 
+                  ? (editingRecipe ? 'Uppdaterar...' : 'Sparar...') 
+                  : (editingRecipe ? 'Uppdatera Recept' : 'Spara Recept')
+                }
               </button>
             </div>
           </form>

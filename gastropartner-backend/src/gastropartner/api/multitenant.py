@@ -4,8 +4,10 @@ from datetime import UTC
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from supabase import Client
 
 from gastropartner.core.auth import get_current_active_user
+from gastropartner.core.database import get_supabase_client
 from gastropartner.core.models import MessageResponse, User
 from gastropartner.core.multitenant import MultitenantService, get_multitenant_service
 
@@ -20,11 +22,42 @@ router = APIRouter(prefix="/organizations", tags=["organizations"])
 async def list_user_organizations(
     current_user: User = Depends(get_current_active_user),
     multitenant_service: MultitenantService = Depends(get_multitenant_service),
+    supabase: Client = Depends(get_supabase_client),
 ):
     """List all organizations the current user belongs to."""
-    # For development user, return a basic development organization
+    # For development user, return a basic development organization with usage counts
     if str(current_user.id) == "12345678-1234-1234-1234-123456789012":
         from datetime import datetime
+        
+        # Calculate current usage for development organization
+        dev_org_id = "87654321-4321-4321-4321-210987654321"
+        
+        try:
+            # Count current ingredients
+            ingredients_count = supabase.table("ingredients").select(
+                "ingredient_id", count="exact"
+            ).eq("organization_id", dev_org_id).eq("is_active", True).execute()
+            current_ingredients = ingredients_count.count or 0
+            
+            # Count current recipes
+            recipes_count = supabase.table("recipes").select(
+                "recipe_id", count="exact"
+            ).eq("organization_id", dev_org_id).eq("is_active", True).execute()
+            current_recipes = recipes_count.count or 0
+            
+            # Count current menu items
+            menu_items_count = supabase.table("menu_items").select(
+                "menu_item_id", count="exact"
+            ).eq("organization_id", dev_org_id).eq("is_active", True).execute()
+            current_menu_items = menu_items_count.count or 0
+            
+        except Exception as e:
+            print(f"Failed to get usage counts for dev org: {e}")
+            # Fallback to 0 if database queries fail
+            current_ingredients = 0
+            current_recipes = 0
+            current_menu_items = 0
+        
         return [{
             "role": "owner",
             "joined_at": datetime.now(UTC).isoformat(),
@@ -34,7 +67,13 @@ async def list_user_organizations(
                 "slug": "dev-org",
                 "plan": "free",
                 "description": "Default organization for development",
-                "created_at": datetime.now(UTC).isoformat()
+                "created_at": datetime.now(UTC).isoformat(),
+                "max_ingredients": 1000,
+                "max_recipes": 500,
+                "max_menu_items": 200,
+                "current_ingredients": current_ingredients,
+                "current_recipes": current_recipes,
+                "current_menu_items": current_menu_items,
             }
         }]
 

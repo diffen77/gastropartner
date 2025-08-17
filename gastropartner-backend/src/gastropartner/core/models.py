@@ -298,6 +298,7 @@ class RecipeUpdate(BaseModel):
     cook_time_minutes: int | None = Field(None, ge=0)
     instructions: str | None = Field(None, max_length=5000)
     notes: str | None = Field(None, max_length=1000)
+    ingredients: list[RecipeIngredientCreate] | None = None
     is_active: bool | None = None
 
 

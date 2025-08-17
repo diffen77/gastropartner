@@ -154,13 +154,13 @@ export function OrganizationSelector() {
             )}
             <div className="org-info__limits">
               <span className="org-info__limit">
-                Ingredienser: {currentOrganization.current_ingredients}/{currentOrganization.max_ingredients}
+                Ingredienser: {currentOrganization.current_ingredients || 0}/{currentOrganization.max_ingredients || 0}
               </span>
               <span className="org-info__limit">
-                Recept: {currentOrganization.current_recipes}/{currentOrganization.max_recipes}
+                Recept: {currentOrganization.current_recipes || 0}/{currentOrganization.max_recipes || 0}
               </span>
               <span className="org-info__limit">
-                Maträtter: {currentOrganization.current_menu_items}/{currentOrganization.max_menu_items}
+                Maträtter: {currentOrganization.current_menu_items || 0}/{currentOrganization.max_menu_items || 0}
               </span>
             </div>
           </div>
