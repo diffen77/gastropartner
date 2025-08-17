@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './IngredientForm.css';
 import { IngredientCreate, Ingredient } from '../../utils/api';
+import { UNITS, renderUnitOptions } from '../../utils/units';
 
 interface IngredientFormProps {
   isOpen: boolean;
@@ -59,18 +60,7 @@ export function IngredientForm({ isOpen, onClose, onSubmit, isLoading = false, e
     'Övrigt'
   ];
 
-  const units = [
-    'kg',
-    'g',
-    'liter',
-    'dl',
-    'ml',
-    'st',
-    'paket',
-    'burk',
-    'påse',
-    'flaska'
-  ];
+  const units = UNITS;;;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -199,9 +189,7 @@ export function IngredientForm({ isOpen, onClose, onSubmit, isLoading = false, e
                 disabled={isLoading}
               >
                 <option value="">Välj enhet</option>
-                {units.map(unit => (
-                  <option key={unit} value={unit}>{unit}</option>
-                ))}
+                {renderUnitOptions(units)}
               </select>
               {errors.unit && <span className="error-text">{errors.unit}</span>}
             </div>
