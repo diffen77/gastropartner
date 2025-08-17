@@ -104,7 +104,8 @@
 
 .ingredient-row__select select,
 .ingredient-row__quantity input,
-.ingredient-row__unit input {
+.ingredient-row__unit input,
+.ingredient-row__unit select {
   margin: 0;
   min-width: 0;
 }

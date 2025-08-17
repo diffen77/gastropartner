@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { RecipeCreate, Ingredient, RecipeIngredientCreate, FeatureFlags, apiClient } from '../../utils/api';
 import { useFreemium } from '../../hooks/useFreemium';
+import { calculateIngredientCost, getCompatibleUnits } from '../../utils/unitConversion';
+import { UNITS, renderUnitOptions } from '../../utils/units';
 import './RecipeForm.css';
 
 interface RecipeFormProps {
@@ -161,11 +163,18 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false }: Rec
     return recipeIngredients.reduce((total, ri) => {
       const ingredient = availableIngredients.find(ing => ing.ingredient_id === ri.ingredient_id);
       if (ingredient) {
-        return total + (ri.quantity * ingredient.cost_per_unit);
+        // Use unit conversion for accurate cost calculation
+        const cost = calculateIngredientCost(
+          ri.quantity,
+          ri.unit,
+          ingredient.cost_per_unit,
+          ingredient.unit
+        );
+        return total + cost;
       }
       return total;
     }, 0);
-  };
+  };;
 
   const estimatedCost = calculateEstimatedCost();
   const costPerServing = estimatedCost; // Since we always use 1 serving
@@ -301,7 +310,12 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false }: Rec
                 <div className="ingredients-list">
                   {recipeIngredients.map((ri) => {
                     const ingredient = availableIngredients.find(ing => ing.ingredient_id === ri.ingredient_id);
-                    const lineCost = ingredient ? ri.quantity * ingredient.cost_per_unit : 0;
+                    const lineCost = ingredient ? calculateIngredientCost(
+                      ri.quantity,
+                      ri.unit,
+                      ingredient.cost_per_unit,
+                      ingredient.unit
+                    ) : 0;
                     
                     return (
                       <div key={ri.id} className="ingredient-row">
@@ -338,13 +352,15 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false }: Rec
                         </div>
 
                         <div className="ingredient-row__unit">
-                          <input
-                            type="text"
+                          <select
                             value={ri.unit}
                             onChange={(e) => updateIngredient(ri.id, 'unit', e.target.value)}
-                            placeholder="Enhet"
-                            autoComplete="off"
-                          />
+                            title={ingredient ? `Kompatibla enheter: ${getCompatibleUnits(ingredient.unit).join(', ')}` : 'Välj enhet för denna ingrediens'}
+                            required
+                          >
+                            <option value="">Välj enhet</option>
+                            {renderUnitOptions(UNITS)}
+                          </select>
                         </div>
 
                         <div className="ingredient-row__cost">
