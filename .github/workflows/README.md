@@ -74,7 +74,28 @@ This directory contains comprehensive GitHub Actions workflows for the GastroPar
    - Team notifications
    - Success tracking
 
-### 4. **Claude Code Review** (`claude-code-review.yml`)
+### 4. **E2E Tests** (`e2e-tests.yml`)
+**Triggers:** Pull requests affecting frontend/backend code
+
+**Purpose:** Comprehensive end-to-end testing with Playwright
+
+**Features:**
+- **Multi-browser Testing:** Chrome, Firefox, Safari, Mobile Chrome, Mobile Safari
+- **Full Environment Setup:** Backend server + Frontend served
+- **Comprehensive Test Coverage:** Authentication, navigation, business logic
+- **Rich Reporting:** HTML reports, screenshots, videos, JUnit XML
+- **PR Integration:** Automatic test result comments on PRs
+- **Artifact Management:** Test results, reports, and debugging materials
+
+**Test Structure:**
+```
+gastropartner-test-suite/tests/e2e/
+├── auth.spec.ts              # Authentication flows
+├── navigation.spec.ts        # Navigation and routing  
+└── recipe-management.spec.ts # Core business workflows
+```
+
+### 5. **Claude Code Review** (`claude-code-review.yml`)
 **Triggers:** Pull request opened/synchronized
 
 **Purpose:** AI-powered code review
@@ -149,6 +170,7 @@ feature/*             ← Feature development
 
 ### Automated Checks
 - ✅ **Unit Tests:** Backend (pytest) + Frontend (Jest)
+- ✅ **End-to-End Tests:** Playwright multi-browser testing
 - ✅ **Linting:** Ruff (Python) + ESLint (TypeScript)
 - ✅ **Type Checking:** MyPy (Python) + TypeScript
 - ✅ **Security Audit:** pip-audit + npm audit
@@ -206,6 +228,11 @@ npm ci
 npm test
 npm run lint
 npm run build
+
+# E2E Tests (requires both backend and frontend running)
+npm run playwright:install  # First time only
+npm run test:e2e
+npm run test:e2e:ui  # Interactive mode
 ```
 
 ### Simulating CI Environment
