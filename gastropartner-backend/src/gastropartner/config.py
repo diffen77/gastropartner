@@ -25,6 +25,19 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
 
+    # Monitoring Settings
+    monitoring_enabled: bool = True
+    synthetic_test_api_key: str = "dev-synthetic-key-12345"  # Override in production
+    
+    # Alerting Settings (optional)
+    pagerduty_enabled: bool = False
+    pagerduty_integration_key: str | None = None
+    pagerduty_service_id: str | None = None
+    
+    # Notification Settings
+    notification_email: str | None = None
+    slack_webhook_url: str | None = None
+
     model_config = SettingsConfigDict(
         env_file=".env.development",
         case_sensitive=False,

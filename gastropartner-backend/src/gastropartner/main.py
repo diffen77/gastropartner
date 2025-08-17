@@ -14,6 +14,7 @@ from gastropartner.api import (
     freemium,
     ingredients,
     menu_items,
+    monitoring,
     multitenant,
     organizations,
     recipes,
@@ -116,6 +117,7 @@ app.include_router(cost_control.router, prefix="/api/v1")
 app.include_router(ingredients.router, prefix="/api/v1")
 app.include_router(recipes.router, prefix="/api/v1")
 app.include_router(menu_items.router, prefix="/api/v1")
+app.include_router(monitoring.router)  # Health checks and monitoring
 # app.include_router(analytics.router)  # Temporarily disabled - has Supabase client field type issues
 app.include_router(user_testing.router, prefix="/api/v1")
 app.include_router(testing.router)

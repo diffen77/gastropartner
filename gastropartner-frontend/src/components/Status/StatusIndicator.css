@@ -1,0 +1,98 @@
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-indicator__dot {
+  position: relative;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-indicator__pulse {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  opacity: 0.6;
+  animation: pulse 2s infinite;
+}
+
+.status-indicator--animated .status-indicator__pulse {
+  animation: pulse 2s infinite;
+}
+
+.status-indicator:not(.status-indicator--animated) .status-indicator__pulse {
+  animation: none;
+}
+
+/* Size variations */
+.status-indicator--small .status-indicator__dot {
+  width: 8px;
+  height: 8px;
+}
+
+.status-indicator--medium .status-indicator__dot {
+  width: 12px;
+  height: 12px;
+}
+
+.status-indicator--large .status-indicator__dot {
+  width: 20px;
+  height: 20px;
+}
+
+/* Label styling */
+.status-indicator__label {
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-indicator--small .status-indicator__label {
+  font-size: 0.75rem;
+}
+
+.status-indicator--large .status-indicator__label {
+  font-size: 1rem;
+}
+
+/* Pulse animation */
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 1;
+  }
+  
+  70% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+  
+  100% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+}
+
+/* Accessibility improvements */
+.status-indicator {
+  cursor: help;
+}
+
+.status-indicator:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .status-indicator__label {
+    filter: brightness(1.2);
+  }
+}
