@@ -11,6 +11,7 @@ from gastropartner.api import (
     analytics,  # Re-enabled after fixing FastAPI parameter issues
     auth,
     cost_control,
+    feature_flags,
     freemium,
     ingredients,
     menu_items,
@@ -114,6 +115,7 @@ app.include_router(multitenant.router, prefix="/api/v1")
 app.include_router(organizations.router, prefix="/api/v1")
 app.include_router(freemium.router, prefix="/api/v1")
 app.include_router(cost_control.router, prefix="/api/v1")
+app.include_router(feature_flags.router, prefix="/api/v1")
 app.include_router(ingredients.router, prefix="/api/v1")
 app.include_router(recipes.router, prefix="/api/v1")
 app.include_router(menu_items.router, prefix="/api/v1")

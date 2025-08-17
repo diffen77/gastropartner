@@ -410,3 +410,75 @@ class OrganizationRepository:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Database error: {e!s}"
             ) from e
+
+
+class FeatureFlagsRepository(BaseRepository[Any, Any, Any]):
+    """Repository for feature flags."""
+
+    def __init__(self, supabase: Client):
+        from gastropartner.core.models import FeatureFlags
+        super().__init__(
+            supabase=supabase,
+            table_name="feature_flags",
+            model_class=FeatureFlags,
+            primary_key="flags_id",
+        )
+
+    async def get_or_create_for_agency(self, agency_id: str) -> Any:
+        """Get feature flags for agency, creating default if not exists."""
+        try:
+            # Try to get existing feature flags
+            response = self.supabase.table("feature_flags").select("*").eq(
+                "agency_id", agency_id
+            ).execute()
+
+            if response.data:
+                return response.data[0]
+
+            # Create default feature flags if none exist
+            default_flags = {
+                "agency_id": agency_id,
+                "show_recipe_prep_time": False,
+                "show_recipe_cook_time": False,
+                "show_recipe_instructions": False,
+                "show_recipe_notes": False,
+            }
+
+            create_response = self.supabase.table("feature_flags").insert(
+                default_flags
+            ).execute()
+
+            return create_response.data[0]
+
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Database error: {e!s}"
+            ) from e
+
+    async def update_for_agency(self, agency_id: str, updates: dict[str, Any]) -> Any:
+        """Update feature flags for agency."""
+        try:
+            # Ensure feature flags exist first
+            await self.get_or_create_for_agency(agency_id)
+
+            # Update the flags
+            response = self.supabase.table("feature_flags").update(
+                updates
+            ).eq("agency_id", agency_id).execute()
+
+            if not response.data:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Feature flags not found"
+                )
+
+            return response.data[0]
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Database error: {e!s}"
+            ) from e

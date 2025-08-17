@@ -92,6 +92,17 @@ interface Recipe {
   updated_at: string;
 }
 
+interface FeatureFlags {
+  flags_id: string;
+  agency_id: string;
+  show_recipe_prep_time: boolean;
+  show_recipe_cook_time: boolean;
+  show_recipe_instructions: boolean;
+  show_recipe_notes: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 interface RecipeCreate {
   name: string;
   description?: string;
@@ -342,6 +353,11 @@ class ApiClient {
   async trackAnalyticsEvent(data: UserAnalyticsEvent): Promise<{ status: string }> {
     return this.post<{ status: string }>('/api/v1/user-testing/analytics/event', data);
   }
+
+  // Feature Flags
+  async getFeatureFlags(): Promise<FeatureFlags> {
+    return this.get<FeatureFlags>('/api/v1/feature-flags/');
+  }
 }
 
 export const apiClient = new ApiClient();
@@ -356,6 +372,7 @@ export {
   type RecipeCreate,
   type RecipeIngredient,
   type RecipeIngredientCreate,
+  type FeatureFlags,
   type UserFeedback,
   type UserFeedbackCreate,
   type UserTestingMetrics,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RecipeCreate, Ingredient, RecipeIngredientCreate, apiClient } from '../../utils/api';
+import { RecipeCreate, Ingredient, RecipeIngredientCreate, FeatureFlags, apiClient } from '../../utils/api';
 import { useFreemium } from '../../hooks/useFreemium';
 import './RecipeForm.css';
 
@@ -19,7 +19,7 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false }: Rec
   const [formData, setFormData] = useState<RecipeCreate>({
     name: '',
     description: '',
-    servings: 4,
+    servings: 1, // Default to 1 portion
     prep_time_minutes: undefined,
     cook_time_minutes: undefined,
     instructions: '',
@@ -29,13 +29,15 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false }: Rec
 
   const [recipeIngredients, setRecipeIngredients] = useState<RecipeIngredientFormData[]>([]);
   const [availableIngredients, setAvailableIngredients] = useState<Ingredient[]>([]);
+  const [featureFlags, setFeatureFlags] = useState<FeatureFlags | null>(null);
   const [error, setError] = useState<string>('');
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
-  // Load available ingredients when form opens
+  // Load available ingredients and feature flags when form opens
   useEffect(() => {
     if (isOpen) {
       loadIngredients();
+      loadFeatureFlags();
       resetForm();
     }
   }, [isOpen]);
@@ -49,11 +51,31 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false }: Rec
     }
   };
 
+  const loadFeatureFlags = async () => {
+    try {
+      const flags = await apiClient.getFeatureFlags();
+      setFeatureFlags(flags);
+    } catch (err) {
+      console.error('Failed to load feature flags:', err);
+      // Set default flags if loading fails
+      setFeatureFlags({
+        flags_id: '',
+        agency_id: '',
+        show_recipe_prep_time: false,
+        show_recipe_cook_time: false,
+        show_recipe_instructions: false,
+        show_recipe_notes: false,
+        created_at: '',
+        updated_at: '',
+      });
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       name: '',
       description: '',
-      servings: 4,
+      servings: 1, // Always default to 1 portion
       prep_time_minutes: undefined,
       cook_time_minutes: undefined,
       instructions: '',
@@ -79,10 +101,6 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false }: Rec
       return;
     }
 
-    if (formData.servings <= 0) {
-      setError('Antal portioner måste vara större än 0');
-      return;
-    }
 
     try {
       // Convert form ingredients to API format
@@ -150,7 +168,7 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false }: Rec
   };
 
   const estimatedCost = calculateEstimatedCost();
-  const costPerServing = formData.servings > 0 ? estimatedCost / formData.servings : 0;
+  const costPerServing = estimatedCost; // Since we always use 1 serving
 
   if (!isOpen) return null;
 
@@ -227,44 +245,38 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false }: Rec
                 />
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="servings">Portioner *</label>
-                  <input
-                    type="number"
-                    id="servings"
-                    min="1"
-                    max="100"
-                    value={formData.servings}
-                    onChange={(e) => setFormData({ ...formData, servings: parseInt(e.target.value) || 1 })}
-                    required
-                  />
-                </div>
+              {/* Time fields - conditionally shown based on feature flags */}
+              {(featureFlags?.show_recipe_prep_time || featureFlags?.show_recipe_cook_time) && (
+                <div className="form-row">
+                  {featureFlags?.show_recipe_prep_time && (
+                    <div className="form-group">
+                      <label htmlFor="prep_time">Förberedelse (min)</label>
+                      <input
+                        type="number"
+                        id="prep_time"
+                        min="0"
+                        max="1440"
+                        value={formData.prep_time_minutes || ''}
+                        onChange={(e) => setFormData({ ...formData, prep_time_minutes: e.target.value ? parseInt(e.target.value) : undefined })}
+                      />
+                    </div>
+                  )}
 
-                <div className="form-group">
-                  <label htmlFor="prep_time">Förberedelse (min)</label>
-                  <input
-                    type="number"
-                    id="prep_time"
-                    min="0"
-                    max="1440"
-                    value={formData.prep_time_minutes || ''}
-                    onChange={(e) => setFormData({ ...formData, prep_time_minutes: e.target.value ? parseInt(e.target.value) : undefined })}
-                  />
+                  {featureFlags?.show_recipe_cook_time && (
+                    <div className="form-group">
+                      <label htmlFor="cook_time">Tillagningstid (min)</label>
+                      <input
+                        type="number"
+                        id="cook_time"
+                        min="0"
+                        max="1440"
+                        value={formData.cook_time_minutes || ''}
+                        onChange={(e) => setFormData({ ...formData, cook_time_minutes: e.target.value ? parseInt(e.target.value) : undefined })}
+                      />
+                    </div>
+                  )}
                 </div>
-
-                <div className="form-group">
-                  <label htmlFor="cook_time">Tillagningstid (min)</label>
-                  <input
-                    type="number"
-                    id="cook_time"
-                    min="0"
-                    max="1440"
-                    value={formData.cook_time_minutes || ''}
-                    onChange={(e) => setFormData({ ...formData, cook_time_minutes: e.target.value ? parseInt(e.target.value) : undefined })}
-                  />
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Ingredients Section */}
@@ -368,31 +380,37 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false }: Rec
               )}
             </div>
 
-            {/* Instructions */}
-            <div className="form-section">
-              <h3>Instruktioner</h3>
-              <div className="form-group">
-                <label htmlFor="instructions">Tillagningssteg</label>
-                <textarea
-                  id="instructions"
-                  value={formData.instructions || ''}
-                  onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
-                  placeholder="1. Värm ugnen till 180°C&#10;2. Blanda ingredienserna...&#10;3. Grädda i 25 minuter"
-                  rows={6}
-                />
-              </div>
+            {/* Instructions and Notes - conditionally shown based on feature flags */}
+            {(featureFlags?.show_recipe_instructions || featureFlags?.show_recipe_notes) && (
+              <div className="form-section">
+                <h3>Instruktioner & Anteckningar</h3>
+                {featureFlags?.show_recipe_instructions && (
+                  <div className="form-group">
+                    <label htmlFor="instructions">Tillagningssteg</label>
+                    <textarea
+                      id="instructions"
+                      value={formData.instructions || ''}
+                      onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
+                      placeholder="1. Värm ugnen till 180°C&#10;2. Blanda ingredienserna...&#10;3. Grädda i 25 minuter"
+                      rows={6}
+                    />
+                  </div>
+                )}
 
-              <div className="form-group">
-                <label htmlFor="notes">Anteckningar</label>
-                <textarea
-                  id="notes"
-                  value={formData.notes || ''}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Allmänna tips, variationer, allergener..."
-                  rows={3}
-                />
+                {featureFlags?.show_recipe_notes && (
+                  <div className="form-group">
+                    <label htmlFor="notes">Anteckningar</label>
+                    <textarea
+                      id="notes"
+                      value={formData.notes || ''}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      placeholder="Allmänna tips, variationer, allergener..."
+                      rows={3}
+                    />
+                  </div>
+                )}
               </div>
-            </div>
+            )}
 
             <div className="form-actions">
               <button
