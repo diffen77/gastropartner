@@ -69,14 +69,18 @@ export function MenuItems() {
     }
   };
 
-  const formatCurrency = (amount?: number): string => {
+  const formatCurrency = (amount?: number | string): string => {
     if (!amount) return '0 kr';
-    return `${amount.toFixed(2)} kr`;
+    const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (isNaN(numericAmount)) return '0 kr';
+    return `${numericAmount.toFixed(2)} kr`;
   };
 
-  const formatPercentage = (percentage?: number): string => {
+  const formatPercentage = (percentage?: number | string): string => {
     if (!percentage) return '0%';
-    return `${percentage.toFixed(1)}%`;
+    const numericPercentage = typeof percentage === 'string' ? parseFloat(percentage) : percentage;
+    if (isNaN(numericPercentage)) return '0%';
+    return `${numericPercentage.toFixed(1)}%`;
   };
 
   const columns: TableColumn[] = [
@@ -93,27 +97,57 @@ export function MenuItems() {
     name: item.name,
     category: item.category,
     selling_price: formatCurrency(item.selling_price),
-    food_cost_percentage: item.food_cost_percentage ? `${item.food_cost_percentage.toFixed(1)}%` : '-',
+    food_cost_percentage: item.food_cost_percentage ? formatPercentage(item.food_cost_percentage) : '-',
     margin: item.margin ? formatCurrency(item.margin) : '-',
-    margin_percentage: item.margin_percentage ? `${item.margin_percentage.toFixed(1)}%` : '-',
+    margin_percentage: item.margin_percentage ? formatPercentage(item.margin_percentage) : '-',
     description: item.description,
   }));
 
   // Calculate metrics
   const activeItems = menuItems.filter(item => item.is_active);
   const avgMarginPercentage = activeItems.length > 0 
-    ? activeItems.reduce((sum, item) => sum + (item.margin_percentage || 0), 0) / activeItems.length 
+    ? activeItems.reduce((sum, item) => {
+        const marginPercentage = typeof item.margin_percentage === 'string' 
+          ? parseFloat(item.margin_percentage) || 0 
+          : item.margin_percentage || 0;
+        return sum + marginPercentage;
+      }, 0) / activeItems.length 
     : 0;
   
-  const bestItem = activeItems.reduce((best, item) => 
-    (item.margin_percentage || 0) > (best?.margin_percentage || 0) ? item : best, null as MenuItem | null);
+  const bestItem = activeItems.reduce((best, item) => {
+    const itemMargin = typeof item.margin_percentage === 'string' 
+      ? parseFloat(item.margin_percentage) || 0 
+      : item.margin_percentage || 0;
+    const bestMargin = best && typeof best.margin_percentage === 'string'
+      ? parseFloat(best.margin_percentage) || 0
+      : best?.margin_percentage || 0;
+    return itemMargin > bestMargin ? item : best;
+  }, null as MenuItem | null);
   
-  const worstItem = activeItems.reduce((worst, item) => 
-    (item.margin_percentage || 0) < (worst?.margin_percentage || 0) ? item : worst, null as MenuItem | null);
+  const worstItem = activeItems.reduce((worst, item) => {
+    const itemMargin = typeof item.margin_percentage === 'string' 
+      ? parseFloat(item.margin_percentage) || 0 
+      : item.margin_percentage || 0;
+    const worstMargin = worst && typeof worst.margin_percentage === 'string'
+      ? parseFloat(worst.margin_percentage) || 0
+      : worst?.margin_percentage || 0;
+    return itemMargin < worstMargin ? item : worst;
+  }, null as MenuItem | null);
   
-  const profitableCount = activeItems.filter(item => (item.margin_percentage || 0) > 30).length;
+  const profitableCount = activeItems.filter(item => {
+    const marginPercentage = typeof item.margin_percentage === 'string' 
+      ? parseFloat(item.margin_percentage) || 0 
+      : item.margin_percentage || 0;
+    return marginPercentage > 30;
+  }).length;
+  
   const avgSellingPrice = activeItems.length > 0 
-    ? activeItems.reduce((sum, item) => sum + item.selling_price, 0) / activeItems.length 
+    ? activeItems.reduce((sum, item) => {
+        const sellingPrice = typeof item.selling_price === 'string' 
+          ? parseFloat(item.selling_price) || 0 
+          : item.selling_price || 0;
+        return sum + sellingPrice;
+      }, 0) / activeItems.length 
     : 0;
 
   const menuItemUsagePercentage = getUsagePercentage('menu_items');
@@ -154,7 +188,12 @@ export function MenuItems() {
             icon="📊"
             title="GENOMSNITTLIG MARGINAL"
             value={`${avgMarginPercentage.toFixed(1)}%`}
-            subtitle={`${formatCurrency(activeItems.reduce((sum, item) => sum + (item.margin || 0), 0) / Math.max(activeItems.length, 1))} per portion`}
+            subtitle={`${formatCurrency(activeItems.reduce((sum, item) => {
+              const margin = typeof item.margin === 'string' 
+                ? parseFloat(item.margin) || 0 
+                : item.margin || 0;
+              return sum + margin;
+            }, 0) / Math.max(activeItems.length, 1))} per portion`}
             color={avgMarginPercentage < 20 ? "danger" : avgMarginPercentage < 30 ? "warning" : "success"}
           />
           <MetricsCard
@@ -221,7 +260,7 @@ export function MenuItems() {
                 <span className="stat-label">Marginalspann:</span>
                 <span className="stat-value">
                   {bestItem && worstItem && bestItem.margin_percentage !== undefined && worstItem.margin_percentage !== undefined
-                    ? `${worstItem.margin_percentage.toFixed(1)}% - ${bestItem.margin_percentage.toFixed(1)}%`
+                    ? `${formatPercentage(worstItem.margin_percentage)} - ${formatPercentage(bestItem.margin_percentage)}`
                     : '-'
                   }
                 </span>

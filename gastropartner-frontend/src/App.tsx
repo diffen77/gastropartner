@@ -123,25 +123,37 @@ function Dashboard() {
   // Transform menu items for the table
   const tableData = menuItems.map(item => ({
     name: item.name,
-    margin_percentage: item.margin_percentage ? `${item.margin_percentage.toFixed(1)}%` : '-',
-    margin: item.margin ? `${item.margin.toFixed(0)} kr` : '-',
-    selling_price: `${item.selling_price.toFixed(0)} kr`,
+    margin_percentage: item.margin_percentage != null && typeof item.margin_percentage === 'number' 
+      ? `${item.margin_percentage.toFixed(1)}%` 
+      : '-',
+    margin: item.margin != null && typeof item.margin === 'number' 
+      ? `${item.margin.toFixed(0)} kr` 
+      : '-',
+    selling_price: item.selling_price != null && typeof item.selling_price === 'number'
+      ? `${item.selling_price.toFixed(0)} kr`
+      : '-',
     category: item.category,
   }));
 
   // Calculate metrics
   const activeItems = menuItems.filter(item => item.is_active);
+  
+  // Helper function to safely get numeric value
+  const getNumericValue = (value: number | undefined | null): number => {
+    return typeof value === 'number' && !isNaN(value) ? value : 0;
+  };
+  
   const avgMargin = activeItems.length > 0 
-    ? activeItems.reduce((sum, item) => sum + (item.margin_percentage || 0), 0) / activeItems.length 
+    ? activeItems.reduce((sum, item) => sum + getNumericValue(item.margin_percentage), 0) / activeItems.length 
     : 0;
   
   const bestItem = activeItems.reduce((best, item) => 
-    (item.margin_percentage || 0) > (best?.margin_percentage || 0) ? item : best, null as MenuItem | null);
+    getNumericValue(item.margin_percentage) > getNumericValue(best?.margin_percentage) ? item : best, null as MenuItem | null);
   
   const worstItem = activeItems.reduce((worst, item) => 
-    (item.margin_percentage || 0) < (worst?.margin_percentage || 0) ? item : worst, null as MenuItem | null);
+    getNumericValue(item.margin_percentage) < getNumericValue(worst?.margin_percentage) ? item : worst, null as MenuItem | null);
   
-  const profitableCount = activeItems.filter(item => (item.margin_percentage || 0) > 30).length;
+  const profitableCount = activeItems.filter(item => getNumericValue(item.margin_percentage) > 30).length;
 
   return (
     <div className="main-content">
@@ -171,21 +183,25 @@ function Dashboard() {
             icon="📊"
             title="GENOMSNITTLIG MARGINAL"
             value={`${avgMargin.toFixed(1)}%`}
-            subtitle={activeItems.length > 0 ? `${(activeItems.reduce((sum, item) => sum + (item.margin || 0), 0) / activeItems.length).toFixed(0)} kr/portion` : "0.00 kr/portion"}
+            subtitle={activeItems.length > 0 ? `${(activeItems.reduce((sum, item) => sum + getNumericValue(item.margin), 0) / activeItems.length).toFixed(0)} kr/portion` : "0.00 kr/portion"}
             color={avgMargin > 30 ? "success" : avgMargin > 15 ? "warning" : "danger"}
           />
           <MetricsCard
             icon="🍽️"
             title="BÄSTA MATTRÄTT"
             value={bestItem ? bestItem.name : "Ingen data"}
-            subtitle={bestItem ? `${bestItem.margin_percentage?.toFixed(1)}%` : undefined}
+            subtitle={bestItem && bestItem.margin_percentage != null && typeof bestItem.margin_percentage === 'number' 
+              ? `${bestItem.margin_percentage.toFixed(1)}%` 
+              : undefined}
             color="success"
           />
           <MetricsCard
             icon="📈"
             title="SÄMSTA MATTRÄTT"
             value={worstItem ? worstItem.name : "Ingen data"}
-            subtitle={worstItem ? `${worstItem.margin_percentage?.toFixed(1)}%` : undefined}
+            subtitle={worstItem && worstItem.margin_percentage != null && typeof worstItem.margin_percentage === 'number' 
+              ? `${worstItem.margin_percentage.toFixed(1)}%` 
+              : undefined}
             color="danger"
           />
           <MetricsCard

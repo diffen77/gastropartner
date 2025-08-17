@@ -35,6 +35,11 @@ export function Recipes() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    isOpen: boolean;
+    recipe: Recipe | null;
+  }>({ isOpen: false, recipe: null });
 
   const loadRecipes = async () => {
     try {
@@ -66,45 +71,133 @@ export function Recipes() {
     }
   };
 
-  const formatTime = (minutes?: number): string => {
-    if (!minutes) return '-';
-    if (minutes < 60) return `${minutes} min`;
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}min` : `${hours}h`;
+  const handleUpdateRecipe = async (data: RecipeCreate) => {
+    if (!editingRecipe) return;
+    
+    setIsLoading(true);
+    try {
+      await apiClient.updateRecipe(editingRecipe.recipe_id, data);
+      await loadRecipes(); // Reload the list
+      setError('');
+      setEditingRecipe(null);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Ett fel uppstod';
+      setError(errorMessage);
+      throw err; // Re-throw to let the form handle it
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const confirmDeleteRecipe = async () => {
+    if (!deleteConfirmation.recipe) return;
+
+    setIsLoading(true);
+    try {
+      await apiClient.deleteRecipe(deleteConfirmation.recipe.recipe_id);
+      await loadRecipes(); // Reload the list
+      setError('');
+      setDeleteConfirmation({ isOpen: false, recipe: null });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Ett fel uppstod';
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const closeForm = () => {
+    setIsFormOpen(false);
+    setEditingRecipe(null);
+  };
+
+  const handleEditRecipe = (recipe: Recipe) => {
+    setEditingRecipe(recipe);
+    setIsFormOpen(true);
+  };
+
+  const handleDeleteRecipe = (recipe: Recipe) => {
+    setDeleteConfirmation({ isOpen: true, recipe });
+  };
+
 
   const columns: TableColumn[] = [
     { key: 'name', label: 'Recept', sortable: true },
     { key: 'servings', label: 'Portioner', sortable: true },
+    { key: 'ingredients_count', label: 'Ingredienser', sortable: true },
     { key: 'cost_per_serving', label: 'Kostnad/portion', sortable: true },
-    { key: 'total_cost', label: 'Total kostnad', sortable: true },
-    { key: 'prep_time', label: 'Förberedelse', sortable: true },
-    { key: 'cook_time', label: 'Tillagning', sortable: true },
+    { 
+      key: 'actions', 
+      label: 'Åtgärder', 
+      sortable: false,
+      render: (_, row) => (
+        <div className="recipe-actions">
+          <button
+            className="btn btn--small btn--secondary"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEditRecipe(row.originalRecipe);
+            }}
+            title="Redigera recept"
+          >
+            Redigera
+          </button>
+          <button
+            className="btn btn--small btn--danger"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteRecipe(row.originalRecipe);
+            }}
+            title="Ta bort recept"
+          >
+            Ta bort
+          </button>
+        </div>
+      )
+    },
   ];
 
   // Transform recipes for the table
-  const tableData = recipes.map(recipe => ({
-    name: recipe.name,
-    servings: recipe.servings.toString(),
-    cost_per_serving: recipe.cost_per_serving ? `${recipe.cost_per_serving.toFixed(2)} kr` : '-',
-    total_cost: recipe.total_cost ? `${recipe.total_cost.toFixed(2)} kr` : '-',
-    prep_time: formatTime(recipe.prep_time_minutes),
-    cook_time: formatTime(recipe.cook_time_minutes),
-    description: recipe.description,
-  }));
+  const tableData = recipes.map(recipe => {
+    const costPerServing = recipe.cost_per_serving ? parseFloat(recipe.cost_per_serving.toString()) : null;
+    const ingredientsCount = recipe.ingredients?.length || 0;
+    
+    return {
+      name: recipe.name,
+      servings: recipe.servings.toString(),
+      ingredients_count: ingredientsCount.toString(),
+      cost_per_serving: costPerServing && !isNaN(costPerServing)
+        ? `${costPerServing.toFixed(2)} kr` 
+        : '-',
+      description: recipe.description,
+      originalRecipe: recipe, // Include original recipe for edit/delete operations
+    };
+  });
 
   // Calculate metrics
   const activeRecipes = recipes.filter(recipe => recipe.is_active);
   const avgCostPerServing = activeRecipes.length > 0 
-    ? activeRecipes.reduce((sum, recipe) => sum + (recipe.cost_per_serving || 0), 0) / activeRecipes.length 
+    ? activeRecipes.reduce((sum, recipe) => {
+        const cost = recipe.cost_per_serving ? parseFloat(recipe.cost_per_serving.toString()) : 0;
+        return sum + (isNaN(cost) ? 0 : cost);
+      }, 0) / activeRecipes.length 
     : 0;
   
-  const mostExpensive = activeRecipes.reduce((most, recipe) => 
-    (recipe.cost_per_serving || 0) > (most?.cost_per_serving || 0) ? recipe : most, null as Recipe | null);
+  const mostExpensive = activeRecipes.reduce((most, recipe) => {
+    const recipeCost = recipe.cost_per_serving ? parseFloat(recipe.cost_per_serving.toString()) : 0;
+    const mostCost = most && most.cost_per_serving ? parseFloat(most.cost_per_serving.toString()) : 0;
+    const recipeValidCost = !isNaN(recipeCost) ? recipeCost : 0;
+    const mostValidCost = !isNaN(mostCost) ? mostCost : 0;
+    return recipeValidCost > mostValidCost ? recipe : most;
+  }, null as Recipe | null);
   
-  const cheapest = activeRecipes.reduce((least, recipe) => 
-    (recipe.cost_per_serving || 0) < (least?.cost_per_serving || 0) ? recipe : least, null as Recipe | null);
+  const cheapest = activeRecipes.reduce((least, recipe) => {
+    const recipeCost = recipe.cost_per_serving ? parseFloat(recipe.cost_per_serving.toString()) : Infinity;
+    const leastCost = least && least.cost_per_serving ? parseFloat(least.cost_per_serving.toString()) : Infinity;
+    const recipeValidCost = !isNaN(recipeCost) ? recipeCost : Infinity;
+    const leastValidCost = !isNaN(leastCost) ? leastCost : Infinity;
+    return recipeValidCost < leastValidCost ? recipe : least;
+  }, null as Recipe | null);
   
   const totalIngredients = activeRecipes.reduce((sum, recipe) => 
     sum + (recipe.ingredients?.length || 0), 0);
@@ -156,14 +249,18 @@ export function Recipes() {
             icon="🏆"
             title="BILLIGASTE RECEPT"
             value={cheapest ? cheapest.name : "Inget recept"}
-            subtitle={cheapest ? `${cheapest.cost_per_serving?.toFixed(2)} kr/portion` : undefined}
+            subtitle={cheapest && cheapest.cost_per_serving 
+              ? `${parseFloat(cheapest.cost_per_serving.toString()).toFixed(2)} kr/portion` 
+              : undefined}
             color="success"
           />
           <MetricsCard
             icon="💸"
             title="DYRASTE RECEPT"
             value={mostExpensive ? mostExpensive.name : "Inget recept"}
-            subtitle={mostExpensive ? `${mostExpensive.cost_per_serving?.toFixed(2)} kr/portion` : undefined}
+            subtitle={mostExpensive && mostExpensive.cost_per_serving 
+              ? `${parseFloat(mostExpensive.cost_per_serving.toString()).toFixed(2)} kr/portion` 
+              : undefined}
             color="danger"
           />
           <MetricsCard
@@ -215,8 +312,10 @@ export function Recipes() {
               <div className="stat-item">
                 <span className="stat-label">Kostnadsspann:</span>
                 <span className="stat-value">
-                  {cheapest && mostExpensive && cheapest.cost_per_serving !== undefined && mostExpensive.cost_per_serving !== undefined
-                    ? `${cheapest.cost_per_serving.toFixed(2)} - ${mostExpensive.cost_per_serving.toFixed(2)} kr`
+                  {cheapest && mostExpensive && 
+                   cheapest.cost_per_serving && 
+                   mostExpensive.cost_per_serving
+                    ? `${parseFloat(cheapest.cost_per_serving.toString()).toFixed(2)} - ${parseFloat(mostExpensive.cost_per_serving.toString()).toFixed(2)} kr`
                     : '-'
                   }
                 </span>
@@ -228,10 +327,42 @@ export function Recipes() {
 
       <RecipeForm
         isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        onSubmit={handleCreateRecipe}
+        onClose={closeForm}
+        onSubmit={editingRecipe ? handleUpdateRecipe : handleCreateRecipe}
         isLoading={isLoading}
+        editingRecipe={editingRecipe}
       />
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirmation.isOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h3>Bekräfta borttagning</h3>
+            </div>
+            <div className="modal-body">
+              <p>Är du säker på att du vill ta bort receptet <strong>"{deleteConfirmation.recipe?.name}"</strong>?</p>
+              <p>Denna åtgärd kan inte ångras.</p>
+            </div>
+            <div className="modal-actions">
+              <button
+                className="btn btn--secondary"
+                onClick={() => setDeleteConfirmation({ isOpen: false, recipe: null })}
+                disabled={isLoading}
+              >
+                Avbryt
+              </button>
+              <button
+                className="btn btn--danger"
+                onClick={confirmDeleteRecipe}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Tar bort...' : 'Ta bort'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

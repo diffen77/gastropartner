@@ -223,10 +223,30 @@ class ApiClient {
   // Organization methods
   async getOrganizations(accessToken?: string): Promise<Organization[]> {
     try {
+      let result: any;
       if (accessToken) {
-        return this.requestWithToken<Organization[]>('/api/v1/organizations/', accessToken);
+        result = await this.requestWithToken<any>('/api/v1/organizations/', accessToken);
+      } else {
+        result = await this.request<any>('/api/v1/organizations/');
       }
-      return this.request<Organization[]>('/api/v1/organizations/');
+      
+      // Handle multitenant format: array of {role, organization} objects
+      if (Array.isArray(result) && result.length > 0 && result[0].organization) {
+        return result.map((item: any) => ({
+          ...item.organization,
+          id: item.organization.organization_id, // Add id alias for compatibility
+        }));
+      }
+      
+      // Handle direct organization array format
+      if (Array.isArray(result)) {
+        return result.map((org: any) => ({
+          ...org,
+          id: org.organization_id || org.id, // Add id alias for compatibility
+        }));
+      }
+      
+      return [];
     } catch (error) {
       // During development, if database tables don't exist yet, return empty array
       console.warn('Organizations endpoint failed, returning empty array:', error);

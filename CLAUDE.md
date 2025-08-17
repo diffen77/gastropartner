@@ -444,21 +444,34 @@ Closes #123
 
 ## 🗄️ Database Management and Standards
 
-### **CRITICAL DATABASE RULE**
-**ALWAYS use the Supabase MCP server for ALL database operations:**
+### **CRITICAL DATABASE RULE - READ THIS FIRST**
+**🚨 MANDATORY: ALWAYS use the Supabase MCP server for ALL database operations 🚨**
 
-- **Migrations**: Use `mcp__supabase__apply_migration` for DDL changes
-- **Queries**: Use `mcp__supabase__execute_sql` for DML operations  
-- **Schema Changes**: NEVER modify database schema manually - always use migrations
-- **Project ID**: Use `gamkayswexhlshuepnei` for gastropartner project
-- **Validation**: Use `mcp__supabase__get_advisors` after schema changes
+**NEVER SUGGEST MANUAL SQL EXECUTION. NEVER CREATE .sql FILES FOR MANUAL EXECUTION.**
 
+**REQUIRED WORKFLOW:**
+1. **ALWAYS CHECK .env FILE FIRST**: Read .env to get correct SUPABASE_URL and project ID
+2. **ALL SQL changes**: Use `mcp__supabase__apply_migration` for schema changes
+3. **ALL SQL queries**: Use `mcp__supabase__execute_sql` for data operations
+4. **ALL updates**: Use `mcp__supabase__execute_sql` for UPDATE, INSERT, DELETE
+5. **Project ID**: ALWAYS extract from SUPABASE_URL in .env file (currently: mrfxvnobevzcxsdlznyp)
+6. **Validation**: Use `mcp__supabase__get_advisors` after schema changes
+7. **Retry on timeout**: If connection timeout occurs, try again with simpler queries
+
+**VIOLATION EXAMPLES:**
 ```bash
-# ❌ NEVER run direct SQL commands
-psql -h localhost -d mydb -c "CREATE TABLE..."
+# ❌ NEVER do this - NO manual SQL files
+cat fix_something.sql
+psql -h localhost -d mydb -c "UPDATE..."
+# ❌ NEVER suggest "run this SQL manually"
+# ❌ NEVER say "database connection timeout, run manually"
 
-# ✅ ALWAYS use Supabase MCP server
-# Claude will use mcp__supabase__apply_migration automatically
+# ✅ ALWAYS do this instead
+# Step 1: Read .env file to get project ID from SUPABASE_URL
+# Step 2: Use correct project ID from .env
+mcp__supabase__execute_sql(project_id="mrfxvnobevzcxsdlznyp", query="UPDATE...")
+# ✅ Retry on timeout with same MCP call
+# ✅ Use apply_migration for schema changes
 ```
 
 ### Entity-Specific Primary Keys
@@ -770,6 +783,10 @@ deploy development
 3. Make changes + tests
 4. git push origin feature/new-feature
 5. Create PR → Review → Merge to main
+
+## Git & Version Control
+- Add and commit automatically whenever an entire task is finished
+- Use descriptive commit messages that keep the full scope of changes
 
 # CRITICAL: ARCHON-FIRST RULE - READ THIS FIRST
   BEFORE doing ANYTHING else, when you see ANY task management scenario:
@@ -1114,3 +1131,4 @@ archon:manage_task(
 - [ ] Security considerations addressed
 - [ ] Basic functionality tested
 - [ ] Documentation updated if needed
+- "använd ALLTID MCP servers om du har möjlighet till det"

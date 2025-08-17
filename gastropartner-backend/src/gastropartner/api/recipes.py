@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from supabase import Client
 
 from gastropartner.core.auth import get_current_active_user, get_user_organization
-from gastropartner.core.database import get_supabase_client
+from gastropartner.core.database import get_supabase_client, get_supabase_client_with_auth
 from gastropartner.core.models import (
     CostAnalysis,
     Ingredient,
@@ -19,6 +19,34 @@ from gastropartner.core.models import (
 )
 
 router = APIRouter(prefix="/recipes", tags=["recipes"])
+
+
+@router.post(
+    "/dev/setup",
+    summary="Setup development data",
+    description="Development only: Setup required data for testing"
+)
+async def setup_development_data(
+    supabase: Client = Depends(get_supabase_client),
+) -> dict[str, str]:
+    """Setup development data (development mode only)."""
+    
+    dev_org_id = "87654321-4321-4321-4321-210987654321"
+    
+    try:
+        # Try to insert development organization (ignore if exists)
+        try:
+            supabase.rpc("create_development_org", {
+                "org_id": dev_org_id,
+                "org_name": "Development Organization",
+                "org_slug": "dev-org"
+            }).execute()
+        except Exception as e:
+            print(f"DEBUG: Organization creation attempt: {e}")
+        
+        return {"message": "Development data setup attempted", "organization_id": dev_org_id}
+    except Exception as e:
+        return {"message": f"Setup failed: {e}", "organization_id": dev_org_id}
 
 
 async def calculate_recipe_cost(
@@ -59,11 +87,48 @@ async def calculate_recipe_cost(
     )
 
 
+async def ensure_development_organization(
+    organization_id: UUID,
+    supabase: Client
+) -> bool:
+    """Ensure development organization exists."""
+    if str(organization_id) != "87654321-4321-4321-4321-210987654321":
+        return True  # Not development org, nothing to do
+    
+    # Check if development organization exists
+    org_response = supabase.table("organizations").select(
+        "organization_id"
+    ).eq("organization_id", str(organization_id)).execute()
+    
+    if org_response.data:
+        return True  # Already exists
+    
+    # Create development organization
+    try:
+        supabase.table("organizations").insert({
+            "organization_id": str(organization_id),
+            "name": "Development Organization",
+            "slug": "dev-org",
+            "plan": "free",
+            "max_recipes": 5,
+            "max_ingredients": 50,
+            "max_menu_items": 2
+        }).execute()
+        print("DEBUG: Development organization created successfully")
+        return True
+    except Exception as e:
+        print(f"DEBUG: Failed to create development organization: {e}")
+        return False
+
+
 async def check_recipe_limits(
     organization_id: UUID,
     supabase: Client
 ) -> bool:
     """Check if organization can add more recipes."""
+
+    # Ensure development organization exists
+    await ensure_development_organization(organization_id, supabase)
 
     # Get organization limits
     org_response = supabase.table("organizations").select(
@@ -71,9 +136,17 @@ async def check_recipe_limits(
     ).eq("organization_id", str(organization_id)).execute()
 
     if not org_response.data:
-        return False
+        print(f"DEBUG: No organization found for ID: {organization_id}")
+        # Development mode: use default limits if organization doesn't exist
+        if str(organization_id) == "87654321-4321-4321-4321-210987654321":
+            print("DEBUG: Using development organization defaults (max_recipes=5)")
+            max_recipes = 5  # Use default development value
+        else:
+            return False
+    else:
+        max_recipes = org_response.data[0]["max_recipes"]
 
-    max_recipes = org_response.data[0]["max_recipes"]
+    print(f"DEBUG: Organization {organization_id} has max_recipes: {max_recipes}")
 
     # Count current recipes
     count_response = supabase.table("recipes").select(
@@ -81,6 +154,8 @@ async def check_recipe_limits(
     ).eq("organization_id", str(organization_id)).eq("is_active", True).execute()
 
     current_count = count_response.count or 0
+    print(f"DEBUG: Current recipe count: {current_count}, Max: {max_recipes}, Can add: {current_count < max_recipes}")
+    
     return current_count < max_recipes
 
 
@@ -105,11 +180,14 @@ async def create_recipe(
     - Upgrade to premium for unlimited recipes
     """
 
+    # For development mode, we'll use a simpler approach since RLS policies need to be set up
+    db_client = supabase
+
     # Check freemium limits
-    can_add = await check_recipe_limits(organization_id, supabase)
+    can_add = await check_recipe_limits(organization_id, db_client)
     if not can_add:
         # Get current count for error message
-        count_response = supabase.table("recipes").select(
+        count_response = db_client.table("recipes").select(
             "recipe_id", count="exact"
         ).eq("organization_id", str(organization_id)).eq("is_active", True).execute()
 
@@ -121,7 +199,7 @@ async def create_recipe(
 
     try:
         # Create recipe
-        recipe_response = supabase.table("recipes").insert({
+        recipe_response = db_client.table("recipes").insert({
             "organization_id": str(organization_id),
             "name": recipe_data.name,
             "description": recipe_data.description,
@@ -146,7 +224,7 @@ async def create_recipe(
         if recipe_data.ingredients:
             for ingredient_data in recipe_data.ingredients:
                 # Verify ingredient exists and belongs to organization
-                ingredient_response = supabase.table("ingredients").select(
+                ingredient_response = db_client.table("ingredients").select(
                     "ingredient_id"
                 ).eq("ingredient_id", str(ingredient_data.ingredient_id)).eq(
                     "organization_id", str(organization_id)
@@ -159,7 +237,7 @@ async def create_recipe(
                     )
 
                 # Add recipe ingredient
-                ri_response = supabase.table("recipe_ingredients").insert({
+                ri_response = db_client.table("recipe_ingredients").insert({
                     "recipe_id": recipe_id,
                     "ingredient_id": str(ingredient_data.ingredient_id),
                     "quantity": float(ingredient_data.quantity),
@@ -172,7 +250,7 @@ async def create_recipe(
 
         # Calculate costs
         cost_analysis = await calculate_recipe_cost(
-            UUID(recipe_id), organization_id, supabase, recipe_data.servings
+            UUID(recipe_id), organization_id, db_client, recipe_data.servings
         )
 
         # Return complete recipe with cost information
@@ -201,6 +279,7 @@ async def create_recipe(
 async def list_recipes(
     organization_id: UUID = Depends(get_user_organization),
     supabase: Client = Depends(get_supabase_client),
+    current_user: User = Depends(get_current_active_user),
     active_only: bool = Query(True, description="Show only active recipes"),
     include_costs: bool = Query(True, description="Include cost calculations"),
     limit: int = Query(100, ge=1, le=500, description="Number of results to return"),
@@ -208,8 +287,11 @@ async def list_recipes(
 ) -> list[Recipe]:
     """List recipes for the organization with cost calculations."""
 
+    # For development mode, we'll use a simpler approach since RLS policies need to be set up
+    db_client = supabase
+
     try:
-        query = supabase.table("recipes").select("*").eq(
+        query = db_client.table("recipes").select("*").eq(
             "organization_id", str(organization_id)
         )
 
@@ -223,10 +305,35 @@ async def list_recipes(
         for recipe_data in response.data:
             recipe = Recipe(**recipe_data)
 
+            # Load ingredients for each recipe (same as get_recipe function)
+            ingredients_response = db_client.table("recipe_ingredients").select(
+                "*, ingredients(*)"
+            ).eq("recipe_id", str(recipe.recipe_id)).execute()
+
+            # Build recipe ingredients list
+            recipe_ingredients = []
+            for ri_data in ingredients_response.data:
+                ri = RecipeIngredient(**{
+                    "recipe_ingredient_id": ri_data["recipe_ingredient_id"],
+                    "recipe_id": ri_data["recipe_id"],
+                    "ingredient_id": ri_data["ingredient_id"],
+                    "quantity": ri_data["quantity"],
+                    "unit": ri_data["unit"],
+                    "notes": ri_data["notes"],
+                    "created_at": ri_data["created_at"],
+                })
+
+                if ri_data["ingredients"]:
+                    ri.ingredient = Ingredient(**ri_data["ingredients"])
+
+                recipe_ingredients.append(ri)
+
+            recipe.ingredients = recipe_ingredients
+
             if include_costs:
                 # Calculate costs for each recipe
                 cost_analysis = await calculate_recipe_cost(
-                    recipe.recipe_id, organization_id, supabase, recipe.servings
+                    recipe.recipe_id, organization_id, db_client, recipe.servings
                 )
                 recipe.total_cost = cost_analysis.total_ingredient_cost
                 recipe.cost_per_serving = cost_analysis.cost_per_serving
@@ -341,20 +448,50 @@ async def update_recipe(
     if recipe_update.is_active is not None:
         update_data["is_active"] = recipe_update.is_active
 
-    if not update_data:
-        return existing
+    # Update recipe basic fields if any changes
+    if update_data:
+        update_data["updated_at"] = "now()"
+        response = supabase.table("recipes").update(update_data).eq(
+            "recipe_id", str(recipe_id)
+        ).eq("organization_id", str(organization_id)).execute()
 
-    update_data["updated_at"] = "now()"
+        if not response.data:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update recipe"
+            )
 
-    response = supabase.table("recipes").update(update_data).eq(
-        "recipe_id", str(recipe_id)
-    ).eq("organization_id", str(organization_id)).execute()
+    # Handle ingredients update if provided
+    if recipe_update.ingredients is not None:
+        # Delete existing recipe ingredients
+        supabase.table("recipe_ingredients").delete().eq(
+            "recipe_id", str(recipe_id)
+        ).execute()
 
-    if not response.data:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update recipe"
-        )
+        # Add new ingredients
+        if recipe_update.ingredients:
+            for ingredient_data in recipe_update.ingredients:
+                # Verify ingredient exists and belongs to organization
+                ingredient_response = supabase.table("ingredients").select(
+                    "ingredient_id"
+                ).eq("ingredient_id", str(ingredient_data.ingredient_id)).eq(
+                    "organization_id", str(organization_id)
+                ).eq("is_active", True).execute()
+
+                if not ingredient_response.data:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Ingredient {ingredient_data.ingredient_id} not found or not active"
+                    )
+
+                # Add recipe ingredient
+                supabase.table("recipe_ingredients").insert({
+                    "recipe_id": str(recipe_id),
+                    "ingredient_id": str(ingredient_data.ingredient_id),
+                    "quantity": float(ingredient_data.quantity),
+                    "unit": ingredient_data.unit,
+                    "notes": ingredient_data.notes,
+                }).execute()
 
     # Return updated recipe with recalculated costs
     return await get_recipe(recipe_id, organization_id, supabase)

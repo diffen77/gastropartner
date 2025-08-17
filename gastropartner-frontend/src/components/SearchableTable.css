@@ -159,6 +159,60 @@
   background-color: rgba(66, 133, 244, 0.05);
 }
 
+/* Recipe Actions */
+.recipe-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.recipe-actions .btn {
+  min-width: 70px;
+  height: 36px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  border: 1px solid;
+  border-radius: var(--border-radius);
+  opacity: 1 !important;
+  visibility: visible !important;
+  transition: all 0.2s ease;
+}
+
+.recipe-actions .btn--secondary {
+  background: var(--color-neutral-100) !important;
+  color: var(--color-neutral-700) !important;
+  border-color: var(--color-neutral-300) !important;
+}
+
+.recipe-actions .btn--danger {
+  background: var(--color-danger) !important;
+  color: white !important;
+  border-color: var(--color-danger) !important;
+}
+
+.recipe-actions .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.recipe-actions .btn--secondary:hover {
+  background: var(--color-neutral-200);
+  border-color: var(--color-neutral-400);
+}
+
+.recipe-actions .btn--danger:hover {
+  background: #c53030;
+  border-color: #c53030;
+}
+
 .data-table__cell {
   padding: var(--spacing-md) var(--spacing-lg);
   vertical-align: top;

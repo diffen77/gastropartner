@@ -17,9 +17,9 @@ class FreemiumService:
         self.supabase = supabase
 
     async def get_organization_limits(self, organization_id: UUID) -> dict[str, int]:
-        """Get organization's freemium limits."""
+        """Get organization's freemium limits based on subscription tier."""
         response = self.supabase.table("organizations").select(
-            "max_ingredients, max_recipes, max_menu_items"
+            "plan, max_ingredients, max_recipes, max_menu_items"
         ).eq("organization_id", str(organization_id)).execute()
 
         if not response.data:
@@ -31,7 +31,26 @@ class FreemiumService:
                 "max_menu_items": 2
             }
 
-        return response.data[0]
+        org_data = response.data[0]
+        plan = org_data.get("plan", "free")
+        
+        # Define tier-based limits - NEW TWO-TIER MODEL
+        # Recipe Module: Only two plans - free (generous) and enterprise (unlimited)
+        if plan == "enterprise":
+            # Enterprise gets unlimited (high limits) - PAID PLAN
+            return {
+                "max_ingredients": 10000,
+                "max_recipes": 1000,
+                "max_menu_items": 1000
+            }
+        else:
+            # Free tier gets generous limits - 50/5/2 for recipe module
+            # This includes all non-enterprise plans (free, starter, professional)
+            return {
+                "max_ingredients": 50,
+                "max_recipes": 5,
+                "max_menu_items": 2
+            }
 
     async def get_current_usage(self, organization_id: UUID) -> dict[str, int]:
         """Get organization's current usage counts."""
@@ -127,7 +146,7 @@ class FreemiumService:
             
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail=f"Freemium limit reached: {limits_check.current_ingredients}/{limits_check.max_ingredients} ingredients used. Upgrade to premium for unlimited ingredients.",
+                detail=f"Recipe module limit reached: {limits_check.current_ingredients}/{limits_check.max_ingredients} ingredients used. Upgrade to enterprise for unlimited ingredients.",
                 headers={"X-Upgrade-Required": "true", "X-Feature": "ingredients"}
             )
 
@@ -154,7 +173,7 @@ class FreemiumService:
             
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail=f"Freemium limit reached: {limits_check.current_recipes}/{limits_check.max_recipes} recipes used. Upgrade to premium for unlimited recipes.",
+                detail=f"Recipe module limit reached: {limits_check.current_recipes}/{limits_check.max_recipes} recipes used. Upgrade to enterprise for unlimited recipes.",
                 headers={"X-Upgrade-Required": "true", "X-Feature": "recipes"}
             )
 
@@ -181,17 +200,26 @@ class FreemiumService:
             
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail=f"Freemium limit reached: {limits_check.current_menu_items}/{limits_check.max_menu_items} menu items used. Upgrade to premium for unlimited menu items.",
+                detail=f"Recipe module limit reached: {limits_check.current_menu_items}/{limits_check.max_menu_items} menu items used. Upgrade to enterprise for unlimited menu items.",
                 headers={"X-Upgrade-Required": "true", "X-Feature": "menu_items"}
             )
 
     async def get_usage_summary(self, organization_id: UUID) -> dict[str, Any]:
         """Get formatted usage summary for frontend display."""
         limits_check = await self.check_all_limits(organization_id)
+        
+        # Get the actual plan from database
+        response = self.supabase.table("organizations").select(
+            "plan"
+        ).eq("organization_id", str(organization_id)).execute()
+        
+        plan = "free"  # default
+        if response.data:
+            plan = response.data[0].get("plan", "free")
 
         return {
             "organization_id": str(organization_id),
-            "plan": "free",  # For now, all organizations are on free plan
+            "plan": plan,
             "usage": {
                 "ingredients": {
                     "current": limits_check.current_ingredients,
@@ -228,19 +256,19 @@ class FreemiumService:
 
         if limits_check.current_ingredients >= limits_check.max_ingredients:
             prompts["ingredients"] = (
-                "You've reached your ingredient limit! Upgrade to premium to add unlimited ingredients "
-                "and unlock advanced cost tracking features."
+                "You've reached your ingredient limit in the recipe module! Upgrade to enterprise "
+                "for unlimited ingredients and unlock advanced cost tracking features."
             )
 
         if limits_check.current_recipes >= limits_check.max_recipes:
             prompts["recipes"] = (
-                "Recipe limit reached! Upgrade to premium for unlimited recipes, "
+                "Recipe limit reached! Upgrade to enterprise for unlimited recipes, "
                 "batch cost calculations, and nutritional analysis."
             )
 
         if limits_check.current_menu_items >= limits_check.max_menu_items:
             prompts["menu_items"] = (
-                "Menu item limit reached! Upgrade to premium for unlimited menu items, "
+                "Menu item limit reached! Upgrade to enterprise for unlimited menu items, "
                 "advanced pricing strategies, and profit optimization tools."
             )
 
