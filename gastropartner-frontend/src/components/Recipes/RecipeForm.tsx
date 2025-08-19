@@ -244,9 +244,9 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false, editi
         {showUpgradePrompt ? (
           <div className="upgrade-modal">
             <div className="upgrade-content">
-              <h3>Uppgradera till Enterprise</h3>
+              <h3>Uppgradera till Premium</h3>
               <p>Du har nått gränsen för receptmodulen (5/5).</p>
-              <p>Uppgradera till enterprise för:</p>
+              <p>Uppgradera till premium för:</p>
               <ul>
                 <li>• Obegränsade recept</li>
                 <li>• Avancerade kostkalkyleringar</li>

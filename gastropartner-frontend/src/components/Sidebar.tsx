@@ -1,6 +1,8 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useFreemium } from '../hooks/useFreemium';
+import PlanStatusWidget from './PlanStatusWidget';
 import './Sidebar.css';
 
 interface NavigationItem {
@@ -26,7 +28,9 @@ const navigationItems: NavigationItem[] = [
 
 export function Sidebar() {
   const { user, signOut } = useAuth();
+  const { usage, fetchPlanComparison } = useFreemium();
   const location = useLocation();
+  const navigate = useNavigate();
   const isSuperAdmin = user?.email?.toLowerCase() === 'diffen@me.com';
 
   const visibleItems = navigationItems.filter(item => 
@@ -64,6 +68,26 @@ export function Sidebar() {
           })}
         </ul>
       </nav>
+
+      <div className="sidebar__plan-status" style={{ padding: '16px', marginTop: 'auto' }}>
+        <PlanStatusWidget 
+          plan={usage?.plan || 'free'} 
+          compact={true}
+          showUpgradeButton={usage?.plan !== 'premium'}
+          onUpgrade={() => {
+            fetchPlanComparison();
+            navigate('/upgrade');
+          }}
+        />
+        <div style={{ 
+          marginTop: '8px', 
+          fontSize: '11px', 
+          color: '#6b7280', 
+          textAlign: 'center' 
+        }}>
+          Recepthantering
+        </div>
+      </div>
 
       <div className="sidebar__footer">
         <button 

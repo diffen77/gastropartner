@@ -217,7 +217,7 @@ class ApiClient {
     
     // Development fallback: use development token if no auth token exists
     if (!token && process.env.NODE_ENV === 'development') {
-      token = 'dev_token_development@gastropartner.nu';
+      token = 'dev_token_development_gastropartner_nu';
     }
     
     const headers: HeadersInit = {
@@ -294,7 +294,7 @@ class ApiClient {
 
   // Menu Items API
   async getMenuItems(): Promise<MenuItem[]> {
-    return this.get<MenuItem[]>('/api/v1/menu-items/');
+    return this.get<MenuItem[]>('/api/v1/menu-items');
   }
 
   async createMenuItem(data: MenuItemCreate): Promise<MenuItem> {

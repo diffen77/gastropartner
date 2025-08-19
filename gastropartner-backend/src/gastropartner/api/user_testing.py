@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from supabase import Client
 
 from gastropartner.core.auth import get_current_user, get_user_organization
-from gastropartner.core.database import get_supabase_client
+from gastropartner.core.database import get_supabase_client, get_supabase_client_with_auth
 from gastropartner.core.models import (
     User,
     UserAnalyticsEventCreate,
@@ -19,6 +19,16 @@ from gastropartner.core.models import (
 router = APIRouter(prefix="/user-testing", tags=["user-testing"])
 
 
+def get_authenticated_supabase_client(
+    current_user: User = Depends(get_current_user),
+    supabase: Client = Depends(get_supabase_client),
+) -> Client:
+    """Get Supabase client with proper authentication context."""
+    # For development user, use admin client to bypass RLS
+    auth_client = get_supabase_client_with_auth(str(current_user.id))
+    return auth_client
+
+
 # ===== USER FEEDBACK ENDPOINTS =====
 
 @router.post("/feedback", response_model=UserFeedback)
@@ -27,7 +37,7 @@ async def create_feedback(
     request: Request,
     current_user: User = Depends(get_current_user),
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> UserFeedback:
     """Create new user feedback."""
     try:
@@ -67,7 +77,7 @@ async def list_feedback(
     feedback_type: str | None = Query(None, pattern="^(bug|feature_request|general|usability|satisfaction)$"),
     current_user: User = Depends(get_current_user),
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> list[UserFeedback]:
     """List user feedback with optional filtering."""
     try:
@@ -102,7 +112,7 @@ async def track_event(
     event_data: UserAnalyticsEventCreate,
     request: Request,
     current_user: User | None = Depends(get_current_user),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> dict[str, str]:
     """Track user analytics event."""
     try:
@@ -137,7 +147,7 @@ async def get_user_testing_metrics(
     days: int = Query(30, ge=1, le=365),
     current_user: User = Depends(get_current_user),
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> UserTestingMetrics:
     """Get user testing metrics for the specified period."""
     try:

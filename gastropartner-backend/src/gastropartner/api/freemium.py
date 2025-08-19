@@ -7,11 +7,21 @@ from fastapi import APIRouter, Depends
 from supabase import Client
 
 from gastropartner.core.auth import get_current_active_user, get_user_organization
-from gastropartner.core.database import get_supabase_client
+from gastropartner.core.database import get_supabase_client, get_supabase_client_with_auth
 from gastropartner.core.freemium import get_freemium_service
 from gastropartner.core.models import UsageLimitsCheck, User
 
 router = APIRouter(prefix="/freemium", tags=["freemium"])
+
+
+def get_authenticated_supabase_client(
+    current_user: User = Depends(get_current_active_user),
+    supabase: Client = Depends(get_supabase_client),
+) -> Client:
+    """Get Supabase client with proper authentication context."""
+    # For development user, use admin client to bypass RLS
+    auth_client = get_supabase_client_with_auth(str(current_user.id))
+    return auth_client
 
 
 @router.get(
@@ -23,7 +33,7 @@ router = APIRouter(prefix="/freemium", tags=["freemium"])
 async def get_usage_summary(
     current_user: User = Depends(get_current_active_user),
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> dict[str, Any]:
     """
     Get comprehensive usage summary for the organization.
@@ -44,7 +54,7 @@ async def get_usage_summary(
 async def check_all_limits(
     current_user: User = Depends(get_current_active_user),
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> UsageLimitsCheck:
     """Check current usage against all freemium limits."""
     freemium_service = await get_freemium_service(supabase)
@@ -60,7 +70,7 @@ async def check_all_limits(
 async def get_upgrade_prompts(
     current_user: User = Depends(get_current_active_user),
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> dict[str, str]:
     """Get upgrade prompts for features that are at or near limits."""
     freemium_service = await get_freemium_service(supabase)
@@ -72,13 +82,13 @@ async def get_upgrade_prompts(
     "/plan-comparison",
     response_model=dict[str, Any],
     summary="Get plan comparison",
-    description="Get comparison between free and enterprise plans (public endpoint)"
+    description="Get comparison between free and premium plans (public endpoint)"
 )
 async def get_plan_comparison() -> dict[str, Any]:
     """
     Get plan comparison data for upgrade decision.
-    
-    Shows what users get with free vs enterprise plans for recipe module.
+
+    Shows what users get with free vs premium plans for recipe module.
     """
     return {
         "current_plan": "free",
@@ -96,8 +106,8 @@ async def get_plan_comparison() -> dict[str, Any]:
                     "exports": {"enabled": False, "description": "No data exports"},
                 },
             },
-            "enterprise": {
-                "price": 299,
+            "premium": {
+                "price": 99,
                 "currency": "SEK",
                 "billing_period": "month",
                 "features": {

@@ -8,7 +8,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from gastropartner.api import (
-    analytics,  # Re-enabled after fixing FastAPI parameter issues
     auth,
     cost_control,
     feature_flags,
@@ -38,33 +37,33 @@ def _add_dual_slash_routes(app: FastAPI) -> None:
     """
     # Get all existing routes
     existing_routes = list(app.routes)
-    
+
     for route in existing_routes:
         # Only process API routes that have paths and endpoints
         if not hasattr(route, 'path') or not hasattr(route, 'endpoint'):
             continue
-            
+
         path = route.path
-        
+
         # Skip non-API routes and routes with path parameters
         if not path.startswith('/api/') or '{' in path:
             continue
-            
+
         # Skip routes that already have dual patterns or are specific endpoints
         if path.count('/') <= 3:  # /api/v1/resource-type level only
             continue
-            
+
         # Handle collection routes ending with trailing slash
         if path.endswith('/') and path.count('/') == 4:  # /api/v1/resource/
             # Add non-trailing slash version
             non_slash_path = path.rstrip('/')
-            
+
             # Check if non-slash version already exists
             path_exists = any(
-                hasattr(r, 'path') and r.path == non_slash_path 
+                hasattr(r, 'path') and r.path == non_slash_path
                 for r in existing_routes
             )
-            
+
             if not path_exists:
                 # Add the route without trailing slash
                 app.add_api_route(

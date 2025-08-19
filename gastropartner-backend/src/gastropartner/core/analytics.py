@@ -1,15 +1,12 @@
 """Analytics service for tracking usage and conversion metrics."""
 
-import json
 import logging
 from datetime import UTC, datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import UUID
 
 from fastapi import HTTPException, status
 from supabase import Client
-
-from gastropartner.core.models import UserAnalyticsEvent, UserAnalyticsEventCreate
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +24,7 @@ class AnalyticsService:
         user_id: UUID | None,
         event_type: str,
         event_name: str,
-        properties: Dict[str, Any] | None = None,
+        properties: dict[str, Any] | None = None,
         page_url: str | None = None,
         session_id: str | None = None,
         user_agent: str | None = None,
@@ -63,7 +60,7 @@ class AnalyticsService:
 
             response = self.supabase.table("user_analytics_events").insert(event_data).execute()
             return True
-            
+
         except Exception as e:
             # Handle specific case of missing table to reduce log spam
             error_str = str(e)
@@ -97,7 +94,7 @@ class AnalyticsService:
         user_id: UUID,
         feature: str,
         action: str,
-        properties: Dict[str, Any] | None = None,
+        properties: dict[str, Any] | None = None,
     ) -> bool:
         """Track usage of freemium features."""
         return await self.track_event(
@@ -119,7 +116,7 @@ class AnalyticsService:
         feature: str,
         current_count: int,
         limit: int,
-        properties: Dict[str, Any] | None = None,
+        properties: dict[str, Any] | None = None,
     ) -> bool:
         """Track when a user hits a freemium limit."""
         return await self.track_event(
@@ -142,7 +139,7 @@ class AnalyticsService:
         user_id: UUID,
         feature: str,
         prompt_type: str,
-        properties: Dict[str, Any] | None = None,
+        properties: dict[str, Any] | None = None,
     ) -> bool:
         """Track when upgrade prompts are shown to users."""
         return await self.track_event(
@@ -164,7 +161,7 @@ class AnalyticsService:
         conversion_type: str,
         from_plan: str,
         to_plan: str,
-        properties: Dict[str, Any] | None = None,
+        properties: dict[str, Any] | None = None,
     ) -> bool:
         """Track conversion events (e.g., free to premium)."""
         return await self.track_event(
@@ -184,7 +181,7 @@ class AnalyticsService:
         self,
         organization_id: UUID | None = None,
         days: int = 30,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get feature usage statistics.
         
@@ -197,14 +194,14 @@ class AnalyticsService:
         """
         try:
             start_date = (datetime.now(UTC) - timedelta(days=days)).isoformat()
-            
+
             query = self.supabase.table("user_analytics_events").select(
                 "event_name, properties, created_at, organization_id"
             ).eq("event_type", "feature_usage").gte("created_at", start_date)
-            
+
             if organization_id:
                 query = query.eq("organization_id", str(organization_id))
-                
+
             response = query.execute()
             events = response.data
 
@@ -215,17 +212,17 @@ class AnalyticsService:
                 properties = event.get("properties", {})
                 feature = properties.get("feature", event_name.split("_")[0])
                 action = properties.get("action", event_name.split("_")[-1])
-                
+
                 if feature not in feature_stats:
                     feature_stats[feature] = {
                         "total_usage": 0,
                         "unique_organizations": set(),
                         "actions": {},
                     }
-                
+
                 feature_stats[feature]["total_usage"] += 1
                 feature_stats[feature]["unique_organizations"].add(event["organization_id"])
-                
+
                 if action not in feature_stats[feature]["actions"]:
                     feature_stats[feature]["actions"][action] = 0
                 feature_stats[feature]["actions"][action] += 1
@@ -242,18 +239,18 @@ class AnalyticsService:
                 "total_events": len(events),
                 "start_date": start_date,
             }
-            
+
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to get feature usage stats: {str(e)}",
+                detail=f"Failed to get feature usage stats: {e!s}",
             )
 
     async def get_conversion_metrics(
         self,
         organization_id: UUID | None = None,
         days: int = 30,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Calculate conversion rates and metrics.
         
@@ -266,15 +263,15 @@ class AnalyticsService:
         """
         try:
             start_date = (datetime.now(UTC) - timedelta(days=days)).isoformat()
-            
+
             # Get all organizations that had limit hits (potential conversions)
             limit_hits_query = self.supabase.table("user_analytics_events").select(
                 "organization_id, user_id, event_name, properties, created_at"
             ).eq("event_type", "limit_hit").gte("created_at", start_date)
-            
+
             if organization_id:
                 limit_hits_query = limit_hits_query.eq("organization_id", str(organization_id))
-                
+
             limit_hits_response = limit_hits_query.execute()
             limit_hits = limit_hits_response.data
 
@@ -282,17 +279,17 @@ class AnalyticsService:
             conversions_query = self.supabase.table("user_analytics_events").select(
                 "organization_id, user_id, event_name, properties, created_at"
             ).eq("event_type", "conversion").gte("created_at", start_date)
-            
+
             if organization_id:
                 conversions_query = conversions_query.eq("organization_id", str(organization_id))
-                
+
             conversions_response = conversions_query.execute()
             conversions = conversions_response.data
 
             # Calculate metrics
             limit_hit_orgs = set(hit["organization_id"] for hit in limit_hits)
             converted_orgs = set(conv["organization_id"] for conv in conversions)
-            
+
             conversion_rate = 0.0
             if len(limit_hit_orgs) > 0:
                 conversion_rate = len(converted_orgs) / len(limit_hit_orgs) * 100
@@ -303,15 +300,15 @@ class AnalyticsService:
                 properties = hit.get("properties", {})
                 feature = properties.get("feature", "unknown")
                 org_id = hit["organization_id"]
-                
+
                 if feature not in feature_conversion:
                     feature_conversion[feature] = {
                         "limit_hits": set(),
                         "conversions": set(),
                     }
-                
+
                 feature_conversion[feature]["limit_hits"].add(org_id)
-                
+
                 # Check if this org converted after this limit hit
                 if org_id in converted_orgs:
                     feature_conversion[feature]["conversions"].add(org_id)
@@ -322,7 +319,7 @@ class AnalyticsService:
                 hits_count = len(data["limit_hits"])
                 conv_count = len(data["conversions"])
                 rate = (conv_count / hits_count * 100) if hits_count > 0 else 0.0
-                
+
                 feature_rates[feature] = {
                     "limit_hits": hits_count,
                     "conversions": conv_count,
@@ -339,18 +336,18 @@ class AnalyticsService:
                 "feature_conversion_rates": feature_rates,
                 "start_date": start_date,
             }
-            
+
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to get conversion metrics: {str(e)}",
+                detail=f"Failed to get conversion metrics: {e!s}",
             )
 
     async def get_limit_optimization_data(
         self,
         organization_id: UUID | None = None,
         days: int = 30,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get data to optimize freemium limits based on usage patterns.
         
@@ -363,40 +360,40 @@ class AnalyticsService:
         """
         try:
             start_date = (datetime.now(UTC) - timedelta(days=days)).isoformat()
-            
+
             # Get all limit hit events
             query = self.supabase.table("user_analytics_events").select(
                 "organization_id, properties, created_at"
             ).eq("event_type", "limit_hit").gte("created_at", start_date)
-            
+
             if organization_id:
                 query = query.eq("organization_id", str(organization_id))
-                
+
             response = query.execute()
             limit_events = response.data
 
             # Analyze limit hit patterns
             feature_limits = {}
             daily_hits = {}
-            
+
             for event in limit_events:
                 properties = event.get("properties", {})
                 feature = properties.get("feature", "unknown")
                 current_count = properties.get("current_count", 0)
                 limit = properties.get("limit", 0)
                 created_date = event["created_at"][:10]  # Extract date part
-                
+
                 if feature not in feature_limits:
                     feature_limits[feature] = {
                         "hit_counts": [],
                         "limits": [],
                         "organizations": set(),
                     }
-                
+
                 feature_limits[feature]["hit_counts"].append(current_count)
                 feature_limits[feature]["limits"].append(limit)
                 feature_limits[feature]["organizations"].add(event["organization_id"])
-                
+
                 # Daily aggregation
                 if created_date not in daily_hits:
                     daily_hits[created_date] = {}
@@ -410,17 +407,17 @@ class AnalyticsService:
                 hit_counts = data["hit_counts"]
                 limits = data["limits"]
                 orgs_affected = len(data["organizations"])
-                
+
                 avg_hit_count = sum(hit_counts) / len(hit_counts) if hit_counts else 0
                 current_limit = limits[0] if limits else 0
-                
+
                 # Simple suggestion logic
                 suggestion = "maintain"
                 if avg_hit_count > current_limit * 0.9:  # 90% of limit frequently hit
                     suggestion = "increase"
                 elif avg_hit_count < current_limit * 0.5:  # Less than 50% typically used
                     suggestion = "decrease"
-                
+
                 optimization_suggestions[feature] = {
                     "current_limit": current_limit,
                     "average_at_limit": avg_hit_count,
@@ -440,18 +437,18 @@ class AnalyticsService:
                 "daily_limit_hits": daily_hits,
                 "start_date": start_date,
             }
-            
+
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to get optimization data: {str(e)}",
+                detail=f"Failed to get optimization data: {e!s}",
             )
 
     async def get_analytics_dashboard_data(
         self,
         organization_id: UUID | None = None,
         days: int = 30,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get comprehensive analytics data for dashboard display.
         
@@ -485,11 +482,11 @@ class AnalyticsService:
                     )[:5],
                 },
             }
-            
+
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to get dashboard data: {str(e)}",
+                detail=f"Failed to get dashboard data: {e!s}",
             )
 
 

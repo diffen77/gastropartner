@@ -39,9 +39,9 @@ const FreemiumTest: React.FC = () => {
       },
       upgrade_needed: true,
       upgrade_prompts: {
-        ingredients: "You've reached your ingredient limit in the recipe module! Upgrade to enterprise for unlimited ingredients and unlock advanced cost tracking features.",
-        recipes: "Recipe limit reached! Upgrade to enterprise for unlimited recipes, batch cost calculations, and nutritional analysis.",
-        menu_items: "Menu item limit reached! Upgrade to enterprise for unlimited menu items, advanced pricing strategies, and profit optimization tools.",
+        ingredients: "You've reached your ingredient limit in the recipe module! Upgrade to premium for unlimited ingredients and unlock advanced cost tracking features.",
+        recipes: "Recipe limit reached! Upgrade to premium for unlimited recipes, batch cost calculations, and nutritional analysis.",
+        menu_items: "Menu item limit reached! Upgrade to premium for unlimited menu items, advanced pricing strategies, and profit optimization tools.",
       },
     },
   };
@@ -145,12 +145,12 @@ const FreemiumTest: React.FC = () => {
                 </ul>
               </div>
 
-              {/* Enterprise Plan */}
+              {/* Premium Plan */}
               <div className="border-2 border-blue-500 bg-blue-50 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Enterprise Plan</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Premium Plan</h3>
                 <p className="text-2xl font-bold text-blue-600 mb-4">
-                  {planComparison.plans.enterprise?.price || 'Contact Sales'} {planComparison.plans.enterprise?.currency || ''}
-                  <span className="text-sm font-normal text-gray-600">/{planComparison.plans.enterprise?.billing_period || 'month'}</span>
+                  {planComparison.plans.premium?.price || 'Contact Sales'} {planComparison.plans.premium?.currency || ''}
+                  <span className="text-sm font-normal text-gray-600">/{planComparison.plans.premium?.billing_period || 'month'}</span>
                 </p>
                 <ul className="space-y-2 text-sm text-gray-600">
                   <li>• Unlimited ingredients, recipes, and menu items</li>

@@ -2,11 +2,8 @@
 
 import asyncio
 import json
-import smtplib
-from datetime import datetime, timezone
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 import httpx
 from pydantic import BaseModel, Field
@@ -18,38 +15,38 @@ settings = get_settings()
 
 class Alert(BaseModel):
     """Alert model."""
-    
+
     id: str
     title: str
     description: str
     severity: str = Field(..., description="low, medium, high, critical")
     source: str = Field(..., description="Source system or service")
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    metadata: dict[str, Any] = Field(default_factory=dict)
     resolved: bool = False
-    resolved_at: Optional[datetime] = None
+    resolved_at: datetime | None = None
 
 
 class NotificationChannel(BaseModel):
     """Notification channel configuration."""
-    
+
     type: str = Field(..., description="email, slack, pagerduty, webhook")
-    config: Dict[str, Any] = Field(default_factory=dict)
+    config: dict[str, Any] = Field(default_factory=dict)
     enabled: bool = True
-    severity_filter: List[str] = Field(default_factory=lambda: ["critical", "high"])
+    severity_filter: list[str] = Field(default_factory=lambda: ["critical", "high"])
 
 
 class AlertManager:
     """Centralized alert management system."""
-    
+
     def __init__(self):
-        self.active_alerts: Dict[str, Alert] = {}
-        self.notification_channels: List[NotificationChannel] = []
+        self.active_alerts: dict[str, Alert] = {}
+        self.notification_channels: list[NotificationChannel] = []
         self._setup_default_channels()
-    
+
     def _setup_default_channels(self):
         """Setup default notification channels based on configuration."""
-        
+
         # Email notifications
         if settings.notification_email:
             self.notification_channels.append(
@@ -64,7 +61,7 @@ class AlertManager:
                     severity_filter=["critical", "high", "medium"]
                 )
             )
-        
+
         # Slack notifications
         if settings.slack_webhook_url:
             self.notification_channels.append(
@@ -77,7 +74,7 @@ class AlertManager:
                     severity_filter=["critical", "high"]
                 )
             )
-        
+
         # PagerDuty integration
         if settings.pagerduty_enabled and settings.pagerduty_integration_key:
             self.notification_channels.append(
@@ -90,7 +87,7 @@ class AlertManager:
                     severity_filter=["critical"]
                 )
             )
-    
+
     async def create_alert(
         self,
         alert_id: str,
@@ -98,10 +95,10 @@ class AlertManager:
         description: str,
         severity: str = "medium",
         source: str = "system",
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: dict[str, Any] | None = None
     ) -> Alert:
         """Create a new alert."""
-        
+
         alert = Alert(
             id=alert_id,
             title=title,
@@ -110,44 +107,44 @@ class AlertManager:
             source=source,
             metadata=metadata or {}
         )
-        
+
         self.active_alerts[alert_id] = alert
-        
+
         # Send notifications
         await self._send_notifications(alert)
-        
+
         return alert
-    
-    async def resolve_alert(self, alert_id: str) -> Optional[Alert]:
+
+    async def resolve_alert(self, alert_id: str) -> Alert | None:
         """Resolve an active alert."""
-        
+
         if alert_id not in self.active_alerts:
             return None
-        
+
         alert = self.active_alerts[alert_id]
         alert.resolved = True
-        alert.resolved_at = datetime.now(timezone.utc)
-        
+        alert.resolved_at = datetime.now(UTC)
+
         # Send resolution notifications
         await self._send_resolution_notifications(alert)
-        
+
         # Remove from active alerts
         del self.active_alerts[alert_id]
-        
+
         return alert
-    
+
     async def _send_notifications(self, alert: Alert):
         """Send notifications for a new alert."""
-        
+
         tasks = []
-        
+
         for channel in self.notification_channels:
             if not channel.enabled:
                 continue
-            
+
             if alert.severity not in channel.severity_filter:
                 continue
-            
+
             if channel.type == "email":
                 tasks.append(self._send_email_notification(alert, channel))
             elif channel.type == "slack":
@@ -156,39 +153,39 @@ class AlertManager:
                 tasks.append(self._send_pagerduty_notification(alert, channel))
             elif channel.type == "webhook":
                 tasks.append(self._send_webhook_notification(alert, channel))
-        
+
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
-    
+
     async def _send_resolution_notifications(self, alert: Alert):
         """Send notifications when an alert is resolved."""
-        
+
         tasks = []
-        
+
         for channel in self.notification_channels:
             if not channel.enabled:
                 continue
-            
+
             if alert.severity not in channel.severity_filter:
                 continue
-            
+
             if channel.type == "email":
                 tasks.append(self._send_email_resolution(alert, channel))
             elif channel.type == "slack":
                 tasks.append(self._send_slack_resolution(alert, channel))
             elif channel.type == "pagerduty":
                 tasks.append(self._send_pagerduty_resolution(alert, channel))
-        
+
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
-    
+
     async def _send_email_notification(self, alert: Alert, channel: NotificationChannel):
         """Send email notification."""
-        
+
         try:
             # Create email content
             subject = f"🚨 [{alert.severity.upper()}] {alert.title}"
-            
+
             # HTML email body
             html_body = f"""
             <html>
@@ -242,7 +239,7 @@ class AlertManager:
             </body>
             </html>
             """
-            
+
             # Plain text fallback
             text_body = f"""
 GastroPartner System Alert
@@ -261,19 +258,19 @@ Description:
 This is an automated alert from GastroPartner monitoring system.
 Visit https://gastropartner.com/status for more information.
             """
-            
+
             # TODO: Implement actual email sending
             # For now, just log the email that would be sent
             print(f"📧 EMAIL ALERT: {subject}")
             print(f"   To: {channel.config['to']}")
             print(f"   Content: {alert.description}")
-            
+
         except Exception as e:
             print(f"Failed to send email notification: {e}")
-    
+
     async def _send_slack_notification(self, alert: Alert, channel: NotificationChannel):
         """Send Slack notification."""
-        
+
         try:
             # Slack message format
             color = {
@@ -282,14 +279,14 @@ Visit https://gastropartner.com/status for more information.
                 "medium": "#f59e0b",
                 "low": "#22c55e"
             }.get(alert.severity, "#6b7280")
-            
+
             emoji = {
                 "critical": "🚨",
                 "high": "⚠️",
                 "medium": "🟡",
                 "low": "🔵"
             }.get(alert.severity, "📋")
-            
+
             payload = {
                 "channel": channel.config.get("channel", "#alerts"),
                 "username": "GastroPartner Monitoring",
@@ -326,7 +323,7 @@ Visit https://gastropartner.com/status for more information.
                     }
                 ]
             }
-            
+
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     channel.config["webhook_url"],
@@ -334,13 +331,13 @@ Visit https://gastropartner.com/status for more information.
                     timeout=10.0
                 )
                 response.raise_for_status()
-                
+
         except Exception as e:
             print(f"Failed to send Slack notification: {e}")
-    
+
     async def _send_pagerduty_notification(self, alert: Alert, channel: NotificationChannel):
         """Send PagerDuty notification."""
-        
+
         try:
             payload = {
                 "routing_key": channel.config["integration_key"],
@@ -367,7 +364,7 @@ Visit https://gastropartner.com/status for more information.
                     }
                 ]
             }
-            
+
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     "https://events.pagerduty.com/v2/enqueue",
@@ -375,13 +372,13 @@ Visit https://gastropartner.com/status for more information.
                     timeout=10.0
                 )
                 response.raise_for_status()
-                
+
         except Exception as e:
             print(f"Failed to send PagerDuty notification: {e}")
-    
+
     async def _send_webhook_notification(self, alert: Alert, channel: NotificationChannel):
         """Send webhook notification."""
-        
+
         try:
             payload = {
                 "alert": {
@@ -395,7 +392,7 @@ Visit https://gastropartner.com/status for more information.
                 },
                 "event_type": "alert_created"
             }
-            
+
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     channel.config["url"],
@@ -404,31 +401,31 @@ Visit https://gastropartner.com/status for more information.
                     timeout=10.0
                 )
                 response.raise_for_status()
-                
+
         except Exception as e:
             print(f"Failed to send webhook notification: {e}")
-    
+
     async def _send_email_resolution(self, alert: Alert, channel: NotificationChannel):
         """Send email resolution notification."""
-        
+
         try:
             subject = f"✅ RESOLVED: {alert.title}"
             duration = alert.resolved_at - alert.timestamp if alert.resolved_at else None
-            
+
             # TODO: Implement resolution email
             print(f"📧 EMAIL RESOLUTION: {subject}")
             print(f"   Duration: {duration}")
-            
+
         except Exception as e:
             print(f"Failed to send email resolution: {e}")
-    
+
     async def _send_slack_resolution(self, alert: Alert, channel: NotificationChannel):
         """Send Slack resolution notification."""
-        
+
         try:
             duration = alert.resolved_at - alert.timestamp if alert.resolved_at else None
             duration_str = str(duration).split('.')[0] if duration else "Unknown"
-            
+
             payload = {
                 "channel": channel.config.get("channel", "#alerts"),
                 "username": "GastroPartner Monitoring",
@@ -455,7 +452,7 @@ Visit https://gastropartner.com/status for more information.
                     }
                 ]
             }
-            
+
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     channel.config["webhook_url"],
@@ -463,20 +460,20 @@ Visit https://gastropartner.com/status for more information.
                     timeout=10.0
                 )
                 response.raise_for_status()
-                
+
         except Exception as e:
             print(f"Failed to send Slack resolution: {e}")
-    
+
     async def _send_pagerduty_resolution(self, alert: Alert, channel: NotificationChannel):
         """Send PagerDuty resolution notification."""
-        
+
         try:
             payload = {
                 "routing_key": channel.config["integration_key"],
                 "event_action": "resolve",
                 "dedup_key": alert.id
             }
-            
+
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     "https://events.pagerduty.com/v2/enqueue",
@@ -484,15 +481,15 @@ Visit https://gastropartner.com/status for more information.
                     timeout=10.0
                 )
                 response.raise_for_status()
-                
+
         except Exception as e:
             print(f"Failed to send PagerDuty resolution: {e}")
-    
-    def get_active_alerts(self) -> List[Alert]:
+
+    def get_active_alerts(self) -> list[Alert]:
         """Get all active alerts."""
         return list(self.active_alerts.values())
-    
-    def get_alert(self, alert_id: str) -> Optional[Alert]:
+
+    def get_alert(self, alert_id: str) -> Alert | None:
         """Get a specific alert."""
         return self.active_alerts.get(alert_id)
 

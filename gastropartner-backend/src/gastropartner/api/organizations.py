@@ -9,7 +9,8 @@ from fastapi.security import HTTPBearer
 from supabase import Client
 
 from gastropartner.core.auth import get_current_active_user
-from gastropartner.core.database import get_supabase_client
+from gastropartner.core.database import get_supabase_client, get_supabase_client_with_auth
+from gastropartner.core.multitenant import get_user_organization
 from gastropartner.core.models import (
     MessageResponse,
     Organization,
@@ -21,6 +22,17 @@ from gastropartner.core.models import (
 router = APIRouter(prefix="/organizations", tags=["organizations"])
 
 security = HTTPBearer()
+
+
+def get_authenticated_supabase_client(
+    current_user: User = Depends(get_current_active_user),
+    supabase: Client = Depends(get_supabase_client),
+) -> Client:
+    """Get Supabase client with proper authentication context."""
+    # For development user, use admin client to bypass RLS
+    auth_client = get_supabase_client_with_auth(str(current_user.id))
+    return auth_client
+
 
 @router.get("/debug")
 async def debug_organizations(
@@ -37,7 +49,7 @@ async def debug_organizations(
 @router.get("/debug-list")
 async def debug_list_organizations(
     current_user: User = Depends(get_current_active_user),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> dict:
     """Debug endpoint to test list function."""
     try:
@@ -69,26 +81,44 @@ def generate_slug(name: str) -> str:
     response_model=Organization,
     status_code=status.HTTP_201_CREATED,
     summary="Create organization",
-    description="Create a new organization (user becomes owner)",
+    description="Create a new organization (user becomes owner) - MULTI-TENANT SECURE",
 )
 async def create_organization(
     org_data: OrganizationCreate,
     current_user: User = Depends(get_current_active_user),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> Organization:
     """
-    Create new organization.
+    Create new organization with MULTI-TENANT SECURITY.
     
     - **name**: Organization name
     - **description**: Optional description
     
-    The current user becomes the organization owner.
+    🛡️ SECURITY: The current user becomes the organization owner.
+    Each user can only have ONE organization for MVP.
     
-    **Restriction**: Each user can only have one organization.
+    🚨 CRITICAL: Never add real users to dev-org (87654321-4321-4321-4321-210987654321).
+    Dev-org is ONLY for development users.
+    
     Returns 400 Bad Request if user already has an organization.
     """
     try:
-        # Check if user already has an organization
+        # 🛡️ SECURITY CHECK: Ensure user exists in users table
+        user_check = supabase.table("users").select("user_id").eq("user_id", str(current_user.id)).execute()
+        if not user_check.data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User not found in users table. Please ensure user registration is complete.",
+            )
+
+        # 🛡️ SECURITY CHECK: Prevent real users from being added to dev-org
+        if str(current_user.id) == "12345678-1234-1234-1234-123456789012":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Development user cannot create additional organizations. Use existing dev-org.",
+            )
+
+        # 🛡️ MULTI-TENANT SECURITY: Check if user already has an organization
         existing_orgs = supabase.table("organization_users").select(
             "organization_id"
         ).eq("user_id", str(current_user.id)).execute()
@@ -96,7 +126,7 @@ async def create_organization(
         if existing_orgs.data:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User already has an organization. Only one organization per user is allowed.",
+                detail="User already has an organization. Only one organization per user is allowed for MVP.",
             )
 
         # Generate slug from organization name
@@ -112,12 +142,12 @@ async def create_organization(
             slug = f"{base_slug}-{counter}"
             counter += 1
 
-        # Create organization in database (RLS temporarily disabled)
+        # 🛡️ SECURITY: Create organization with proper owner_id (foreign key to users table)
         org_response = supabase.table("organizations").insert({
             "name": org_data.name,
             "slug": slug,
             "description": org_data.description,
-            "owner_id": str(current_user.id),
+            "owner_id": str(current_user.id),  # Must exist in users table
             "max_ingredients": 50,  # Freemium defaults
             "max_recipes": 5,
             "max_menu_items": 2,
@@ -134,12 +164,25 @@ async def create_organization(
 
         org_data_result = org_response.data[0]
 
-        # Add user as owner to organization_users
-        supabase.table("organization_users").insert({
-            "user_id": str(current_user.id),
+        # 🛡️ MULTI-TENANT SECURITY: Add user as owner to organization_users table
+        org_user_response = supabase.table("organization_users").insert({
+            "user_id": str(current_user.id),  # Must exist in users table
             "organization_id": org_data_result["organization_id"],
             "role": "owner",
         }).execute()
+
+        if not org_user_response.data:
+            # Rollback organization creation if organization_users insert fails
+            supabase.table("organizations").delete().eq("organization_id", org_data_result["organization_id"]).execute()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to assign user to organization",
+            )
+
+        # 🛡️ SECURITY: Update users table with primary organization_id
+        supabase.table("users").update({
+            "organization_id": org_data_result["organization_id"]
+        }).eq("user_id", str(current_user.id)).execute()
 
         # Convert database result to match model expectations
         org_model_data = {**org_data_result}
@@ -152,10 +195,10 @@ async def create_organization(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Organization creation failed (possibly tables don't exist): {e!s}")
+        print(f"Organization creation failed: {e!s}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Database tables not set up yet. Please run database migrations.",
+            detail="Organization creation failed. Please check database configuration and user authentication.",
         ) from e
 
 
@@ -163,11 +206,11 @@ async def create_organization(
     "/",
     response_model=list[Organization],
     summary="List user organizations",
-    description="Get all organizations where user is a member",
+    description="Get all organizations where user is a member - MULTI-TENANT SECURE",
 )
 async def list_user_organizations(
     current_user: User = Depends(get_current_active_user),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> list[Organization]:
     """
     List organizations where current user is a member.
@@ -177,36 +220,36 @@ async def list_user_organizations(
     # For development user, return a default organization immediately
     if str(current_user.id) == "12345678-1234-1234-1234-123456789012":
         from datetime import datetime
-        
+
         # Calculate current usage for development organization
         dev_org_id = "87654321-4321-4321-4321-210987654321"
-        
+
         try:
             # Count current ingredients
             ingredients_count = supabase.table("ingredients").select(
                 "ingredient_id", count="exact"
             ).eq("organization_id", dev_org_id).eq("is_active", True).execute()
             current_ingredients = ingredients_count.count or 0
-            
+
             # Count current recipes
             recipes_count = supabase.table("recipes").select(
                 "recipe_id", count="exact"
             ).eq("organization_id", dev_org_id).eq("is_active", True).execute()
             current_recipes = recipes_count.count or 0
-            
+
             # Count current menu items
             menu_items_count = supabase.table("menu_items").select(
                 "menu_item_id", count="exact"
             ).eq("organization_id", dev_org_id).eq("is_active", True).execute()
             current_menu_items = menu_items_count.count or 0
-            
+
         except Exception as e:
             print(f"Failed to get usage counts for dev org: {e}")
             # Fallback to 0 if database queries fail
             current_ingredients = 0
             current_recipes = 0
             current_menu_items = 0
-        
+
         return [Organization(
             organization_id=dev_org_id,
             name="Development Organization",
@@ -247,37 +290,37 @@ async def list_user_organizations(
         for org_data in response.data:
             try:
                 org_id = org_data["organization_id"]
-                
+
                 # Count current ingredients
                 ingredients_count = supabase.table("ingredients").select(
                     "ingredient_id", count="exact"
                 ).eq("organization_id", org_id).eq("is_active", True).execute()
                 current_ingredients = ingredients_count.count or 0
-                
+
                 # Count current recipes
                 recipes_count = supabase.table("recipes").select(
                     "recipe_id", count="exact"
                 ).eq("organization_id", org_id).eq("is_active", True).execute()
                 current_recipes = recipes_count.count or 0
-                
+
                 # Count current menu items
                 menu_items_count = supabase.table("menu_items").select(
                     "menu_item_id", count="exact"
                 ).eq("organization_id", org_id).eq("is_active", True).execute()
                 current_menu_items = menu_items_count.count or 0
-                
+
                 # Update organization data with current counts
                 org_data["current_ingredients"] = current_ingredients
                 org_data["current_recipes"] = current_recipes
                 org_data["current_menu_items"] = current_menu_items
-                
+
             except Exception as e:
                 print(f"Failed to get usage counts for org {org_data.get('organization_id', 'unknown')}: {e}")
                 # Fallback to existing values or 0 if not set
                 org_data["current_ingredients"] = org_data.get("current_ingredients", 0)
                 org_data["current_recipes"] = org_data.get("current_recipes", 0)
                 org_data["current_menu_items"] = org_data.get("current_menu_items", 0)
-            
+
             organizations.append(Organization(**org_data))
 
         return organizations
@@ -297,7 +340,7 @@ async def list_user_organizations(
 async def get_organization(
     organization_id: UUID,
     current_user: User = Depends(get_current_active_user),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> Organization:
     """
     Get organization details.
@@ -329,34 +372,34 @@ async def get_organization(
         )
 
     org_data = response.data[0]
-    
+
     try:
         # Calculate current usage for this organization
         org_id = str(organization_id)
-        
+
         # Count current ingredients
         ingredients_count = supabase.table("ingredients").select(
             "ingredient_id", count="exact"
         ).eq("organization_id", org_id).eq("is_active", True).execute()
         current_ingredients = ingredients_count.count or 0
-        
+
         # Count current recipes
         recipes_count = supabase.table("recipes").select(
             "recipe_id", count="exact"
         ).eq("organization_id", org_id).eq("is_active", True).execute()
         current_recipes = recipes_count.count or 0
-        
+
         # Count current menu items
         menu_items_count = supabase.table("menu_items").select(
             "menu_item_id", count="exact"
         ).eq("organization_id", org_id).eq("is_active", True).execute()
         current_menu_items = menu_items_count.count or 0
-        
+
         # Update organization data with current counts
         org_data["current_ingredients"] = current_ingredients
         org_data["current_recipes"] = current_recipes
         org_data["current_menu_items"] = current_menu_items
-        
+
     except Exception as e:
         print(f"Failed to get usage counts for org {organization_id}: {e}")
         # Fallback to existing values or 0 if not set
@@ -377,7 +420,7 @@ async def update_organization(
     organization_id: UUID,
     org_update: OrganizationUpdate,
     current_user: User = Depends(get_current_active_user),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> Organization:
     """
     Update organization details.
@@ -431,7 +474,7 @@ async def update_organization(
 async def delete_organization(
     organization_id: UUID,
     current_user: User = Depends(get_current_active_user),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> MessageResponse:
     """
     Delete organization.
@@ -472,7 +515,7 @@ async def delete_organization(
 async def get_organization_usage(
     organization_id: UUID,
     current_user: User = Depends(get_current_active_user),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> dict:
     """
     Get organization usage statistics.

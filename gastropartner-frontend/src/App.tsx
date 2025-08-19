@@ -21,6 +21,7 @@ import UserTestingDashboard from './pages/UserTestingDashboard';
 import { Sales } from './pages/Sales';
 import { Modules } from './pages/Modules';
 import { Settings } from './pages/Settings';
+import Upgrade from './pages/Upgrade';
 import Status from './pages/Status';
 import { apiClient, MenuItem, MenuItemCreate } from './utils/api';
 
@@ -311,6 +312,7 @@ function App() {
                       <Route path="/forsaljning" element={<Sales />} />
                       <Route path="/moduler" element={<Modules />} />
                       <Route path="/installningar" element={<Settings />} />
+                      <Route path="/upgrade" element={<Upgrade />} />
                       <Route path="/superadmin" element={<SuperAdminDashboard />} />
                       <Route path="/freemium-test" element={<FreemiumTest />} />
                     </Routes>

@@ -4,6 +4,7 @@ import { MetricsCard } from '../components/MetricsCard';
 import { SearchableTable, TableColumn } from '../components/SearchableTable';
 import { EmptyState } from '../components/EmptyState';
 import { OrganizationSelector } from '../components/Organizations/OrganizationSelector';
+import PlanStatusWidget from '../components/PlanStatusWidget';
 import { apiClient, Recipe, RecipeCreate } from '../utils/api';
 import { useFreemium } from '../hooks/useFreemium';
 
@@ -213,17 +214,33 @@ export function Recipes() {
         title="Recept" 
         subtitle="Skapa recept och beräkna kostnader för dina rätter"
       >
-        <button 
-          className="btn btn--primary"
-          onClick={() => setIsFormOpen(true)}
-          disabled={atRecipeLimit}
-        >
-          <span>+</span> Nytt Recept
-        </button>
+        <div className="flex items-center space-x-3">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-sm">
+            <span className="text-blue-900 font-medium">Plan: FREE</span>
+            <span className="text-blue-700 ml-2">({activeRecipes.length}/5 recept)</span>
+          </div>
+          <button 
+            className="btn btn--primary"
+            onClick={() => setIsFormOpen(true)}
+            disabled={atRecipeLimit}
+            title={atRecipeLimit ? "Du har nått gränsen för FREE-planen. Uppgradera för fler recept." : "Skapa nytt recept"}
+          >
+            <span>+</span> Nytt Recept
+          </button>
+        </div>
       </PageHeader>
 
       <div className="dashboard-content">
         <OrganizationSelector />
+        
+        {/* Plan Status Widget */}
+        <div className="mb-6">
+          <PlanStatusWidget 
+            plan="free" 
+            showUpgradeButton={true}
+            onUpgrade={() => alert('Upgrade funktionalitet kommer snart!')}
+          />
+        </div>
         
         {error && (
           <div className="error-banner">
@@ -233,7 +250,14 @@ export function Recipes() {
 
         {atRecipeLimit && (
           <div className="warning-banner">
-            <span>⚠️ Du har nått gränsen för recept (5/5). Uppgradera för att skapa fler recept.</span>
+            <span>⚠️ Du har nått gränsen för recept på FREE-planen (5/5). Uppgradera till Premium för obegränsade recept.</span>
+          </div>
+        )}
+        
+        {/* Plan Status Information */}
+        {!atRecipeLimit && recipeUsagePercentage > 60 && (
+          <div className="info-banner" style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af', padding: '12px', borderRadius: '8px', marginBottom: '20px' }}>
+            <span>ℹ️ FREE-plan: Du har använt {activeRecipes.length} av 5 tillgängliga recept ({recipeUsagePercentage.toFixed(0)}%). Uppgradera till Premium för obegränsade recept.</span>
           </div>
         )}
         

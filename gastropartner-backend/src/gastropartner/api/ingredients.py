@@ -20,6 +20,16 @@ from gastropartner.core.models import (
 router = APIRouter(prefix="/ingredients", tags=["ingredients"])
 
 
+def get_authenticated_supabase_client(
+    current_user: User = Depends(get_current_active_user),
+    supabase: Client = Depends(get_supabase_client),
+) -> Client:
+    """Get Supabase client with proper authentication context."""
+    # For development user, try to get admin client to bypass RLS
+    auth_client = get_supabase_client_with_auth(str(current_user.id))
+    return auth_client
+
+
 async def check_ingredient_limits(
     organization_id: UUID,
     supabase: Client,
@@ -89,11 +99,11 @@ async def create_ingredient(
     ingredient_data: IngredientCreate,
     current_user: User = Depends(get_current_active_user),
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> Ingredient:
     """
     Create new ingredient.
-    
+
     Freemium limits:
     - Maximum 50 ingredients per organization
     - Upgrade to premium for unlimited ingredients
@@ -104,11 +114,8 @@ async def create_ingredient(
     await freemium_service.enforce_ingredient_limit(organization_id)
 
     try:
-        # Get Supabase client with user authentication context
-        user_supabase = get_supabase_client_with_auth(str(current_user.id))
-        
-        # Create ingredient
-        response = user_supabase.table("ingredients").insert({
+        # Prepare ingredient data
+        ingredient_insert_data = {
             "organization_id": str(organization_id),
             "name": ingredient_data.name,
             "category": ingredient_data.category,
@@ -116,7 +123,16 @@ async def create_ingredient(
             "cost_per_unit": float(ingredient_data.cost_per_unit),
             "supplier": ingredient_data.supplier,
             "notes": ingredient_data.notes,
-        }).execute()
+        }
+        
+        # For development users (UUID starts with 'd'), don't set creator_id
+        # since they don't exist in auth.users table
+        if not str(current_user.id).startswith("d"):
+            ingredient_insert_data["creator_id"] = str(current_user.id)
+        # For dev users, creator_id will be NULL which should be allowed
+        
+        # Create ingredient
+        response = supabase.table("ingredients").insert(ingredient_insert_data).execute()
 
         if not response.data:
             raise HTTPException(
@@ -143,7 +159,7 @@ async def create_ingredient(
 )
 async def list_ingredients(
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
     category: str | None = Query(None, description="Filter by category"),
     active_only: bool = Query(True, description="Show only active ingredients"),
     limit: int = Query(100, ge=1, le=500, description="Number of results to return"),
@@ -151,7 +167,7 @@ async def list_ingredients(
 ) -> list[Ingredient]:
     """
     List ingredients for the organization.
-    
+
     Supports filtering by category and pagination.
     """
 
@@ -188,7 +204,7 @@ async def list_ingredients(
 async def get_ingredient(
     ingredient_id: UUID,
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> Ingredient:
     """Get ingredient by ID."""
 
@@ -215,7 +231,7 @@ async def update_ingredient(
     ingredient_id: UUID,
     ingredient_update: IngredientUpdate,
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> Ingredient:
     """Update ingredient details."""
 
@@ -266,11 +282,11 @@ async def update_ingredient(
 async def delete_ingredient(
     ingredient_id: UUID,
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> MessageResponse:
     """
     Delete ingredient (soft delete).
-    
+
     This marks the ingredient as inactive instead of permanently deleting it
     to preserve recipe history.
     """
@@ -306,7 +322,7 @@ async def delete_ingredient(
 )
 async def check_usage_limits(
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> UsageLimitsCheck:
     """Check current usage against freemium limits."""
 
@@ -322,7 +338,7 @@ async def check_usage_limits(
 )
 async def list_ingredient_categories(
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> list[str]:
     """List all ingredient categories used in the organization."""
 
@@ -331,9 +347,9 @@ async def list_ingredient_categories(
     ).eq("is_active", True).execute()
 
     # Extract unique categories, filter out nulls
-    categories = list(set(
+    categories = list({
         item["category"] for item in response.data
         if item["category"] is not None
-    ))
+    })
 
     return sorted(categories)

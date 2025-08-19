@@ -42,7 +42,7 @@ interface PlanComparison {
       billing_period: string;
       features: Record<string, any>;
     };
-    enterprise: {
+    premium: {
       price: number;
       currency: string;
       billing_period: string;
