@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from supabase import Client
 
 from gastropartner.core.auth import get_current_active_user, get_user_organization
-from gastropartner.core.database import get_supabase_client
+from gastropartner.core.database import get_supabase_client, get_supabase_client_with_auth
 from gastropartner.core.models import (
     CostAnalysis,
     MenuItem,
@@ -18,6 +18,16 @@ from gastropartner.core.models import (
 )
 
 router = APIRouter(prefix="/menu-items", tags=["menu-items"])
+
+
+def get_authenticated_supabase_client(
+    current_user: User = Depends(get_current_active_user),
+    supabase: Client = Depends(get_supabase_client),
+) -> Client:
+    """Get Supabase client with proper authentication context."""
+    # For development user, use admin client to bypass RLS
+    auth_client = get_supabase_client_with_auth(str(current_user.id))
+    return auth_client
 
 
 async def calculate_menu_item_margins(
@@ -68,10 +78,10 @@ async def get_recipe_cost(
 
         servings = recipe_response.data[0]["servings"]
 
-        # Get recipe ingredients with costs
+        # Get recipe ingredients with costs (SÄKERHET: filtrera på organisation)
         ingredients_response = supabase.table("recipe_ingredients").select(
             "quantity, unit, ingredients(cost_per_unit)"
-        ).eq("recipe_id", str(recipe_id)).execute()
+        ).eq("recipe_id", str(recipe_id)).eq("organization_id", str(organization_id)).execute()
 
         total_cost = 0.0
         for ri in ingredients_response.data:
@@ -121,7 +131,7 @@ async def create_menu_item(
     menu_item_data: MenuItemCreate,
     current_user: User = Depends(get_current_active_user),
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> MenuItem:
     """
     Create new menu item.
@@ -163,6 +173,7 @@ async def create_menu_item(
         # Create menu item
         response = supabase.table("menu_items").insert({
             "organization_id": str(organization_id),
+            "creator_id": str(current_user.id),
             "recipe_id": str(menu_item_data.recipe_id) if menu_item_data.recipe_id else None,
             "name": menu_item_data.name,
             "description": menu_item_data.description,
@@ -203,7 +214,7 @@ async def create_menu_item(
 )
 async def list_menu_items(
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
     category: str | None = Query(None, description="Filter by category"),
     active_only: bool = Query(True, description="Show only active menu items"),
     include_margins: bool = Query(True, description="Include margin calculations"),
@@ -260,7 +271,7 @@ async def list_menu_items(
 async def get_menu_item(
     menu_item_id: UUID,
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> MenuItem:
     """Get menu item by ID with complete recipe details and margin analysis."""
 
@@ -309,7 +320,7 @@ async def update_menu_item(
     menu_item_id: UUID,
     menu_item_update: MenuItemUpdate,
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> MenuItem:
     """Update menu item details."""
 
@@ -375,7 +386,7 @@ async def update_menu_item(
 async def delete_menu_item(
     menu_item_id: UUID,
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> MessageResponse:
     """Delete menu item (soft delete)."""
 
@@ -411,7 +422,7 @@ async def delete_menu_item(
 async def get_menu_item_profitability(
     menu_item_id: UUID,
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> CostAnalysis:
     """Get detailed profitability analysis for a menu item."""
 
@@ -460,7 +471,7 @@ async def get_menu_item_profitability(
 )
 async def list_menu_item_categories(
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> list[str]:
     """List all menu item categories used in the organization."""
 

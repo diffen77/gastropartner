@@ -91,6 +91,34 @@ class CostControlService:
     def __init__(self, supabase: Client):
         self.supabase = supabase
 
+    async def _calculate_recipe_cost(
+        self,
+        recipe_id: UUID,
+        organization_id: UUID,
+        servings: int = 1
+    ) -> float:
+        """Calculate total cost for a recipe by summing ingredient costs."""
+        
+        # Get recipe ingredients with ingredient details (SECURITY: filter by organization)
+        response = self.supabase.table("recipe_ingredients").select(
+            "*, ingredients(*)"
+        ).eq("recipe_id", str(recipe_id)).eq("organization_id", str(organization_id)).execute()
+
+        if not response.data:
+            return 0.0
+
+        total_cost = 0.0
+        for recipe_ingredient in response.data:
+            ingredient = recipe_ingredient.get("ingredients")
+            if ingredient and ingredient.get("is_active"):
+                # Convert quantity to cost based on ingredient unit cost
+                quantity = float(recipe_ingredient.get("quantity", 0))
+                cost_per_unit = float(ingredient.get("cost_per_unit", 0))
+                ingredient_cost = quantity * cost_per_unit
+                total_cost += ingredient_cost
+
+        return total_cost
+
     async def calculate_comprehensive_costs(
         self,
         organization_id: UUID,
@@ -133,14 +161,14 @@ class CostControlService:
             "ingredient_id, name, cost_per_unit, category, created_at, updated_at"
         ).eq("organization_id", str(organization_id)).eq("is_active", True).execute()
 
-        # Get all recipes with cost calculations
+        # Get all recipes (costs will be calculated dynamically)
         recipes_response = self.supabase.table("recipes").select(
-            "recipe_id, name, total_cost, cost_per_serving, created_at, updated_at"
+            "recipe_id, name, servings, created_at, updated_at"
         ).eq("organization_id", str(organization_id)).eq("is_active", True).execute()
 
-        # Get all menu items with margins
+        # Get all menu items (costs will be calculated from linked recipes)
         menu_items_response = self.supabase.table("menu_items").select(
-            "menu_item_id, name, selling_price, food_cost, food_cost_percentage, margin, created_at"
+            "menu_item_id, name, recipe_id, selling_price, target_food_cost_percentage, created_at"
         ).eq("organization_id", str(organization_id)).eq("is_active", True).execute()
 
         # Calculate totals
@@ -149,20 +177,28 @@ class CostControlService:
             for ingredient in ingredients_response.data or []
         )
 
-        total_recipe_cost = sum(
-            float(recipe.get("total_cost", 0))
-            for recipe in recipes_response.data or []
-        )
+        # Calculate total recipe costs dynamically
+        total_recipe_cost = 0.0
+        for recipe in recipes_response.data or []:
+            recipe_cost = await self._calculate_recipe_cost(
+                UUID(recipe["recipe_id"]), organization_id, recipe.get("servings", 1)
+            )
+            total_recipe_cost += recipe_cost
 
-        total_menu_revenue = sum(
-            float(item.get("selling_price", 0))
-            for item in menu_items_response.data or []
-        )
-
-        total_food_cost = sum(
-            float(item.get("food_cost", 0))
-            for item in menu_items_response.data or []
-        )
+        # Calculate menu totals dynamically
+        total_menu_revenue = 0.0
+        total_food_cost = 0.0
+        
+        for item in menu_items_response.data or []:
+            selling_price = float(item.get("selling_price", 0))
+            total_menu_revenue += selling_price
+            
+            # Calculate food cost from linked recipe if available
+            if item.get("recipe_id"):
+                recipe_cost = await self._calculate_recipe_cost(
+                    UUID(item["recipe_id"]), organization_id, 1  # Default to 1 serving
+                )
+                total_food_cost += recipe_cost
 
         return {
             "period": {
@@ -473,13 +509,23 @@ class CostControlService:
 
         # Check menu pricing opportunities
         menu_items_response = self.supabase.table("menu_items").select(
-            "menu_item_id, name, selling_price, food_cost, food_cost_percentage"
+            "menu_item_id, name, recipe_id, selling_price, target_food_cost_percentage"
         ).eq("organization_id", str(organization_id)).eq("is_active", True).execute()
 
         for item in (menu_items_response.data or []):
-            food_cost_pct = float(item.get("food_cost_percentage", 0))
+            selling_price = float(item["selling_price"])
+            
+            # Calculate food cost percentage dynamically
+            food_cost = 0.0
+            if item.get("recipe_id"):
+                food_cost = await self._calculate_recipe_cost(
+                    UUID(item["recipe_id"]), organization_id, 1
+                )
+            
+            food_cost_pct = (food_cost / selling_price * 100) if selling_price > 0 else 0
+            
             if food_cost_pct > 35:  # High food cost percentage
-                potential_price_increase = float(item["selling_price"]) * 0.1  # 10% increase
+                potential_price_increase = selling_price * 0.1  # 10% increase
                 optimizations.append({
                     "type": "price_optimization",
                     "target": item["name"],

@@ -5,7 +5,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from supabase import Client
 
-from gastropartner.core.auth import get_current_active_user, get_user_organization
+from gastropartner.core.auth import get_current_active_user
+from gastropartner.core.multitenant import get_user_organization
 from gastropartner.core.database import get_supabase_client, get_supabase_client_with_auth
 from gastropartner.core.models import (
     CostAnalysis,
@@ -21,18 +22,28 @@ from gastropartner.core.models import (
 router = APIRouter(prefix="/recipes", tags=["recipes"])
 
 
+def get_authenticated_supabase_client(
+    current_user: User = Depends(get_current_active_user),
+    supabase: Client = Depends(get_supabase_client),
+) -> Client:
+    """Get Supabase client with proper authentication context."""
+    # For development user, use admin client to bypass RLS
+    auth_client = get_supabase_client_with_auth(str(current_user.id))
+    return auth_client
+
+
 @router.post(
     "/dev/setup",
     summary="Setup development data",
     description="Development only: Setup required data for testing"
 )
 async def setup_development_data(
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> dict[str, str]:
     """Setup development data (development mode only)."""
-    
+
     dev_org_id = "87654321-4321-4321-4321-210987654321"
-    
+
     try:
         # Try to insert development organization (ignore if exists)
         try:
@@ -43,7 +54,7 @@ async def setup_development_data(
             }).execute()
         except Exception as e:
             print(f"DEBUG: Organization creation attempt: {e}")
-        
+
         return {"message": "Development data setup attempted", "organization_id": dev_org_id}
     except Exception as e:
         return {"message": f"Setup failed: {e}", "organization_id": dev_org_id}
@@ -57,10 +68,10 @@ async def calculate_recipe_cost(
 ) -> CostAnalysis:
     """Calculate total cost for a recipe."""
 
-    # Get recipe ingredients with ingredient details
+    # Get recipe ingredients with ingredient details (SÄKERHET: filtrera på organisation)
     response = supabase.table("recipe_ingredients").select(
         "*, ingredients(*)"
-    ).eq("recipe_id", str(recipe_id)).execute()
+    ).eq("recipe_id", str(recipe_id)).eq("organization_id", str(organization_id)).execute()
 
     if not response.data:
         return CostAnalysis(
@@ -94,15 +105,15 @@ async def ensure_development_organization(
     """Ensure development organization exists."""
     if str(organization_id) != "87654321-4321-4321-4321-210987654321":
         return True  # Not development org, nothing to do
-    
+
     # Check if development organization exists
     org_response = supabase.table("organizations").select(
         "organization_id"
     ).eq("organization_id", str(organization_id)).execute()
-    
+
     if org_response.data:
         return True  # Already exists
-    
+
     # Create development organization
     try:
         supabase.table("organizations").insert({
@@ -155,7 +166,7 @@ async def check_recipe_limits(
 
     current_count = count_response.count or 0
     print(f"DEBUG: Current recipe count: {current_count}, Max: {max_recipes}, Can add: {current_count < max_recipes}")
-    
+
     return current_count < max_recipes
 
 
@@ -170,7 +181,7 @@ async def create_recipe(
     recipe_data: RecipeCreate,
     current_user: User = Depends(get_current_active_user),
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> Recipe:
     """
     Create new recipe with ingredients.
@@ -201,6 +212,7 @@ async def create_recipe(
         # Create recipe
         recipe_response = db_client.table("recipes").insert({
             "organization_id": str(organization_id),
+            "creator_id": str(current_user.id),
             "name": recipe_data.name,
             "description": recipe_data.description,
             "servings": recipe_data.servings,
@@ -236,10 +248,11 @@ async def create_recipe(
                         detail=f"Ingredient {ingredient_data.ingredient_id} not found or not active"
                     )
 
-                # Add recipe ingredient
+                # Add recipe ingredient (SÄKERHET: inkludera organisation)
                 ri_response = db_client.table("recipe_ingredients").insert({
                     "recipe_id": recipe_id,
                     "ingredient_id": str(ingredient_data.ingredient_id),
+                    "organization_id": str(organization_id),
                     "quantity": float(ingredient_data.quantity),
                     "unit": ingredient_data.unit,
                     "notes": ingredient_data.notes,
@@ -278,7 +291,7 @@ async def create_recipe(
 )
 async def list_recipes(
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
     current_user: User = Depends(get_current_active_user),
     active_only: bool = Query(True, description="Show only active recipes"),
     include_costs: bool = Query(True, description="Include cost calculations"),
@@ -305,10 +318,10 @@ async def list_recipes(
         for recipe_data in response.data:
             recipe = Recipe(**recipe_data)
 
-            # Load ingredients for each recipe (same as get_recipe function)
+            # Load ingredients for each recipe (SÄKERHET: filtrera på organisation)
             ingredients_response = db_client.table("recipe_ingredients").select(
                 "*, ingredients(*)"
-            ).eq("recipe_id", str(recipe.recipe_id)).execute()
+            ).eq("recipe_id", str(recipe.recipe_id)).eq("organization_id", str(organization_id)).execute()
 
             # Build recipe ingredients list
             recipe_ingredients = []
@@ -358,7 +371,7 @@ async def list_recipes(
 async def get_recipe(
     recipe_id: UUID,
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> Recipe:
     """Get recipe by ID with complete ingredient details and cost analysis."""
 
@@ -375,10 +388,10 @@ async def get_recipe(
 
     recipe_data = recipe_response.data[0]
 
-    # Get recipe ingredients with ingredient details
+    # Get recipe ingredients with ingredient details (SÄKERHET: filtrera på organisation)
     ingredients_response = supabase.table("recipe_ingredients").select(
         "*, ingredients(*)"
-    ).eq("recipe_id", str(recipe_id)).execute()
+    ).eq("recipe_id", str(recipe_id)).eq("organization_id", str(organization_id)).execute()
 
     # Build recipe ingredients list
     recipe_ingredients = []
@@ -422,7 +435,7 @@ async def update_recipe(
     recipe_id: UUID,
     recipe_update: RecipeUpdate,
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> Recipe:
     """Update recipe details."""
 
@@ -463,10 +476,10 @@ async def update_recipe(
 
     # Handle ingredients update if provided
     if recipe_update.ingredients is not None:
-        # Delete existing recipe ingredients
+        # Delete existing recipe ingredients (SÄKERHET: filtrera på organisation)
         supabase.table("recipe_ingredients").delete().eq(
             "recipe_id", str(recipe_id)
-        ).execute()
+        ).eq("organization_id", str(organization_id)).execute()
 
         # Add new ingredients
         if recipe_update.ingredients:
@@ -484,10 +497,11 @@ async def update_recipe(
                         detail=f"Ingredient {ingredient_data.ingredient_id} not found or not active"
                     )
 
-                # Add recipe ingredient
+                # Add recipe ingredient (SÄKERHET: inkludera organisation)
                 supabase.table("recipe_ingredients").insert({
                     "recipe_id": str(recipe_id),
                     "ingredient_id": str(ingredient_data.ingredient_id),
+                    "organization_id": str(organization_id),
                     "quantity": float(ingredient_data.quantity),
                     "unit": ingredient_data.unit,
                     "notes": ingredient_data.notes,
@@ -506,7 +520,7 @@ async def update_recipe(
 async def delete_recipe(
     recipe_id: UUID,
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
 ) -> MessageResponse:
     """Delete recipe (soft delete)."""
 
@@ -542,7 +556,7 @@ async def delete_recipe(
 async def get_recipe_cost_analysis(
     recipe_id: UUID,
     organization_id: UUID = Depends(get_user_organization),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
     servings: int = Query(None, ge=1, description="Override servings for calculation"),
 ) -> CostAnalysis:
     """Get detailed cost analysis for a recipe."""

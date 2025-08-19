@@ -1,7 +1,6 @@
 """Analytics API endpoints."""
 
-from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -9,48 +8,48 @@ from pydantic import BaseModel, Field
 
 from gastropartner.core.analytics import AnalyticsService, get_analytics_service
 from gastropartner.core.auth import get_current_user
-from gastropartner.core.models import User, UserAnalyticsEventCreate
+from gastropartner.core.models import User
 
 
 class AnalyticsEventRequest(BaseModel):
     """Request model for tracking analytics events."""
-    
+
     event_type: str = Field(..., max_length=100)
     event_name: str = Field(..., max_length=100)
-    properties: Dict[str, Any] = Field(default_factory=dict)
+    properties: dict[str, Any] = Field(default_factory=dict)
 
 
 class FeatureUsageRequest(BaseModel):
     """Request model for tracking feature usage."""
-    
+
     feature: str = Field(..., description="Feature name (e.g., 'ingredients', 'recipes')")
     action: str = Field(..., description="Action taken (e.g., 'created', 'updated', 'deleted')")
-    properties: Optional[Dict[str, Any]] = None
+    properties: dict[str, Any] | None = None
 
 
 class LimitHitRequest(BaseModel):
     """Request model for tracking limit hits."""
-    
+
     feature: str = Field(..., description="Feature that hit the limit")
     current_count: int = Field(..., description="Current usage count")
     limit: int = Field(..., description="The limit that was hit")
-    properties: Optional[Dict[str, Any]] = None
+    properties: dict[str, Any] | None = None
 
 
 class UpgradePromptRequest(BaseModel):
     """Request model for tracking upgrade prompts."""
-    
+
     feature: str = Field(..., description="Feature associated with upgrade prompt")
     prompt_type: str = Field(..., description="Type of prompt shown")
-    properties: Optional[Dict[str, Any]] = None
+    properties: dict[str, Any] | None = None
 
 
 class AnalyticsResponse(BaseModel):
     """Response model for analytics data."""
-    
+
     success: bool = True
     message: str = "Analytics data retrieved successfully"
-    data: Dict[str, Any] = Field(default_factory=dict)
+    data: dict[str, Any] = Field(default_factory=dict)
 
 
 router = APIRouter(prefix="/api/v1/analytics", tags=["analytics"])
@@ -72,7 +71,7 @@ async def track_event(
         # For now, we'll use a default organization_id
         # In production, this should come from the user's context
         organization_id = UUID("87654321-4321-4321-4321-210987654321")
-        
+
         success = await analytics_service.track_event(
             organization_id=organization_id,
             user_id=current_user.id,
@@ -82,22 +81,22 @@ async def track_event(
             page_url=event_request.page_url,
             session_id=event_request.session_id,
         )
-        
+
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to track event"
             )
-        
+
         return AnalyticsResponse(
             message="Event tracked successfully",
             data={"tracked": True}
         )
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to track event: {str(e)}"
+            detail=f"Failed to track event: {e!s}"
         )
 
 
@@ -113,7 +112,7 @@ async def track_feature_usage(
     This is a convenience endpoint for tracking specific feature usage.
     """
     organization_id = UUID("87654321-4321-4321-4321-210987654321")
-    
+
     success = await analytics_service.track_feature_usage(
         organization_id=organization_id,
         user_id=current_user.id,
@@ -121,13 +120,13 @@ async def track_feature_usage(
         action=request.action,
         properties=request.properties,
     )
-    
+
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to track feature usage"
         )
-    
+
     return AnalyticsResponse(
         message="Feature usage tracked successfully",
         data={"feature": request.feature, "action": request.action, "tracked": True}
@@ -146,7 +145,7 @@ async def track_limit_hit(
     This helps measure conversion opportunities and optimize limits.
     """
     organization_id = UUID("87654321-4321-4321-4321-210987654321")
-    
+
     success = await analytics_service.track_limit_hit(
         organization_id=organization_id,
         user_id=current_user.id,
@@ -155,13 +154,13 @@ async def track_limit_hit(
         limit=request.limit,
         properties=request.properties,
     )
-    
+
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to track limit hit"
         )
-    
+
     return AnalyticsResponse(
         message="Limit hit tracked successfully",
         data={"feature": request.feature, "limit_hit": True, "tracked": True}
@@ -180,7 +179,7 @@ async def track_upgrade_prompt(
     This helps measure prompt effectiveness and conversion funnels.
     """
     organization_id = UUID("87654321-4321-4321-4321-210987654321")
-    
+
     success = await analytics_service.track_upgrade_prompt(
         organization_id=organization_id,
         user_id=current_user.id,
@@ -188,13 +187,13 @@ async def track_upgrade_prompt(
         prompt_type=request.prompt_type,
         properties=request.properties,
     )
-    
+
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to track upgrade prompt"
         )
-    
+
     return AnalyticsResponse(
         message="Upgrade prompt tracked successfully",
         data={"feature": request.feature, "prompt_type": request.prompt_type, "tracked": True}
@@ -215,21 +214,21 @@ async def get_usage_stats(
     try:
         # For now, get stats for the default organization
         organization_id = UUID("87654321-4321-4321-4321-210987654321")
-        
+
         stats = await analytics_service.get_feature_usage_stats(
             organization_id=organization_id,
             days=days
         )
-        
+
         return AnalyticsResponse(
             message=f"Usage statistics for {days} days retrieved successfully",
             data=stats
         )
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get usage stats: {str(e)}"
+            detail=f"Failed to get usage stats: {e!s}"
         )
 
 
@@ -246,21 +245,21 @@ async def get_conversion_metrics(
     """
     try:
         organization_id = UUID("87654321-4321-4321-4321-210987654321")
-        
+
         metrics = await analytics_service.get_conversion_metrics(
             organization_id=organization_id,
             days=days
         )
-        
+
         return AnalyticsResponse(
             message=f"Conversion metrics for {days} days retrieved successfully",
             data=metrics
         )
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get conversion metrics: {str(e)}"
+            detail=f"Failed to get conversion metrics: {e!s}"
         )
 
 
@@ -277,21 +276,21 @@ async def get_optimization_data(
     """
     try:
         organization_id = UUID("87654321-4321-4321-4321-210987654321")
-        
+
         data = await analytics_service.get_limit_optimization_data(
             organization_id=organization_id,
             days=days
         )
-        
+
         return AnalyticsResponse(
             message=f"Optimization data for {days} days retrieved successfully",
             data=data
         )
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get optimization data: {str(e)}"
+            detail=f"Failed to get optimization data: {e!s}"
         )
 
 
@@ -309,21 +308,21 @@ async def get_analytics_dashboard(
     """
     try:
         organization_id = UUID("87654321-4321-4321-4321-210987654321")
-        
+
         dashboard_data = await analytics_service.get_analytics_dashboard_data(
             organization_id=organization_id,
             days=days
         )
-        
+
         return AnalyticsResponse(
             message=f"Dashboard data for {days} days retrieved successfully",
             data=dashboard_data
         )
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get dashboard data: {str(e)}"
+            detail=f"Failed to get dashboard data: {e!s}"
         )
 
 
@@ -346,16 +345,16 @@ async def get_system_wide_stats(
             organization_id=None,
             days=days
         )
-        
+
         return AnalyticsResponse(
             message=f"System-wide statistics for {days} days retrieved successfully",
             data=stats
         )
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get system-wide stats: {str(e)}"
+            detail=f"Failed to get system-wide stats: {e!s}"
         )
 
 
@@ -375,14 +374,14 @@ async def get_system_conversion_metrics(
             organization_id=None,
             days=days
         )
-        
+
         return AnalyticsResponse(
             message=f"System-wide conversion metrics for {days} days retrieved successfully",
             data=metrics
         )
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get system conversion metrics: {str(e)}"
+            detail=f"Failed to get system conversion metrics: {e!s}"
         )

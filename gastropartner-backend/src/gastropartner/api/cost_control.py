@@ -13,11 +13,21 @@ from gastropartner.core.cost_control import (
     CostReport,
     get_cost_control_service,
 )
-from gastropartner.core.database import get_supabase_client
+from gastropartner.core.database import get_supabase_client, get_supabase_client_with_auth
 from gastropartner.core.models import User
 from gastropartner.core.multitenant import get_organization_context
 
 router = APIRouter(prefix="/cost-control", tags=["cost-control"])
+
+
+def get_authenticated_supabase_client(
+    current_user: User = Depends(get_current_user),
+    supabase: Client = Depends(get_supabase_client),
+) -> Client:
+    """Get Supabase client with proper authentication context."""
+    # For development user, use admin client to bypass RLS
+    auth_client = get_supabase_client_with_auth(str(current_user.id))
+    return auth_client
 
 
 @router.get(
@@ -30,7 +40,7 @@ async def get_cost_analysis(
     start_date: datetime | None = Query(None, description="Analysis start date"),
     end_date: datetime | None = Query(None, description="Analysis end date"),
     current_user: User = Depends(get_current_user),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
     organization_id: UUID = Depends(get_organization_context),
 ) -> dict[str, Any]:
     """Get comprehensive cost analysis for organization."""
@@ -55,7 +65,7 @@ async def get_cost_analysis(
 async def create_budget(
     budget_data: dict[str, Any],
     current_user: User = Depends(get_current_user),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
     organization_id: UUID = Depends(get_organization_context),
 ) -> dict[str, Any]:
     """Create a new cost budget."""
@@ -82,7 +92,7 @@ async def create_budget(
 async def get_cost_forecast(
     period: str = Query("next_month", description="Forecast period: next_week, next_month, next_quarter"),
     current_user: User = Depends(get_current_user),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
     organization_id: UUID = Depends(get_organization_context),
 ) -> CostForecast:
     """Get cost forecast for specified period."""
@@ -105,7 +115,7 @@ async def get_cost_forecast(
 )
 async def get_cost_alerts(
     current_user: User = Depends(get_current_user),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
     organization_id: UUID = Depends(get_organization_context),
 ) -> list[dict[str, Any]]:
     """Get cost alerts for organization."""
@@ -125,7 +135,7 @@ async def generate_cost_report(
     start_date: datetime | None = Query(None, description="Report start date"),
     end_date: datetime | None = Query(None, description="Report end date"),
     current_user: User = Depends(get_current_user),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
     organization_id: UUID = Depends(get_organization_context),
 ) -> CostReport:
     """Generate comprehensive cost report."""
@@ -150,7 +160,7 @@ async def generate_cost_report(
 )
 async def get_cost_optimization(
     current_user: User = Depends(get_current_user),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
     organization_id: UUID = Depends(get_organization_context),
 ) -> dict[str, Any]:
     """Get cost optimization suggestions."""
@@ -167,7 +177,7 @@ async def get_cost_optimization(
 )
 async def get_cost_dashboard(
     current_user: User = Depends(get_current_user),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
     organization_id: UUID = Depends(get_organization_context),
 ) -> dict[str, Any]:
     """Get comprehensive cost control dashboard data."""
@@ -250,7 +260,7 @@ async def get_cost_dashboard(
 async def get_cost_metrics(
     period_days: int = Query(30, description="Number of days for metrics calculation"),
     current_user: User = Depends(get_current_user),
-    supabase: Client = Depends(get_supabase_client),
+    supabase: Client = Depends(get_authenticated_supabase_client),
     organization_id: UUID = Depends(get_organization_context),
 ) -> dict[str, Any]:
     """Get cost control KPIs and metrics."""

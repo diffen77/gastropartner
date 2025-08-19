@@ -73,7 +73,10 @@ const UsageCard: React.FC<{
 };
 
 const UpgradePrompt: React.FC<UpgradePromptProps> = ({ usage, onUpgrade, compact = false }) => {
-  if (!usage.upgrade_needed && Object.keys(usage.upgrade_prompts).length === 0) {
+  // Always show when usage data is available to display plan info
+  const showComponent = usage && (usage.upgrade_needed || Object.keys(usage.upgrade_prompts).length > 0 || usage.plan === 'free');
+  
+  if (!showComponent) {
     return null;
   }
 
@@ -104,11 +107,15 @@ const UpgradePrompt: React.FC<UpgradePromptProps> = ({ usage, onUpgrade, compact
           <Zap className="w-6 h-6 text-white" />
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Freemium Usage Overview
+          Recepthantering - FREE Plan
         </h2>
         <p className="text-gray-600">
-          Track your usage and upgrade when you need more capacity
+          Du använder för närvarande den kostnadsfria planen för recepthantering. Spåra din användning och uppgradera när du behöver mer kapacitet.
         </p>
+        <div className="mt-3 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+          <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+          Nuvarande plan: FREE
+        </div>
       </div>
 
       {/* Usage Cards */}
@@ -180,9 +187,16 @@ const UpgradePrompt: React.FC<UpgradePromptProps> = ({ usage, onUpgrade, compact
       )}
 
       {/* Current Plan Info */}
-      <div className="text-center text-sm text-gray-500 border-t pt-4">
-        Current Plan: <span className="font-medium text-gray-700">Free</span> • 
-        Want to learn more? <button className="text-blue-600 hover:underline">View plan comparison</button>
+      <div className="text-center border-t pt-4">
+        <div className="inline-flex items-center justify-center space-x-2 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+          <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+          <span className="text-sm font-medium text-blue-900">
+            Nuvarande plan: <span className="font-bold">FREE (Kostnadsfri)</span>
+          </span>
+        </div>
+        <p className="mt-2 text-sm text-gray-600">
+          Vill du lära dig mer om premium-funktioner? <button className="text-blue-600 hover:underline font-medium">Se planjämförelse</button>
+        </p>
       </div>
     </div>
   );

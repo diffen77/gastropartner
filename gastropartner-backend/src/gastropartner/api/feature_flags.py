@@ -2,11 +2,9 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
-from supabase import Client
+from fastapi import APIRouter, HTTPException
 
-from gastropartner.core.database import get_supabase_client
-from gastropartner.core.models import FeatureFlags, FeatureFlagsBase
+from gastropartner.core.models import FeatureFlagsBase
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +25,7 @@ async def get_feature_flags():
             show_recipe_instructions=False,
             show_recipe_notes=False,
         )
-        
+
     except Exception as e:
         logger.error(f"Error getting default feature flags: {e}")
         raise HTTPException(

@@ -1,7 +1,7 @@
 """Pytest configuration and fixtures for gastropartner tests."""
 
-from unittest.mock import AsyncMock, MagicMock
-from uuid import UUID, uuid4
+from unittest.mock import MagicMock
+from uuid import UUID
 
 import pytest
 from supabase import Client
@@ -11,7 +11,7 @@ from supabase import Client
 def supabase_client():
     """Mock Supabase client for testing."""
     mock_client = MagicMock(spec=Client)
-    
+
     # Create a mock table that supports method chaining
     mock_table = MagicMock()
     mock_table.select.return_value = mock_table
@@ -19,16 +19,16 @@ def supabase_client():
     mock_table.insert.return_value = mock_table
     mock_table.update.return_value = mock_table
     mock_table.delete.return_value = mock_table
-    
+
     # Configure default responses
     mock_response = MagicMock()
     mock_response.data = []
     mock_response.count = 0
     mock_table.execute.return_value = mock_response
-    
+
     # Make table() method return the mock table
     mock_client.table.return_value = mock_table
-    
+
     return mock_client
 
 

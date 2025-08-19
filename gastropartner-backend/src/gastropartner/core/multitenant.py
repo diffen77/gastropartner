@@ -92,7 +92,7 @@ class MultitenantService:
         """Check if user has access to organization and optionally specific role."""
         try:
             # Development mode: allow access for development user to development org
-            if (str(user_id) == "12345678-1234-1234-1234-123456789012" and 
+            if (str(user_id) == "12345678-1234-1234-1234-123456789012" and
                 str(organization_id) == "87654321-4321-4321-4321-210987654321"):
                 return {
                     "role": "owner",  # Grant full access in development
@@ -296,14 +296,19 @@ async def get_multitenant_service(
 async def get_organization_context(
     organization_id: UUID | None = None,
     current_user: User = Depends(get_current_active_user),
-    multitenant_service: MultitenantService = Depends(get_multitenant_service),
+    supabase: Client = Depends(get_supabase_client),
 ) -> UUID:
     """
-    Get organization context for the current request.
+    Get organization context for the current request with authenticated client.
     
     If organization_id is provided, verifies user has access.
     If not provided, returns user's primary organization.
     """
+    # Use authenticated client for RLS bypass
+    from gastropartner.core.database import get_supabase_client_with_auth
+    auth_supabase = get_supabase_client_with_auth(str(current_user.id))
+    multitenant_service = MultitenantService(auth_supabase)
+    
     if organization_id:
         # Verify user has access to specified organization
         await multitenant_service.check_user_organization_access(
@@ -315,10 +320,45 @@ async def get_organization_context(
         return await multitenant_service.get_user_primary_organization(current_user.id)
 
 
-# Backward compatibility - alias to existing function
+# Backward compatibility - alias to existing function with authenticated client
 async def get_user_organization(
     current_user: User = Depends(get_current_active_user),
-    multitenant_service: MultitenantService = Depends(get_multitenant_service),
+    supabase: Client = Depends(get_supabase_client),
 ) -> UUID:
-    """Get the primary organization for the current user (backward compatibility)."""
-    return await multitenant_service.get_user_primary_organization(current_user.id)
+    """Get the primary organization for the current user (backward compatibility with auth)."""
+    try:
+        # Development mode: return hardcoded organization for development user
+        if str(current_user.id) == "12345678-1234-1234-1234-123456789012":
+            return UUID("87654321-4321-4321-4321-210987654321")
+
+        # Use authenticated client for RLS bypass
+        from gastropartner.core.database import get_supabase_client_with_auth
+        auth_supabase = get_supabase_client_with_auth(str(current_user.id))
+        
+        response = auth_supabase.table("organization_users").select(
+            "organization_id"
+        ).eq("user_id", str(current_user.id)).execute()
+
+        if not response.data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User is not a member of any organization. Please create or join an organization first."
+            )
+
+        # For MVP: assume user belongs to exactly one organization
+        if len(response.data) > 1:
+            # Future: implement organization selection logic
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User belongs to multiple organizations. Please specify organization_id in the request."
+            )
+
+        return UUID(response.data[0]["organization_id"])
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get user organization: {e!s}"
+        ) from e

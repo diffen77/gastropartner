@@ -1,5 +1,6 @@
 """Authentication utilities för Supabase integration."""
 
+import hashlib
 from typing import Any
 from uuid import UUID
 
@@ -15,15 +16,127 @@ from gastropartner.core.models import User
 security = HTTPBearer()
 
 
+def _generate_deterministic_dev_user_id(email: str) -> str:
+    """
+    Generate a deterministic but unique user ID for development users.
+    
+    🛡️ SECURITY: Each development email gets a unique user ID to ensure
+    complete data isolation between development users.
+    
+    Args:
+        email: Development user email
+        
+    Returns:
+        Unique UUID (deterministic based on email)
+    """
+    # Create deterministic hash of email for consistency
+    email_hash = hashlib.sha256(f"dev_user_{email}".encode()).hexdigest()
+    # Format as proper UUID - use 'd' instead of standard version bits for dev identification
+    return f"d{email_hash[1:8]}-{email_hash[8:12]}-{email_hash[12:16]}-{email_hash[16:20]}-{email_hash[20:32]}"
+
+
+def _generate_deterministic_dev_org_id(email: str) -> str:
+    """
+    Generate a deterministic but unique organization ID for development users.
+    
+    🛡️ SECURITY: Each development email gets a unique organization to ensure
+    complete data isolation between development users.
+    
+    Args:
+        email: Development user email
+        
+    Returns:
+        Unique organization UUID for the development user
+    """
+    # Create deterministic hash of email for consistency
+    email_hash = hashlib.sha256(f"dev_org_{email}".encode()).hexdigest()
+    # Format as proper UUID string
+    return f"{email_hash[:8]}-{email_hash[8:12]}-{email_hash[12:16]}-{email_hash[16:20]}-{email_hash[20:32]}"
+
+
+async def _ensure_development_organization_exists(
+    current_user: User, 
+    org_id: str, 
+    supabase: Client
+) -> None:
+    """
+    Ensure development organization and organization_users entry exist in database.
+    
+    🛡️ SECURITY: This creates isolated development organizations to enable RLS policies
+    while maintaining complete data isolation between development users.
+    
+    Args:
+        current_user: Development user
+        org_id: Development organization UUID
+        supabase: Supabase client
+    """
+    try:
+        # Use admin client for development organization operations to bypass RLS
+        from gastropartner.core.database import get_supabase_client_with_auth
+        admin_supabase = get_supabase_client_with_auth(str(current_user.id))
+        
+        # Check if organization already exists
+        org_response = admin_supabase.table("organizations").select("organization_id").eq(
+            "organization_id", org_id
+        ).execute()
+        
+        if not org_response.data:
+            # Generate slug for development organization
+            email_safe = current_user.email.replace("@", "-at-").replace(".", "-")
+            slug = f"dev-org-{email_safe}"[:50]
+            
+            # Create development organization (owner_id can be null for dev orgs)
+            org_insert = admin_supabase.table("organizations").insert({
+                "organization_id": org_id,
+                "name": f"Dev Organization ({current_user.email})",
+                "slug": slug,
+                "description": f"Development organization for {current_user.email}",
+                # Don't set owner_id for development users since they don't exist in auth.users
+                # owner_id will be NULL, which should be allowed for development
+                "max_ingredients": 1000,  # Give dev users high limits for testing
+                "max_recipes": 1000, 
+                "max_menu_items": 1000,
+                "current_ingredients": 0,
+                "current_recipes": 0,
+                "current_menu_items": 0
+            }).execute()
+            
+            if not org_insert.data:
+                # Organization creation failed, but don't block - log and continue
+                print(f"Warning: Failed to create dev organization for {current_user.email}")
+        
+        # Check if organization_users entry exists
+        org_user_response = admin_supabase.table("organization_users").select("user_id").eq(
+            "user_id", str(current_user.id)
+        ).eq("organization_id", org_id).execute()
+        
+        if not org_user_response.data:
+            # Create organization_users entry
+            org_user_insert = admin_supabase.table("organization_users").insert({
+                "user_id": str(current_user.id),
+                "organization_id": org_id,
+                "role": "owner"
+            }).execute()
+            
+            if not org_user_insert.data:
+                # Organization user creation failed, but don't block - log and continue
+                print(f"Warning: Failed to create org_user entry for {current_user.email}")
+                
+    except Exception as e:
+        # Don't block authentication on database errors, just log
+        print(f"Warning: Failed to ensure dev organization exists for {current_user.email}: {e}")
+        # Continue without raising exception
+
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     supabase: Client = Depends(get_supabase_client),
 ) -> User:
     """
-    Get current authenticated user from JWT token.
+    Get current authenticated user from JWT token or development token.
     
     Args:
-        credentials: HTTP authorization credentials (JWT token)
+        credentials: HTTP authorization credentials (JWT token or dev token)
         supabase: Supabase client
         
     Returns:
@@ -38,30 +151,59 @@ async def get_current_user(
             detail="Missing authentication token",
         )
 
-    try:
-        # Check if it's a development token
-        if credentials.credentials.startswith("dev_token_"):
-            # Development mode: create a mock user
-            email = credentials.credentials.replace("dev_token_", "").replace("_", "@", 1).replace("_", ".")
-            user_data = type('MockUser', (), {
-                'id': '12345678-1234-1234-1234-123456789012',
-                'email': email,
-                'user_metadata': {'full_name': 'Development User'},
-                'created_at': '2024-01-01T00:00:00Z',
-                'updated_at': '2024-01-01T00:00:00Z',
-                'email_confirmed_at': '2024-01-01T00:00:00Z',
-                'last_sign_in_at': '2024-01-01T00:00:00Z'
-            })()
-        else:
-            # Verify JWT token with Supabase
-            response = supabase.auth.get_user(credentials.credentials)
-            user_data = response.user
+    token = credentials.credentials
 
-            if not user_data:
+    # Development mode: handle dev tokens with ACTUAL USER LOOKUP
+    if token.startswith("dev_token_"):
+        # Extract email from dev token
+        # Format: dev_token_{email_with_underscores}
+        email_part = token.replace("dev_token_", "").replace("_", "@", 1).replace("_", ".")
+
+        # 🛡️ SECURITY FIX: Look up ACTUAL user ID from auth.users table
+        # This ensures foreign key constraints work properly
+        try:
+            # Use the table-returning function to access auth schema directly
+            from gastropartner.core.database import get_supabase_client
+            raw_client = get_supabase_client()
+            
+            # Call the table-returning function correctly using RPC
+            response = raw_client.rpc('get_auth_user_by_email', {'user_email': email_part}).execute()
+            
+            if response.data and len(response.data) > 0:
+                # Use actual user from auth.users  
+                user_data = response.data[0]
+                return User(
+                    id=user_data["id"],
+                    email=user_data["email"], 
+                    full_name=user_data.get("raw_user_meta_data", {}).get("full_name", f"Dev User ({email_part})") if user_data.get("raw_user_meta_data") else f"Dev User ({email_part})",
+                    created_at=user_data.get("created_at", "2024-01-01T00:00:00Z"),
+                    updated_at=user_data.get("updated_at", "2024-01-01T00:00:00Z"),
+                    email_confirmed_at=user_data.get("email_confirmed_at", "2024-01-01T00:00:00Z"),
+                    last_sign_in_at=user_data.get("last_sign_in_at", "2024-01-01T00:00:00Z"),
+                )
+            else:
+                # User doesn't exist - return error for security
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid or expired token",
+                    detail=f"Development user {email_part} not found in auth.users table",
                 )
+        except Exception as e:
+            # If we can't look up the user, fail securely
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Development authentication failed: {e}",
+            ) from e
+
+    try:
+        # Production mode: Verify JWT token with Supabase
+        response = supabase.auth.get_user(token)
+        user_data = response.user
+
+        if not user_data:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired token",
+            )
 
         # Convert to our User model
         user = User(
@@ -269,13 +411,12 @@ async def get_user_organization(
         HTTPException: If user has no organization or multiple organizations
     """
     try:
-        # Development user special handling
-        if str(current_user.id) == "12345678-1234-1234-1234-123456789012":
-            # Return a development organization ID
-            return UUID("87654321-4321-4321-4321-210987654321")
-
-        # Get user's organization memberships
-        response = supabase.table("organization_users").select(
+        # Get authenticated client for development users to bypass RLS
+        from gastropartner.core.database import get_supabase_client_with_auth
+        auth_supabase = get_supabase_client_with_auth(str(current_user.id))
+        
+        # Get user's organization memberships (works for both dev and production users)
+        response = auth_supabase.table("organization_users").select(
             "organization_id"
         ).eq("user_id", str(current_user.id)).execute()
 

@@ -1,8 +1,7 @@
 """Analytics middleware for automatic tracking."""
 
-import json
 import time
-from typing import Callable
+from collections.abc import Callable
 from uuid import UUID
 
 from fastapi import Request, Response
@@ -30,18 +29,18 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Process request and track analytics."""
         start_time = time.time()
-        
+
         # Extract request metadata
         user_agent = request.headers.get("user-agent")
         path = request.url.path
         method = request.method
-        
+
         # Process the request
         response = await call_next(request)
-        
+
         # Calculate response time
         process_time = time.time() - start_time
-        
+
         # Track analytics for specific events
         await self._track_request_analytics(
             request=request,
@@ -51,7 +50,7 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
             method=method,
             user_agent=user_agent,
         )
-        
+
         return response
 
     async def _track_request_analytics(
@@ -66,15 +65,15 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
         """Track analytics for specific request patterns."""
         try:
             analytics_service = await self.get_analytics_service()
-            
+
             # Default organization ID for development
             organization_id = UUID("87654321-4321-4321-4321-210987654321")
-            
+
             # Extract user ID from request state if available
             user_id = getattr(request.state, 'user_id', None)
             if user_id:
                 user_id = UUID(user_id) if isinstance(user_id, str) else user_id
-            
+
             # Track API usage patterns
             if self._should_track_api_call(path, method, response.status_code):
                 await analytics_service.track_event(
@@ -91,7 +90,7 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
                     },
                     user_agent=user_agent,
                 )
-            
+
             # Track freemium limit hits (402 Payment Required responses)
             if response.status_code == 402:
                 await self._track_freemium_limit_hit(
@@ -101,7 +100,7 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
                     path=path,
                     response=response,
                 )
-            
+
             # Track feature usage based on successful operations
             if 200 <= response.status_code < 300:
                 await self._track_feature_usage_from_path(
@@ -111,7 +110,7 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
                     path=path,
                     method=method,
                 )
-                
+
         except Exception as e:
             # Don't let analytics tracking break the main request
             print(f"Analytics tracking error: {e}")
@@ -123,23 +122,23 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
             "/docs", "/openapi.json", "/favicon.ico", "/health",
             "/api/v1/analytics/track",  # Avoid infinite loops
         ]
-        
+
         if any(path.startswith(skip) for skip in skip_paths):
             return False
-            
+
         # Track all API calls if enabled, otherwise only track important operations
         if self.track_all_requests:
             return True
-            
+
         # Track main feature operations
         feature_paths = [
             "/api/v1/ingredients",
-            "/api/v1/recipes", 
+            "/api/v1/recipes",
             "/api/v1/menu-items",
             "/api/v1/organizations",
             "/api/v1/auth",
         ]
-        
+
         return any(path.startswith(feature_path) for feature_path in feature_paths)
 
     def _extract_endpoint_name(self, path: str) -> str:
@@ -147,12 +146,12 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
         # Remove API version prefix
         if path.startswith("/api/v1/"):
             path = path[8:]
-        
+
         # Extract main resource name
         parts = path.split("/")
         if parts:
             return parts[0].replace("-", "_")
-        
+
         return "unknown"
 
     async def _track_freemium_limit_hit(
@@ -167,7 +166,7 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
         try:
             # Extract feature from response headers
             feature = response.headers.get("X-Feature", "unknown")
-            
+
             # Try to extract limit information from response if available
             # This would require the freemium service to add limit info to response
             properties = {
@@ -175,7 +174,7 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
                 "feature": feature,
                 "response_type": "limit_hit",
             }
-            
+
             await analytics_service.track_limit_hit(
                 organization_id=organization_id,
                 user_id=user_id,
@@ -184,7 +183,7 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
                 limit=0,  # This should come from the actual limit check
                 properties=properties,
             )
-            
+
         except Exception as e:
             print(f"Error tracking limit hit: {e}")
 
@@ -204,25 +203,25 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
                 "/api/v1/menu-items": "menu_items",
                 "/api/v1/organizations": "organizations",
             }
-            
+
             action_mapping = {
                 "POST": "created",
-                "PUT": "updated", 
+                "PUT": "updated",
                 "PATCH": "updated",
                 "DELETE": "deleted",
                 "GET": "viewed",
             }
-            
+
             # Find matching feature
             feature = None
             for path_prefix, feature_name in feature_mapping.items():
                 if path.startswith(path_prefix):
                     feature = feature_name
                     break
-            
+
             if feature and user_id:  # Only track for authenticated users
                 action = action_mapping.get(method, "accessed")
-                
+
                 await analytics_service.track_feature_usage(
                     organization_id=organization_id,
                     user_id=user_id,
@@ -234,7 +233,7 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
                         "source": "automatic",
                     },
                 )
-                
+
         except Exception as e:
             print(f"Error tracking feature usage: {e}")
 
@@ -251,7 +250,7 @@ async def track_limit_hit_with_analytics(
     try:
         supabase = get_supabase_client()
         analytics_service = AnalyticsService(supabase)
-        
+
         await analytics_service.track_limit_hit(
             organization_id=organization_id,
             user_id=user_id,
@@ -263,7 +262,7 @@ async def track_limit_hit_with_analytics(
                 "at_limit": current_count >= limit,
             },
         )
-        
+
     except Exception as e:
         print(f"Failed to track limit hit: {e}")
 
@@ -278,7 +277,7 @@ async def track_upgrade_prompt_with_analytics(
     try:
         supabase = get_supabase_client()
         analytics_service = AnalyticsService(supabase)
-        
+
         await analytics_service.track_upgrade_prompt(
             organization_id=organization_id,
             user_id=user_id,
@@ -289,7 +288,7 @@ async def track_upgrade_prompt_with_analytics(
                 "timestamp": time.time(),
             },
         )
-        
+
     except Exception as e:
         print(f"Failed to track upgrade prompt: {e}")
 
@@ -305,7 +304,7 @@ async def track_successful_feature_usage(
     try:
         supabase = get_supabase_client()
         analytics_service = AnalyticsService(supabase)
-        
+
         await analytics_service.track_feature_usage(
             organization_id=organization_id,
             user_id=user_id,
@@ -316,6 +315,6 @@ async def track_successful_feature_usage(
                 **(properties or {}),
             },
         )
-        
+
     except Exception as e:
         print(f"Failed to track feature usage: {e}")

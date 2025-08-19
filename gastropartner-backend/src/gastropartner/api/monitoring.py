@@ -1,14 +1,14 @@
 """Monitoring and health check API endpoints."""
 
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
-from gastropartner.core.monitoring import monitoring_service, SystemHealth, HealthStatus
-from gastropartner.core.alerting import alert_manager, Alert
 from gastropartner.config import get_settings
+from gastropartner.core.alerting import Alert, alert_manager
+from gastropartner.core.monitoring import SystemHealth, monitoring_service
 
 settings = get_settings()
 
@@ -17,19 +17,19 @@ router = APIRouter(prefix="/health", tags=["monitoring"])
 
 class StatusPageResponse(BaseModel):
     """Status page response model."""
-    
+
     overall_status: str
     last_updated: datetime
-    services: List[Dict[str, Any]]
-    incidents: List[Dict[str, Any]] = []
-    maintenance: List[Dict[str, Any]] = []
+    services: list[dict[str, Any]]
+    incidents: list[dict[str, Any]] = []
+    maintenance: list[dict[str, Any]] = []
 
 
 class MetricsResponse(BaseModel):
     """System metrics response model."""
-    
+
     timestamp: datetime
-    metrics: Dict[str, Any]
+    metrics: dict[str, Any]
     uptime_seconds: float
 
 
@@ -47,7 +47,7 @@ async def basic_health_check():
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Health check failed: {str(e)}"
+            detail=f"Health check failed: {e!s}"
         )
 
 
@@ -65,7 +65,7 @@ async def detailed_health_check():
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Detailed health check failed: {str(e)}"
+            detail=f"Detailed health check failed: {e!s}"
         )
 
 
@@ -79,20 +79,20 @@ async def readiness_probe():
     """
     try:
         health = await monitoring_service.get_readiness_check()
-        
+
         if health.status == "unhealthy":
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Service not ready"
             )
-        
+
         return health
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Readiness check failed: {str(e)}"
+            detail=f"Readiness check failed: {e!s}"
         )
 
 
@@ -110,7 +110,7 @@ async def liveness_probe():
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Liveness check failed: {str(e)}"
+            detail=f"Liveness check failed: {e!s}"
         )
 
 
@@ -123,16 +123,16 @@ async def get_system_metrics():
     """
     try:
         metrics = await monitoring_service.get_system_metrics()
-        
+
         return MetricsResponse(
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             metrics=metrics,
             uptime_seconds=metrics.get("uptime_seconds", 0)
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get metrics: {str(e)}"
+            detail=f"Failed to get metrics: {e!s}"
         )
 
 
@@ -146,7 +146,7 @@ async def get_status_page():
     """
     try:
         health = await monitoring_service.get_detailed_health()
-        
+
         # Transform health data for status page
         services = []
         for service in health.services:
@@ -157,7 +157,7 @@ async def get_status_page():
                 "last_updated": service.last_check.isoformat(),
                 "description": _get_service_description(service.service)
             })
-        
+
         return StatusPageResponse(
             overall_status=health.status,
             last_updated=health.timestamp,
@@ -168,7 +168,7 @@ async def get_status_page():
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get status: {str(e)}"
+            detail=f"Failed to get status: {e!s}"
         )
 
 
@@ -188,7 +188,7 @@ def _get_service_description(service_name: str) -> str:
 @router.post("/synthetic/test", summary="Synthetic monitoring test")
 async def synthetic_test(
     test_type: str = Query(..., description="Type of synthetic test to run"),
-    api_key: Optional[str] = Query(None, description="API key for authentication")
+    api_key: str | None = Query(None, description="API key for authentication")
 ):
     """
     Endpoint for synthetic monitoring tests.
@@ -202,7 +202,7 @@ async def synthetic_test(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid API key for synthetic testing"
         )
-    
+
     try:
         if test_type == "auth_flow":
             # Test authentication workflow
@@ -221,22 +221,22 @@ async def synthetic_test(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Synthetic test failed: {str(e)}"
+            detail=f"Synthetic test failed: {e!s}"
         )
 
 
-async def _test_auth_flow() -> Dict[str, Any]:
+async def _test_auth_flow() -> dict[str, Any]:
     """Test authentication flow for synthetic monitoring."""
     # TODO: Implement auth flow test
     return {
         "test": "auth_flow",
         "status": "passed",
         "duration_ms": 250,
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": datetime.now(UTC).isoformat()
     }
 
 
-async def _test_database_crud() -> Dict[str, Any]:
+async def _test_database_crud() -> dict[str, Any]:
     """Test database CRUD operations."""
     # TODO: Implement database CRUD test
     return {
@@ -244,11 +244,11 @@ async def _test_database_crud() -> Dict[str, Any]:
         "status": "passed",
         "operations": ["create", "read", "update", "delete"],
         "duration_ms": 150,
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": datetime.now(UTC).isoformat()
     }
 
 
-async def _test_api_endpoints() -> Dict[str, Any]:
+async def _test_api_endpoints() -> dict[str, Any]:
     """Test critical API endpoints."""
     # TODO: Implement API endpoint tests
     return {
@@ -260,12 +260,12 @@ async def _test_api_endpoints() -> Dict[str, Any]:
             "/api/v1/ingredients"
         ],
         "duration_ms": 180,
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": datetime.now(UTC).isoformat()
     }
 
 
 # Alert management endpoints
-@router.get("/alerts", response_model=List[Alert], summary="Get active alerts")
+@router.get("/alerts", response_model=list[Alert], summary="Get active alerts")
 async def get_active_alerts():
     """
     Get all currently active alerts.
@@ -279,7 +279,7 @@ async def get_active_alerts():
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get alerts: {str(e)}"
+            detail=f"Failed to get alerts: {e!s}"
         )
 
 
@@ -301,7 +301,7 @@ async def get_alert(alert_id: str):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get alert: {str(e)}"
+            detail=f"Failed to get alert: {e!s}"
         )
 
 
@@ -311,7 +311,7 @@ async def create_alert(
     description: str = Query(..., description="Alert description"),
     severity: str = Query("medium", description="Alert severity", regex="^(low|medium|high|critical)$"),
     source: str = Query("manual", description="Alert source"),
-    api_key: Optional[str] = Query(None, description="API key for authentication")
+    api_key: str | None = Query(None, description="API key for authentication")
 ):
     """
     Create a new alert manually.
@@ -325,11 +325,11 @@ async def create_alert(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid API key for alert creation"
         )
-    
+
     try:
         # Generate alert ID
-        alert_id = f"manual_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
-        
+        alert_id = f"manual_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}"
+
         alert = await alert_manager.create_alert(
             alert_id=alert_id,
             title=title,
@@ -341,19 +341,19 @@ async def create_alert(
                 "created_by": "manual"
             }
         )
-        
+
         return alert
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create alert: {str(e)}"
+            detail=f"Failed to create alert: {e!s}"
         )
 
 
 @router.post("/alerts/{alert_id}/resolve", response_model=Alert, summary="Resolve alert")
 async def resolve_alert(
     alert_id: str,
-    api_key: Optional[str] = Query(None, description="API key for authentication")
+    api_key: str | None = Query(None, description="API key for authentication")
 ):
     """
     Resolve an active alert.
@@ -366,7 +366,7 @@ async def resolve_alert(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid API key for alert resolution"
         )
-    
+
     try:
         alert = await alert_manager.resolve_alert(alert_id)
         if not alert:
@@ -380,5 +380,5 @@ async def resolve_alert(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to resolve alert: {str(e)}"
+            detail=f"Failed to resolve alert: {e!s}"
         )
