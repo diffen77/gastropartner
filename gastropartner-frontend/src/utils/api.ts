@@ -255,6 +255,28 @@ export interface OrganizationSettingsUpdate {
   has_completed_onboarding?: boolean;
 }
 
+// Module Settings interfaces
+export interface ModuleSettings {
+  id: string;
+  organization_id: string;
+  module_id: string;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ModuleConfig {
+  id: string;
+  name: string;
+  display_name: string;
+  description: string;
+  enabled: boolean;
+}
+
+export interface ModuleUpdateRequest {
+  enabled: boolean;
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -501,6 +523,19 @@ class ApiClient {
   // User Auth API
   async getCurrentUser(token?: string): Promise<User> {
     return this.get<User>('/api/v1/auth/me');
+  }
+
+  // Module Settings API
+  async getModuleSettings(): Promise<ModuleSettings[]> {
+    return this.get<ModuleSettings[]>('/api/v1/modules/settings');
+  }
+
+  async updateModuleStatus(moduleId: string, enabled: boolean): Promise<{ success: boolean; message: string; enabled: boolean }> {
+    return this.put<{ success: boolean; message: string; enabled: boolean }>(`/api/v1/modules/settings/${moduleId}`, { enabled });
+  }
+
+  async getModuleEnabledStatus(moduleId: string): Promise<{ enabled: boolean }> {
+    return this.get<{ enabled: boolean }>(`/api/v1/modules/settings/${moduleId}/enabled`);
   }
 }
 

@@ -555,6 +555,7 @@ class FeatureFlagsBase(BaseModel):
     enable_account_management_section: bool = False
     
     # Page/module visibility flags
+    show_ingredients: bool = True  # Ingredients module enabled by default for existing users
     show_user_testing: bool = False
     show_sales: bool = False
 
@@ -574,6 +575,7 @@ class FeatureFlagsUpdate(BaseModel):
     enable_account_management_section: bool | None = None
     
     # Page/module visibility flags
+    show_ingredients: bool | None = None
     show_user_testing: bool | None = None
     show_sales: bool | None = None
 

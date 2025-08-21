@@ -234,7 +234,7 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false, editi
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay modal-open" onClick={onClose}>
       <div className="modal-content recipe-form" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{editingRecipe ? 'Redigera Recept' : 'Nytt Recept'}</h2>

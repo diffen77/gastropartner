@@ -211,10 +211,50 @@ export const sv = {
   fri: 'Fre',
   sat: 'Lör',
   sun: 'Sön',
+
+  // Freemium-meddelanden
+  freemiumLimitReached: 'Freemium-gräns nådd',
+  recipeLimitReached: 'Receptgräns nådd: {current}/{limit} recept använda. Uppgradera till premium för obegränsade recept.',
+  ingredientLimitReached: 'Ingrediensgräns nådd: {current}/{limit} ingredienser använda. Uppgradera till premium för obegränsade ingredienser.',
+  menuItemLimitReached: 'Maträttsgräns nådd: {current}/{limit} maträtter använda. Uppgradera till premium för obegränsade maträtter.',
+  upgradeForUnlimited: 'Uppgradera till premium för obegränsade {type}.',
 } as const;
 
 // Typ för säker access till översättningar
 export type TranslationKey = keyof typeof sv;
+
+// Hjälpfunktion för att översätta engelska felmeddelanden till svenska
+const translateErrorMessage = (errorMessage: string): string => {
+  // Regex patterns för att matcha engelska freemium-meddelanden
+  const patterns = [
+    {
+      pattern: /Freemium limit reached: (\d+)\/(\d+) recipes used\. Upgrade to premium for unlimited recipes\./,
+      translation: (matches: string[]) => `Receptgräns nådd: ${matches[1]}/${matches[2]} recept använda. Uppgradera till premium för obegränsade recept.`
+    },
+    {
+      pattern: /Freemium limit reached: (\d+)\/(\d+) ingredients used\. Upgrade to premium for unlimited ingredients\./,
+      translation: (matches: string[]) => `Ingrediensgräns nådd: ${matches[1]}/${matches[2]} ingredienser använda. Uppgradera till premium för obegränsade ingredienser.`
+    },
+    {
+      pattern: /Freemium limit reached: (\d+)\/(\d+) menu items used\. Upgrade to premium for unlimited menu items\./,
+      translation: (matches: string[]) => `Maträttsgräns nådd: ${matches[1]}/${matches[2]} maträtter använda. Uppgradera till premium för obegränsade maträtter.`
+    },
+    {
+      pattern: /Freemium limit reached/,
+      translation: () => 'Freemium-gräns nådd'
+    }
+  ];
+
+  for (const { pattern, translation } of patterns) {
+    const match = errorMessage.match(pattern);
+    if (match) {
+      return translation(match);
+    }
+  }
+
+  // Returnera ursprungligt meddelande om ingen matchning hittas
+  return errorMessage;
+};
 
 // Hook för att använda översättningar
 export const useTranslation = () => {
@@ -222,5 +262,9 @@ export const useTranslation = () => {
     return sv[key] || key;
   };
 
-  return { t };
+  const translateError = (errorMessage: string): string => {
+    return translateErrorMessage(errorMessage);
+  };
+
+  return { t, translateError };
 };

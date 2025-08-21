@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import './App.css';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { useFeatureFlags } from './hooks/useFeatureFlags';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 import { AuthForm } from './components/Auth/AuthForm';
 import { OrganizationSelector } from './components/Organizations/OrganizationSelector';
@@ -12,6 +11,7 @@ import { MetricsCard } from './components/MetricsCard';
 import { SearchableTable, TableColumn } from './components/SearchableTable';
 import { EmptyState } from './components/EmptyState';
 import { FeedbackButton } from './components/UserTesting/FeedbackButton';
+import ModuleProtectedRoute from './components/ModuleProtectedRoute';
 import SuperAdminDashboard from './components/SuperAdmin/SuperAdminDashboard';
 import { SuperAdmin } from './pages/SuperAdmin';
 import FreemiumTest from './pages/FreemiumTest';
@@ -329,29 +329,79 @@ function OnboardingWrapper({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Main app routes with feature flag support
+// Main app routes with module protection
 function MainAppRoutes() {
-  const { featureFlags } = useFeatureFlags();
-  
   return (
     <Routes>
       <Route path="/" element={<Dashboard />} />
       <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/ingredienser" element={<Ingredients />} />
-      <Route path="/recept" element={<Recipes />} />
-      <Route path="/matratter" element={<MenuItems />} />
-      <Route path="/kostnadsanalys" element={<CostControlDashboard />} />
-      {featureFlags.show_user_testing && (
-        <Route path="/user-testing" element={<UserTestingDashboard />} />
-      )}
-      {featureFlags.show_sales && (
-        <Route path="/forsaljning" element={<Sales />} />
-      )}
+      <Route 
+        path="/ingredienser" 
+        element={
+          <ModuleProtectedRoute moduleId="ingredients">
+            <Ingredients />
+          </ModuleProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/recept" 
+        element={
+          <ModuleProtectedRoute moduleId="recipes">
+            <Recipes />
+          </ModuleProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/matratter" 
+        element={
+          <ModuleProtectedRoute moduleId="menu">
+            <MenuItems />
+          </ModuleProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/kostnadsanalys" 
+        element={
+          <ModuleProtectedRoute moduleId="analytics">
+            <CostControlDashboard />
+          </ModuleProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/user-testing" 
+        element={
+          <ModuleProtectedRoute moduleId="user_testing">
+            <UserTestingDashboard />
+          </ModuleProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/forsaljning" 
+        element={
+          <ModuleProtectedRoute moduleId="sales">
+            <Sales />
+          </ModuleProtectedRoute>
+        } 
+      />
       <Route path="/moduler" element={<Modules />} />
       <Route path="/installningar" element={<Settings />} />
       <Route path="/upgrade" element={<Upgrade />} />
-      <Route path="/superadmin" element={<SuperAdminDashboard />} />
-      <Route path="/superadmin/feature-flags" element={<SuperAdmin />} />
+      <Route 
+        path="/superadmin" 
+        element={
+          <ModuleProtectedRoute moduleId="super_admin">
+            <SuperAdminDashboard />
+          </ModuleProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/superadmin/feature-flags" 
+        element={
+          <ModuleProtectedRoute moduleId="super_admin">
+            <SuperAdmin />
+          </ModuleProtectedRoute>
+        } 
+      />
       <Route path="/freemium-test" element={<FreemiumTest />} />
     </Routes>
   );

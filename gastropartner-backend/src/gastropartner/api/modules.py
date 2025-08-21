@@ -39,6 +39,18 @@ class ModuleActivationRequest(BaseModel):
     module_name: str
     tier: str
 
+# Simple module enable/disable models
+class ModuleSettings(BaseModel):
+    id: str
+    organization_id: str
+    module_id: str
+    enabled: bool
+    created_at: datetime
+    updated_at: datetime
+
+class ModuleUpdateRequest(BaseModel):
+    enabled: bool
+
 @router.get("/subscriptions", response_model=List[ModuleSubscription])
 async def get_module_subscriptions(
     organization_id: UUID = Depends(get_user_organization)
@@ -231,3 +243,143 @@ async def get_module_status(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get module status: {str(e)}")
+
+# Simple module enable/disable endpoints
+@router.get("/settings", response_model=List[ModuleSettings])
+async def get_module_settings(
+    organization_id: UUID = Depends(get_user_organization)
+):
+    """
+    🔒 SECURE: Get module enable/disable settings for the current organization.
+    Uses the simple organization_modules table for enable/disable functionality.
+    Filters by organization_id to ensure multi-tenant data isolation.
+    """
+    supabase = get_supabase_client()
+    
+    try:
+        result = supabase.table('organization_modules').select('*').eq(
+            'organization_id', organization_id
+        ).execute()
+        
+        if not result.data:
+            # Return default enabled modules if none exist
+            default_modules = [
+                "ingredients", "recipes", "menu", "analytics", 
+                "user_testing", "sales", "super_admin"
+            ]
+            settings = []
+            for module_id in default_modules:
+                settings.append({
+                    "id": str(uuid.uuid4()),
+                    "organization_id": str(organization_id),
+                    "module_id": module_id,
+                    "enabled": True,
+                    "created_at": datetime.now(),
+                    "updated_at": datetime.now()
+                })
+            return settings
+        
+        settings = []
+        for item in result.data:
+            # Convert string datetimes to datetime objects
+            created_at = datetime.fromisoformat(item['created_at'].replace('Z', '+00:00'))
+            updated_at = datetime.fromisoformat(item['updated_at'].replace('Z', '+00:00'))
+            
+            setting = ModuleSettings(
+                id=item['id'],
+                organization_id=item['organization_id'],
+                module_id=item['module_id'],
+                enabled=item['enabled'],
+                created_at=created_at,
+                updated_at=updated_at
+            )
+            settings.append(setting)
+        
+        return settings
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch module settings: {str(e)}")
+
+@router.put("/settings/{module_id}", response_model=Dict[str, Any])
+async def update_module_setting(
+    module_id: str,
+    request: ModuleUpdateRequest,
+    organization_id: UUID = Depends(get_user_organization)
+):
+    """
+    🔒 SECURE: Update module enable/disable status for the current organization.
+    Uses the simple organization_modules table for enable/disable functionality.
+    Filters by organization_id to ensure multi-tenant data isolation.
+    """
+    supabase = get_supabase_client()
+    
+    try:
+        # Check if setting already exists
+        existing_result = supabase.table('organization_modules').select('*').eq(
+            'organization_id', organization_id
+        ).eq('module_id', module_id).execute()
+        
+        if existing_result.data:
+            # Update existing setting
+            result = supabase.table('organization_modules').update({
+                'enabled': request.enabled,
+                'updated_at': datetime.now().isoformat()
+            }).eq('organization_id', organization_id).eq(
+                'module_id', module_id
+            ).execute()
+            
+            return {
+                "success": True,
+                "message": f"Successfully {'enabled' if request.enabled else 'disabled'} {module_id} module",
+                "enabled": request.enabled
+            }
+        else:
+            # Create new setting
+            new_setting = {
+                'id': str(uuid.uuid4()),
+                'organization_id': str(organization_id),
+                'module_id': module_id,
+                'enabled': request.enabled,
+                'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat()
+            }
+            
+            result = supabase.table('organization_modules').insert(new_setting).execute()
+            
+            if not result.data:
+                raise HTTPException(status_code=500, detail="Failed to create module setting")
+            
+            return {
+                "success": True,
+                "message": f"Successfully {'enabled' if request.enabled else 'disabled'} {module_id} module",
+                "enabled": request.enabled
+            }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update module setting: {str(e)}")
+
+@router.get("/settings/{module_id}/enabled", response_model=Dict[str, bool])
+async def get_module_enabled_status(
+    module_id: str,
+    organization_id: UUID = Depends(get_user_organization)
+):
+    """
+    🔒 SECURE: Get the enabled status of a specific module for the current organization.
+    Uses the simple organization_modules table for enable/disable functionality.
+    Filters by organization_id to ensure multi-tenant data isolation.
+    """
+    supabase = get_supabase_client()
+    
+    try:
+        result = supabase.table('organization_modules').select('enabled').eq(
+            'organization_id', organization_id
+        ).eq('module_id', module_id).execute()
+        
+        if result.data:
+            return {"enabled": result.data[0]['enabled']}
+        else:
+            # Default to enabled if no setting exists
+            return {"enabled": True}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get module enabled status: {str(e)}")
