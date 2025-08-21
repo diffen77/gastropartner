@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { apiClient } from '../../utils/api';
 import './UserFeedbackForm.css';
 
@@ -37,6 +37,24 @@ export const UserFeedbackForm: React.FC<UserFeedbackFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen, onClose]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,24 +113,34 @@ export const UserFeedbackForm: React.FC<UserFeedbackFormProps> = ({
 
   if (!isOpen) return null;
 
+  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="feedback-form-overlay">
-      <div className="feedback-form-modal">
-        <div className="feedback-form-header">
+    <div 
+      className={`modal-overlay ${isOpen ? 'modal-open' : ''}`}
+      onClick={handleOverlayClick}
+    >
+      <div className="modal-content modal-content--medium" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
           <h2>💬 Skicka Feedback</h2>
-          <button type="button" className="close-button" onClick={onClose}>
+          <button type="button" className="modal-close" onClick={onClose}>
             ×
           </button>
         </div>
 
-        {success ? (
-          <div className="feedback-success">
-            <div className="success-icon">✅</div>
-            <h3>Tack för din feedback!</h3>
-            <p>Vi uppskattar verkligen att du tog dig tid att hjälpa oss förbättra GastroPartner.</p>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="feedback-form">
+        <div className="modal-body">
+          {success ? (
+            <div className="feedback-success">
+              <div className="success-icon">✅</div>
+              <h3>Tack för din feedback!</h3>
+              <p>Vi uppskattar verkligen att du tog dig tid att hjälpa oss förbättra GastroPartner.</p>
+            </div>
+          ) : (
+            <form id="feedback-form" onSubmit={handleSubmit} className="feedback-form">
             <div className="form-group">
               <label htmlFor="feedback_type">Typ av feedback</label>
               <select
@@ -211,20 +239,24 @@ export const UserFeedbackForm: React.FC<UserFeedbackFormProps> = ({
                 <span>⚠️ {error}</span>
               </div>
             )}
-
-            <div className="form-actions">
-              <button type="button" onClick={onClose} className="btn btn--secondary">
-                Avbryt
-              </button>
-              <button 
-                type="submit" 
-                className="btn btn--primary"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Skickar...' : 'Skicka Feedback'}
-              </button>
-            </div>
           </form>
+          )}
+        </div>
+
+        {!success && (
+          <div className="modal-actions">
+            <button type="button" onClick={onClose} className="btn btn--secondary">
+              Avbryt
+            </button>
+            <button 
+              type="submit" 
+              form="feedback-form"
+              className="btn btn--primary"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Skickar...' : 'Skicka Feedback'}
+            </button>
+          </div>
         )}
       </div>
     </div>

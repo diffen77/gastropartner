@@ -1,6 +1,7 @@
 """Authentication utilities för Supabase integration."""
 
 import hashlib
+import jwt
 from typing import Any
 from uuid import UUID
 
@@ -14,6 +15,47 @@ from gastropartner.core.database import get_supabase_client
 from gastropartner.core.models import User
 
 security = HTTPBearer()
+
+
+def _decode_development_jwt_token(token: str) -> dict:
+    """
+    Decode development JWT token to extract claims.
+    
+    Args:
+        token: JWT token string
+        
+    Returns:
+        Decoded token payload
+        
+    Raises:
+        HTTPException: If token is invalid
+    """
+    try:
+        # Use same secret as in create_development_jwt_token
+        secret = "development-secret-key"
+        
+        # Decode JWT token with minimal verification for development
+        payload = jwt.decode(
+            token, 
+            secret, 
+            algorithms=["HS256"],
+            options={
+                "verify_aud": False,  # Skip audience verification for dev
+                "verify_iss": False,  # Skip issuer verification for dev
+            }
+        )
+        return payload
+        
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Development token has expired"
+        )
+    except jwt.InvalidTokenError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid development token: {e}"
+        )
 
 
 def _generate_deterministic_dev_user_id(email: str) -> str:
@@ -153,24 +195,16 @@ async def get_current_user(
 
     token = credentials.credentials
 
-    # Development mode: handle dev tokens with ACTUAL USER LOOKUP
+    # Development mode: handle both old dev tokens and new JWT tokens
     if token.startswith("dev_token_"):
-        # Extract email from dev token
-        # Format: dev_token_{email_with_underscores}
+        # Handle old simple dev tokens (legacy support)
         email_part = token.replace("dev_token_", "").replace("_", "@", 1).replace("_", ".")
 
         # 🛡️ SECURITY FIX: Look up ACTUAL user ID from auth.users table
-        # This ensures foreign key constraints work properly
         try:
-            # Use the table-returning function to access auth schema directly
-            from gastropartner.core.database import get_supabase_client
-            raw_client = get_supabase_client()
-            
-            # Call the table-returning function correctly using RPC
-            response = raw_client.rpc('get_auth_user_by_email', {'user_email': email_part}).execute()
+            response = supabase.rpc('get_auth_user_by_email', {'user_email': email_part}).execute()
             
             if response.data and len(response.data) > 0:
-                # Use actual user from auth.users  
                 user_data = response.data[0]
                 return User(
                     id=user_data["id"],
@@ -182,17 +216,34 @@ async def get_current_user(
                     last_sign_in_at=user_data.get("last_sign_in_at", "2024-01-01T00:00:00Z"),
                 )
             else:
-                # User doesn't exist - return error for security
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail=f"Development user {email_part} not found in auth.users table",
                 )
         except Exception as e:
-            # If we can't look up the user, fail securely
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=f"Development authentication failed: {e}",
             ) from e
+    
+    # Check if this is a development JWT token (contains development claims)
+    try:
+        # Try to decode as JWT - if it works and has development claims, handle accordingly
+        payload = _decode_development_jwt_token(token)
+        if payload.get("app_metadata", {}).get("provider") == "development":
+            # This is a development JWT token - return user from JWT claims
+            return User(
+                id=payload["sub"],
+                email=payload["email"],
+                full_name=payload.get("user_metadata", {}).get("full_name", f"Dev User ({payload['email']})"),
+                created_at="2024-01-01T00:00:00Z",
+                updated_at="2024-01-01T00:00:00Z", 
+                email_confirmed_at="2024-01-01T00:00:00Z",
+                last_sign_in_at="2024-01-01T00:00:00Z",
+            )
+    except:
+        # If JWT decode fails, continue to try Supabase verification
+        pass
 
     try:
         # Production mode: Verify JWT token with Supabase
@@ -388,6 +439,45 @@ class AuthService:
         except Exception as e:
             # Don't raise exception on logout - just log it
             return {"message": "Logged out (with warnings)", "warning": str(e)}
+
+
+def extract_organization_id_from_jwt(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+) -> str | None:
+    """
+    Extract organization_id from JWT token for use in RLS policies.
+    
+    This function is used by Supabase RLS policies to get the organization_id
+    from the JWT token without requiring database lookups.
+    
+    Args:
+        credentials: HTTP authorization credentials (JWT token)
+        
+    Returns:
+        Organization ID from JWT claims, or None if not found
+    """
+    if not credentials:
+        return None
+        
+    token = credentials.credentials
+    
+    try:
+        # Try to decode development JWT tokens
+        payload = _decode_development_jwt_token(token)
+        if payload.get("app_metadata", {}).get("provider") == "development":
+            return payload.get("organization_id")
+    except:
+        # If development JWT decode fails, try production Supabase JWT
+        pass
+    
+    # For production Supabase JWTs, organization_id should be in custom claims
+    # This would be set during user creation/organization assignment
+    try:
+        # Note: For production, you'd need the proper Supabase JWT secret
+        # For now, return None and rely on database lookup
+        return None
+    except:
+        return None
 
 
 async def get_user_organization(

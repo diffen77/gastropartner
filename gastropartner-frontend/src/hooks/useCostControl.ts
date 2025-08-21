@@ -177,6 +177,49 @@ export const useCostControl = () => {
       
       const response = await apiClient.get<CostDashboard>('/api/v1/cost-control/dashboard');
       setDashboard(response);
+      
+      // Extract alerts from dashboard response to avoid duplicate API calls
+      if (response.alerts?.recent_alerts) {
+        setAlerts(response.alerts.recent_alerts as CostAlert[]);
+      }
+      
+      // Create basic metrics from dashboard data to avoid duplicate API calls
+      if (response.summary && response.costs) {
+        const basicMetrics: CostMetrics = {
+          period_days: 30,
+          metrics: {
+            food_cost_percentage: {
+              current: response.summary.food_cost_percentage,
+              target: 30.0,
+              status: response.summary.food_cost_percentage <= 30 ? 'good' : 'warning',
+              trend: { change: 0, percentage: 0, direction: 'stable' }
+            },
+            margin_percentage: {
+              current: response.summary.margin_percentage,
+              target: 70.0,
+              status: response.summary.margin_percentage >= 70 ? 'good' : 'warning',
+              trend: { change: 0, percentage: 0, direction: 'stable' }
+            },
+            avg_ingredient_cost: {
+              current: response.trends?.avg_ingredient_cost || 0,
+              target: 15.0,
+              status: (response.trends?.avg_ingredient_cost || 0) <= 15 ? 'good' : 'warning',
+              trend: { change: 0, percentage: 0, direction: 'stable' }
+            },
+            total_food_cost: {
+              current: response.costs.food_cost,
+              trend: { change: 0, percentage: 0, direction: 'stable' }
+            },
+            potential_revenue: {
+              current: response.costs.potential_revenue,
+              trend: { change: 0, percentage: 0, direction: 'stable' }
+            }
+          },
+          overall_health: response.alerts.high_priority_alerts > 0 ? 'needs_attention' : 'good',
+          last_updated: response.last_updated
+        };
+        setMetrics(basicMetrics);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to fetch cost control dashboard');
       console.error('Error fetching cost control dashboard:', err);
@@ -320,12 +363,9 @@ export const useCostControl = () => {
   };
 
   const refresh = useCallback(async () => {
-    await Promise.all([
-      fetchDashboard(),
-      fetchAlerts(),
-      fetchMetrics()
-    ]);
-  }, [fetchDashboard, fetchAlerts, fetchMetrics]);
+    // Dashboard already includes alerts and metrics data - avoid duplicate API calls
+    await fetchDashboard();
+  }, [fetchDashboard]);
 
   // Auto-fetch dashboard on mount
   useEffect(() => {

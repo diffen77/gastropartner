@@ -1,4 +1,7 @@
 import React from 'react';
+import DualButtonModule from '../components/Modules/DualButtonModule';
+import { useFreemiumService } from '../hooks/useFreemiumService';
+import { useUsageLimits } from '../hooks/useUsageLimits';
 
 function PageHeader({ title, subtitle, children }: { 
   title: string; 
@@ -22,67 +25,64 @@ function PageHeader({ title, subtitle, children }: {
   );
 }
 
-function ModuleCard({ 
-  icon, 
-  title, 
-  description, 
-  status,
-  features,
-  comingSoon = false
-}: { 
-  icon: string;
-  title: string;
-  description: string;
-  status: 'active' | 'coming-soon' | 'beta';
-  features: string[];
-  comingSoon?: boolean;
-}) {
-  const statusColors = {
-    'active': 'var(--color-success)',
-    'beta': 'var(--color-warning)', 
-    'coming-soon': 'var(--color-info)'
+export function Modules() {
+  const {
+    subscriptions,
+    loading,
+    error,
+    activateModule,
+    refreshSubscriptions,
+    getModuleStatus
+  } = useFreemiumService();
+  
+  const { usageData, isNearLimit, getUsagePercentage, refreshUsage } = useUsageLimits();
+
+  console.log('🧩 Modules component render:', { 
+    subscriptionsCount: subscriptions.length, 
+    loading, 
+    error,
+    hasRefreshSubscriptions: !!refreshSubscriptions 
+  });
+
+  const handleModuleActivation = async (moduleName: string, tier: 'free' | 'pro') => {
+    const success = await activateModule(moduleName as any, tier);
+    if (success) {
+      console.log(`✅ ${moduleName} activated successfully with ${tier} tier`);
+    } else {
+      console.error(`❌ Failed to activate ${moduleName}`);
+    }
   };
 
-  const statusLabels = {
-    'active': 'Aktiverad',
-    'beta': 'Beta',
-    'coming-soon': 'Kommer snart'
-  };
-
-  return (
-    <div className={`module-card ${comingSoon ? 'module-card--coming-soon' : ''}`}>
-      <div className="module-card__header">
-        <div className="module-card__icon">{icon}</div>
-        <div className="module-card__info">
-          <h3 className="module-card__title">{title}</h3>
-          <span 
-            className="module-card__status" 
-            style={{ backgroundColor: statusColors[status] }}
-          >
-            {statusLabels[status]}
-          </span>
+  // Show loading state while fetching subscriptions
+  if (loading) {
+    return (
+      <div className="main-content">
+        <PageHeader 
+          title="🧩 Moduler" 
+          subtitle="Hantera och aktivera olika funktionsmoduler i ditt system"
+        />
+        <div className="loading-state">
+          <div className="loading-spinner"></div>
+          <p>Laddar moduldata...</p>
         </div>
       </div>
-      <p className="module-card__description">{description}</p>
-      <ul className="module-card__features">
-        {features.map((feature, index) => (
-          <li key={index}>
-            {comingSoon ? '✨' : '✅'} {feature}
-          </li>
-        ))}
-      </ul>
-      {comingSoon && (
-        <div className="module-card__footer">
-          <button className="btn btn--outline" disabled>
-            Få tillgång först
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
+    );
+  }
 
-export function Modules() {
+  if (error) {
+    return (
+      <div className="main-content">
+        <PageHeader 
+          title="🧩 Moduler" 
+          subtitle="Hantera och aktivera olika funktionsmoduler i ditt system"
+        />
+        <div className="error-banner">
+          <span>⚠️ Fel vid laddning av moduler: {error}</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="main-content">
       <PageHeader 
@@ -109,56 +109,96 @@ export function Modules() {
         <div className="modules-section">
           <h2>Aktiva Moduler</h2>
           <div className="modules-grid">
-            <ModuleCard
+            <DualButtonModule
               icon="🥕"
               title="Ingredienshantering"
               description="Hantera ingredienser, leverantörer och kostnader"
-              status="active"
-              features={[
-                "Ingrediensregister med kategorier",
-                "Kostnadsspårning per enhet",
-                "Leverantörshantering",
-                "Automatisk uppdatering"
+              status={getModuleStatus('ingredients').active ? "active" : "available"}
+              currentTier={getModuleStatus('ingredients').tier}
+              features={[]}
+              freeFeatures={[
+                "100 ingredienser maximum",
+                "Grundläggande kategorier",
+                "Manuell kostnadsinmatning"
               ]}
+              proFeatures={[
+                "Obegränsat antal ingredienser",
+                "Automatisk leverantörsintegration",
+                "Realtids prisuppdateringar",
+                "Avancerad kostnadsspårning"
+              ]}
+              onFreeClick={() => handleModuleActivation('ingredients', 'free')}
+              onProClick={() => handleModuleActivation('ingredients', 'pro')}
+              isLoading={loading}
             />
             
-            <ModuleCard
+            <DualButtonModule
               icon="📝"
               title="Recepthantering"
               description="Skapa och hantera recept med kostnadsberäkningar"
-              status="active"
-              features={[
-                "Detaljerade recept med instruktioner",
-                "Automatisk kostnadsberäkning",
-                "Portionsstorlekar och skalning",
-                "Näringsinnehållsanalys"
+              status={getModuleStatus('recipes').active ? "active" : "available"}
+              currentTier={getModuleStatus('recipes').tier}
+              features={[]}
+              freeFeatures={[
+                "5 recept maximum",
+                "Grundläggande kostnadsberäkning",
+                "Standard portionsstorlekar"
               ]}
+              proFeatures={[
+                "Obegränsat antal recept",
+                "Avancerad näringsanalys",
+                "Batch-kostnadsberäkningar",
+                "Export till kalkylark"
+              ]}
+              onFreeClick={() => handleModuleActivation('recipes', 'free')}
+              onProClick={() => handleModuleActivation('recipes', 'pro')}
+              isLoading={loading}
             />
             
-            <ModuleCard
+            <DualButtonModule
               icon="🍽️"
               title="Menyhantering"
               description="Skapa maträtter och beräkna lönsamhet"
-              status="active"
-              features={[
-                "Matträtt från recept",
-                "Prissättning och marginaler",
-                "Lönsamhetsanalys",
+              status={getModuleStatus('menu').active ? "active" : "available"}
+              currentTier={getModuleStatus('menu').tier}
+              features={[]}
+              freeFeatures={[
+                "10 maträtter maximum",
+                "Grundläggande prissättning",
+                "Standard lönsamhetsanalys"
+              ]}
+              proFeatures={[
+                "Obegränsat antal maträtter",
+                "Dynamisk prissättning",
+                "Avancerad marginalanalys",
                 "Säsongsmeny och kampanjer"
               ]}
+              onFreeClick={() => handleModuleActivation('menu', 'free')}
+              onProClick={() => handleModuleActivation('menu', 'pro')}
+              isLoading={loading}
             />
             
-            <ModuleCard
+            <DualButtonModule
               icon="📈"
               title="Kostnadsanalys"
               description="Djupgående analys av kostnader och lönsamhet"
-              status="active"
-              features={[
-                "Realtidskostnadsberäkning",
-                "Marginalanalys per produkt",
-                "Trendspårning över tid",
-                "Jämförelser och benchmarks"
+              status={getModuleStatus('analytics').active ? "active" : "available"}
+              currentTier={getModuleStatus('analytics').tier}
+              features={[]}
+              freeFeatures={[
+                "Grundläggande rapporter",
+                "Månadsvis analys",
+                "Standard marginalanalys"
               ]}
+              proFeatures={[
+                "Realtidskostnadsberäkning",
+                "Daglig trendspårning",
+                "Jämförelser och benchmarks",
+                "Prediktiv analys"
+              ]}
+              onFreeClick={() => handleModuleActivation('analytics', 'free')}
+              onProClick={() => handleModuleActivation('analytics', 'pro')}
+              isLoading={loading}
             />
           </div>
         </div>
@@ -166,30 +206,50 @@ export function Modules() {
         <div className="modules-section">
           <h2>Beta-moduler</h2>
           <div className="modules-grid">
-            <ModuleCard
+            <DualButtonModule
               icon="🧪"
               title="User Testing"
               description="Samla användarfeedback och förbättra upplevelsen"
               status="beta"
-              features={[
-                "Feedbackformulär och enkäter",
-                "Användaranalys och insights",
+              features={[]}
+              freeFeatures={[
+                "5 feedbackformulär per månad",
+                "Grundläggande analytics",
+                "Manual rapportering"
+              ]}
+              proFeatures={[
+                "Obegränsade feedbackformulär",
+                "Avancerad användaranalys",
                 "A/B-testning av funktioner",
                 "Automatiserad rapportering"
               ]}
+              proPrice="199 kr/månad"
+              onFreeClick={() => handleModuleActivation('user_testing', 'free')}
+              onProClick={() => handleModuleActivation('user_testing', 'pro')}
+              isLoading={loading}
             />
             
-            <ModuleCard
+            <DualButtonModule
               icon="🛡️"
               title="SuperAdmin"
               description="Avancerade administratörsfunktioner"
               status="beta"
-              features={[
-                "Användarhantering",
-                "Systemkonfiguration",
-                "Säkerhetsövervakning",
-                "Dataexport och backup"
+              features={[]}
+              freeFeatures={[
+                "Grundläggande användarhantering",
+                "Standard systemkonfiguration",
+                "Manuell säkerhetsövervakning"
               ]}
+              proFeatures={[
+                "Avancerad användarhantering",
+                "Fullständig systemkonfiguration",
+                "Realtids säkerhetsövervakning",
+                "Automatisk dataexport och backup"
+              ]}
+              proPrice="399 kr/månad"
+              onFreeClick={() => handleModuleActivation('super_admin', 'free')}
+              onProClick={() => handleModuleActivation('super_admin', 'pro')}
+              isLoading={loading}
             />
           </div>
         </div>
@@ -197,88 +257,96 @@ export function Modules() {
         <div className="modules-section">
           <h2>Kommer Snart</h2>
           <div className="modules-grid">
-            <ModuleCard
+            <DualButtonModule
               icon="💰"
               title="Försäljningsmodul"
               description="Komplett försäljningshantering med CRM"
               status="coming-soon"
-              features={[
-                "Orderhantering och fakturering",
-                "Kundregister och CRM",
-                "Försäljningsrapporter",
+              features={[]}
+              freeFeatures={[
+                "10 kunder maximum",
+                "Grundläggande orderhantering",
+                "Standard försäljningsrapporter"
+              ]}
+              proFeatures={[
+                "Obegränsade kunder",
+                "Avancerad CRM-funktionalitet",
+                "Automatisk fakturering",
                 "Integrationer med kassasystem"
               ]}
-              comingSoon={true}
+              proPrice="499 kr/månad"
+              onFreeClick={() => handleModuleActivation('sales', 'free')}
+              onProClick={() => handleModuleActivation('sales', 'pro')}
+              isLoading={loading}
             />
             
-            <ModuleCard
+            <DualButtonModule
               icon="📊"
               title="Advanced Analytics"
               description="Djupgående dataanalys och AI-insights"
               status="coming-soon"
-              features={[
+              features={[]}
+              freeFeatures={[
+                "Grundläggande trendanalys",
+                "Månadsrapporter",
+                "Standard prognoser"
+              ]}
+              proFeatures={[
                 "Prediktiv analys och prognoser",
                 "Automatisk trend-detection",
-                "Personaliserade rekommendationer",
+                "Personaliserade AI-rekommendationer",
                 "Export till Business Intelligence"
               ]}
-              comingSoon={true}
+              proPrice="599 kr/månad"
+              onFreeClick={() => handleModuleActivation('advanced_analytics', 'free')}
+              onProClick={() => handleModuleActivation('advanced_analytics', 'pro')}
+              isLoading={loading}
             />
             
-            <ModuleCard
+            <DualButtonModule
               icon="📱"
               title="Mobilapp"
               description="Hantera verksamheten från mobilen"
               status="coming-soon"
-              features={[
-                "Ingredienshantering on-the-go",
-                "Snabb receptsökning",
+              features={[]}
+              freeFeatures={[
+                "Grundläggande ingrediensvisning",
+                "Enkel receptsökning",
+                "Basic notifikationer"
+              ]}
+              proFeatures={[
+                "Fullständig ingredienshantering",
+                "Avancerad receptsökning",
                 "Push-notifikationer",
                 "Offline-läge för viktiga data"
               ]}
-              comingSoon={true}
+              proPrice="199 kr/månad"
+              onFreeClick={() => handleModuleActivation('mobile_app', 'free')}
+              onProClick={() => handleModuleActivation('mobile_app', 'pro')}
+              isLoading={loading}
             />
             
-            <ModuleCard
+            <DualButtonModule
               icon="🔄"
               title="Integrationer"
               description="Anslut till externa system och tjänster"
               status="coming-soon"
-              features={[
-                "Ekonomisystem (Fortnox, Visma)",
-                "E-handelslösningar",
-                "Leverantörsportaler",
-                "API för tredjepartsutvecklare"
+              features={[]}
+              freeFeatures={[
+                "1 integration maximum",
+                "Grundläggande API-access",
+                "Manuell datasynk"
               ]}
-              comingSoon={true}
-            />
-            
-            <ModuleCard
-              icon="🏪"
-              title="Multi-Location"
-              description="Hantera flera restauranger och kök"
-              status="coming-soon"
-              features={[
-                "Centraliserad ingredienshantering",
-                "Lokala menyer och priser",
-                "Jämförelser mellan platser",
-                "Samlad rapportering"
+              proFeatures={[
+                "Obegränsade integrationer",
+                "Fullständig API för utvecklare",
+                "Automatisk datasynkronisering",
+                "Premium partnertjänster"
               ]}
-              comingSoon={true}
-            />
-            
-            <ModuleCard
-              icon="👥"
-              title="Team Management"
-              description="Användarroller och behörighetshantering"
-              status="coming-soon"
-              features={[
-                "Flexibla användarroller",
-                "Aktivitetslogg och audit trail",
-                "Godkännandeflöden",
-                "Team-dashboards"
-              ]}
-              comingSoon={true}
+              proPrice="399 kr/månad"
+              onFreeClick={() => handleModuleActivation('integrations', 'free')}
+              onProClick={() => handleModuleActivation('integrations', 'pro')}
+              isLoading={loading}
             />
           </div>
         </div>

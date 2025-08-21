@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from '../localization/sv';
 import './SearchableTable.css';
 
 export interface TableColumn {
@@ -22,14 +23,19 @@ type SortDirection = 'asc' | 'desc' | null;
 export function SearchableTable({
   columns,
   data,
-  searchPlaceholder = "Sök...",
-  emptyMessage = "Inga resultat hittades",
+  searchPlaceholder,
+  emptyMessage,
   loading = false,
   onRowClick
 }: SearchableTableProps) {
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  
+  // Use translated defaults if not provided
+  const finalSearchPlaceholder = searchPlaceholder || t('search') + '...';
+  const finalEmptyMessage = emptyMessage || t('noResults');
 
   const filteredAndSortedData = useMemo(() => {
     let filtered = data;
@@ -101,7 +107,7 @@ export function SearchableTable({
             <input
               type="text"
               className="search-input__field"
-              placeholder={searchPlaceholder}
+              placeholder={finalSearchPlaceholder}
               autoComplete="off"
               disabled
             />
@@ -112,7 +118,7 @@ export function SearchableTable({
           <div className="table-loading">
             <div className="loading-spinner">
               <div className="spinner"></div>
-              <p>Laddar data...</p>
+              <p>{t('loading')}</p>
             </div>
           </div>
         </div>
@@ -128,7 +134,7 @@ export function SearchableTable({
           <input
             type="text"
             className="search-input__field"
-            placeholder={searchPlaceholder}
+            placeholder={finalSearchPlaceholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             autoComplete="off"
@@ -139,7 +145,7 @@ export function SearchableTable({
       <div className="table-container">
         {filteredAndSortedData.length === 0 ? (
           <div className="table-empty">
-            <p>{emptyMessage}</p>
+            <p>{finalEmptyMessage}</p>
           </div>
         ) : (
           <table className="data-table">

@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { useFeatureFlags } from './hooks/useFeatureFlags';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 import { AuthForm } from './components/Auth/AuthForm';
 import { OrganizationSelector } from './components/Organizations/OrganizationSelector';
+import { OnboardingFlow } from './components/UserTesting/OnboardingFlow';
 import { Sidebar } from './components/Sidebar';
 import { MetricsCard } from './components/MetricsCard';
 import { SearchableTable, TableColumn } from './components/SearchableTable';
 import { EmptyState } from './components/EmptyState';
-import { MenuItemForm } from './components/MenuItems/MenuItemForm';
 import { FeedbackButton } from './components/UserTesting/FeedbackButton';
 import SuperAdminDashboard from './components/SuperAdmin/SuperAdminDashboard';
+import { SuperAdmin } from './pages/SuperAdmin';
 import FreemiumTest from './pages/FreemiumTest';
 import { Ingredients } from './pages/Ingredients';
 import { Recipes } from './pages/Recipes';
@@ -23,13 +25,8 @@ import { Modules } from './pages/Modules';
 import { Settings } from './pages/Settings';
 import Upgrade from './pages/Upgrade';
 import Status from './pages/Status';
-import { apiClient, MenuItem, MenuItemCreate } from './utils/api';
+import { apiClient, MenuItem } from './utils/api';
 
-interface ApiHealth {
-  status: string;
-  service: string;
-  environment: string;
-}
 
 function PageHeader({ title, subtitle, children }: { 
   title: string; 
@@ -54,12 +51,7 @@ function PageHeader({ title, subtitle, children }: {
 }
 
 function Dashboard() {
-  const [apiStatus, setApiStatus] = useState<string>('checking...');
-  const [apiData, setApiData] = useState<ApiHealth | null>(null);
-  const [backendMessage, setBackendMessage] = useState<string>('');
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
 
   const loadMenuItems = async () => {
@@ -74,45 +66,10 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    // Kontrollera backend health
-    fetch(`${process.env.REACT_APP_API_URL}/health`)
-      .then(res => res.json())
-      .then((data: ApiHealth) => {
-        setApiStatus(data.status);
-        setApiData(data);
-      })
-      .catch(() => {
-        setApiStatus('offline');
-      });
-
-    // Hämta root message
-    fetch(`${process.env.REACT_APP_API_URL}/`)
-      .then(res => res.json())
-      .then(data => {
-        setBackendMessage(data.message || '');
-      })
-      .catch(() => {
-        setBackendMessage('Kunde inte ansluta till backend');
-      });
-
     // Ladda maträtter
     loadMenuItems();
   }, []);
 
-  const handleCreateMenuItem = async (data: MenuItemCreate) => {
-    setIsLoading(true);
-    try {
-      await apiClient.createMenuItem(data);
-      await loadMenuItems(); // Reload the list
-      setError('');
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Ett fel uppstod';
-      setError(errorMessage);
-      throw err; // Re-throw to let the form handle it
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const columns: TableColumn[] = [
     { key: 'name', label: 'Namn', sortable: true },
@@ -161,14 +118,7 @@ function Dashboard() {
       <PageHeader 
         title="Maträtter" 
         subtitle="Skapa maträtter från dina recept"
-      >
-        <button 
-          className="btn btn--primary"
-          onClick={() => setIsFormOpen(true)}
-        >
-          <span>+</span> Ny Matträtt
-        </button>
-      </PageHeader>
+      />
 
       <div className="dashboard-content">
         <OrganizationSelector />
@@ -221,8 +171,6 @@ function Dashboard() {
               icon="👨‍🍳"
               title="Inga maträtter än"
               description="Skapa din första matträtt från dina recept"
-              actionLabel="Skapa Matträtt"
-              onAction={() => setIsFormOpen(true)}
             />
           ) : (
             <SearchableTable
@@ -233,29 +181,8 @@ function Dashboard() {
             />
           )}
         </div>
-        
-        <div className="system-status">
-          <h3>System Status</h3>
-          <p>Frontend Environment: <strong>{process.env.REACT_APP_ENV}</strong></p>
-          <p>Backend Status: <strong style={{
-            color: apiStatus === 'healthy' ? 'var(--color-success)' : 'var(--color-danger)'
-          }}>{apiStatus}</strong></p>
-          {apiData && (
-            <>
-              <p>Backend Service: <strong>{apiData.service}</strong></p>
-              <p>Backend Environment: <strong>{apiData.environment}</strong></p>
-            </>
-          )}
-          {backendMessage && <p>{backendMessage}</p>}
-        </div>
       </div>
 
-      <MenuItemForm
-        isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        onSubmit={handleCreateMenuItem}
-        isLoading={isLoading}
-      />
     </div>
   );
 }
@@ -276,6 +203,160 @@ function LoginPage() {
   );
 }
 
+function OnboardingPage() {
+  const { completeOnboarding, createOrganization, refreshOrganizations, getOrganizations } = useAuth();
+  
+  const handleOnboardingComplete = async (data: any) => {
+    try {
+      // Always refresh organizations first to get latest data
+      await refreshOrganizations();
+      
+      // Make a direct API call to get fresh organization data instead of relying on state
+      let userHasOrganization = false;
+      try {
+        const freshOrgs = await getOrganizations();
+        userHasOrganization = freshOrgs && freshOrgs.length > 0;
+        console.log('🏢 Fresh organization check:', userHasOrganization ? 'User has organizations' : 'User has no organizations');
+      } catch (orgCheckError) {
+        console.warn('Could not check organizations, assuming none exist:', orgCheckError);
+        userHasOrganization = false;
+      }
+      
+      // Only try to create organization if user doesn't have any
+      if (!userHasOrganization && data?.name) {
+        console.log('🏢 Creating organization from restaurant data:', data.name);
+        await createOrganization(data.name, `${data.type} (${data.size})`);
+      } else if (userHasOrganization) {
+        console.log('🏢 User already has organization, skipping creation');
+      }
+      
+      await completeOnboarding();
+      // Use navigate instead of direct window location
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Failed to complete onboarding:', error);
+      // Always try to complete onboarding regardless of organization creation error
+      console.log('🏢 Attempting to complete onboarding regardless of error');
+      try {
+        // Final attempt: refresh organizations and complete onboarding
+        await refreshOrganizations();
+        await completeOnboarding();
+        window.location.href = '/';
+      } catch (completionError) {
+        console.error('Final attempt to complete onboarding failed:', completionError);
+        // Last resort: just mark as completed locally and redirect
+        localStorage.setItem('onboarding_completed', 'true');
+        console.log('🚨 Emergency fallback: Onboarding marked as completed locally');
+        window.location.href = '/';
+      }
+    }
+  };
+  
+  const handleOnboardingSkip = async () => {
+    try {
+      // Always refresh organizations first to get latest data
+      await refreshOrganizations();
+      
+      // Make a direct API call to get fresh organization data instead of relying on state
+      let userHasOrganization = false;
+      try {
+        const freshOrgs = await getOrganizations();
+        userHasOrganization = freshOrgs && freshOrgs.length > 0;
+        console.log('🏢 Fresh organization check (skip):', userHasOrganization ? 'User has organizations' : 'User has no organizations');
+      } catch (orgCheckError) {
+        console.warn('Could not check organizations, assuming none exist:', orgCheckError);
+        userHasOrganization = false;
+      }
+      
+      // Only try to create organization if user doesn't have any
+      if (!userHasOrganization) {
+        console.log('🏢 Creating default organization for skipped onboarding');
+        await createOrganization('My Restaurant', 'Default organization');
+      } else {
+        console.log('🏢 User already has organization, skipping creation');
+      }
+      
+      await completeOnboarding();
+      // Use navigate instead of direct window location  
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Failed to complete onboarding:', error);
+      // Always try to complete onboarding regardless of error
+      console.log('🏢 Attempting to complete onboarding regardless of error (skip)');
+      try {
+        // Final attempt: refresh organizations and complete onboarding
+        await refreshOrganizations();
+        await completeOnboarding();
+        window.location.href = '/';
+      } catch (completionError) {
+        console.error('Final attempt to complete onboarding failed:', completionError);
+        // Last resort: just mark as completed locally and redirect
+        localStorage.setItem('onboarding_completed', 'true');
+        console.log('🚨 Emergency fallback: Onboarding marked as completed locally (skip)');
+        window.location.href = '/';
+      }
+    }
+  };
+  
+  return (
+    <OnboardingFlow 
+      onComplete={handleOnboardingComplete}
+      onSkip={handleOnboardingSkip}
+    />
+  );
+}
+
+// Onboarding wrapper component
+function OnboardingWrapper({ children }: { children: React.ReactNode }) {
+  const { hasCompletedOnboarding, onboardingLoading } = useAuth();
+  
+  // Show loading state while onboarding status is being determined
+  if (hasCompletedOnboarding === null || onboardingLoading) {
+    return (
+      <div className="onboarding-loading">
+        <div className="loading-spinner"></div>
+        <p>Kontrollerar onboarding status...</p>
+      </div>
+    );
+  }
+  
+  // Redirect to onboarding if not completed
+  if (!hasCompletedOnboarding) {
+    return <Navigate to="/onboarding" replace />;
+  }
+  
+  // Show main app if onboarding is completed
+  return <>{children}</>;
+}
+
+// Main app routes with feature flag support
+function MainAppRoutes() {
+  const { featureFlags } = useFeatureFlags();
+  
+  return (
+    <Routes>
+      <Route path="/" element={<Dashboard />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/ingredienser" element={<Ingredients />} />
+      <Route path="/recept" element={<Recipes />} />
+      <Route path="/matratter" element={<MenuItems />} />
+      <Route path="/kostnadsanalys" element={<CostControlDashboard />} />
+      {featureFlags.show_user_testing && (
+        <Route path="/user-testing" element={<UserTestingDashboard />} />
+      )}
+      {featureFlags.show_sales && (
+        <Route path="/forsaljning" element={<Sales />} />
+      )}
+      <Route path="/moduler" element={<Modules />} />
+      <Route path="/installningar" element={<Settings />} />
+      <Route path="/upgrade" element={<Upgrade />} />
+      <Route path="/superadmin" element={<SuperAdminDashboard />} />
+      <Route path="/superadmin/feature-flags" element={<SuperAdmin />} />
+      <Route path="/freemium-test" element={<FreemiumTest />} />
+    </Routes>
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -293,32 +374,30 @@ function App() {
             element={<Status />} 
           />
           
-          {/* Protected routes */}
+          {/* Protected onboarding route */}
+          <Route 
+            path="/onboarding" 
+            element={
+              <ProtectedRoute>
+                <OnboardingPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Protected main app routes */}
           <Route 
             path="/*" 
             element={
               <ProtectedRoute>
-                <div className="app-layout">
-                  <Sidebar />
-                  <main className="app-main">
-                    <Routes>
-                      <Route path="/" element={<Dashboard />} />
-                      <Route path="/dashboard" element={<Dashboard />} />
-                      <Route path="/ingredienser" element={<Ingredients />} />
-                      <Route path="/recept" element={<Recipes />} />
-                      <Route path="/matratter" element={<MenuItems />} />
-                      <Route path="/kostnadsanalys" element={<CostControlDashboard />} />
-                      <Route path="/user-testing" element={<UserTestingDashboard />} />
-                      <Route path="/forsaljning" element={<Sales />} />
-                      <Route path="/moduler" element={<Modules />} />
-                      <Route path="/installningar" element={<Settings />} />
-                      <Route path="/upgrade" element={<Upgrade />} />
-                      <Route path="/superadmin" element={<SuperAdminDashboard />} />
-                      <Route path="/freemium-test" element={<FreemiumTest />} />
-                    </Routes>
-                    <FeedbackButton />
-                  </main>
-                </div>
+                <OnboardingWrapper>
+                  <div className="app-layout">
+                    <Sidebar />
+                    <main className="app-main">
+                      <MainAppRoutes />
+                      <FeedbackButton />
+                    </main>
+                  </div>
+                </OnboardingWrapper>
               </ProtectedRoute>
             } 
           />

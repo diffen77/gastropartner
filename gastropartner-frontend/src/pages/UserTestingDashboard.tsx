@@ -3,6 +3,8 @@ import { MetricsCard } from '../components/MetricsCard';
 import { SearchableTable, TableColumn } from '../components/SearchableTable';
 import { UITextAnalyzerComponent } from '../components/UserTesting/UITextAnalyzer';
 import { TestResultsViewer } from '../components/TestResults/TestResultsViewer';
+import { useTranslation } from '../localization/sv';
+import { formatPercentage, formatDuration } from '../utils/formatting';
 import { apiClient } from '../utils/api';
 import './UserTestingDashboard.css';
 
@@ -55,6 +57,7 @@ function PageHeader({ title, subtitle, children }: {
 }
 
 export default function UserTestingDashboard() {
+  const { t } = useTranslation();
   const [metrics, setMetrics] = useState<UserTestingMetrics | null>(null);
   const [feedback, setFeedback] = useState<UserFeedback[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -170,7 +173,7 @@ export default function UserTestingDashboard() {
     return (
       <div className="main-content">
         <PageHeader 
-          title="User Testing Dashboard" 
+          title={t('userTestingDashboard')} 
           subtitle="Övervaka användarfeedback och testmätvärden"
         />
         <div className="loading-state">
@@ -183,7 +186,7 @@ export default function UserTestingDashboard() {
   return (
     <div className="main-content">
       <PageHeader 
-        title="User Testing Dashboard" 
+        title={t('userTestingDashboard')} 
         subtitle="Övervaka användarfeedback och testmätvärden"
       >
         <div className="dashboard-header-actions">
@@ -240,14 +243,14 @@ export default function UserTestingDashboard() {
                 <MetricsCard
                   icon="⏱️"
                   title="GENOMSNITTLIG SESSIONSTID"
-                  value={`${metrics.avg_session_duration_minutes.toFixed(1)} min`}
+                  value={`${formatDuration(metrics.avg_session_duration_minutes)}`}
                   subtitle="Per session"
                   color="primary"
                 />
                 <MetricsCard
                   icon="📈"
                   title="KONVERTERINGSGRAD"
-                  value={`${metrics.conversion_rate.toFixed(1)}%`}
+                  value={formatPercentage(metrics.conversion_rate)}
                   subtitle="Fullständig onboarding"
                   color={metrics.conversion_rate > 70 ? "success" : metrics.conversion_rate > 50 ? "warning" : "danger"}
                 />
@@ -275,8 +278,8 @@ export default function UserTestingDashboard() {
                 <MetricsCard
                   icon="✅"
                   title="ONBOARDING SLUTFÖRD"
-                  value={`${metrics.onboarding_completion_rate.toFixed(1)}%`}
-                  subtitle={`⏱️ ${metrics.avg_onboarding_time_minutes.toFixed(0)} min snitt`}
+                  value={formatPercentage(metrics.onboarding_completion_rate)}
+                  subtitle={`⏱️ ${formatDuration(metrics.avg_onboarding_time_minutes)} snitt`}
                   color={metrics.onboarding_completion_rate > 80 ? "success" : metrics.onboarding_completion_rate > 60 ? "warning" : "danger"}
                 />
                 <MetricsCard

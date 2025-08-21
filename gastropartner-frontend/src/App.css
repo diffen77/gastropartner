@@ -140,39 +140,81 @@
   color: var(--color-neutral-800);
 }
 
-/* Modal Styles */
+/* Modal Styles - Standardized with Design System */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: var(--spacing-lg);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.modal-overlay.modal-open {
+  opacity: 1;
+  visibility: visible;
 }
 
 .modal-content {
-  background: white;
+  background: var(--color-neutral-0);
   border-radius: var(--border-radius-large);
   max-width: 500px;
   width: 100%;
   max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: var(--shadow-elevated);
+  overflow: hidden;
+  box-shadow: var(--shadow-intense);
+  border: 1px solid var(--color-neutral-200);
+  transform: scale(0.9) translateY(20px);
+  transition: transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
 }
 
+.modal-overlay.modal-open .modal-content {
+  transform: scale(1) translateY(0);
+}
+
+/* Modal Size Variants */
+.modal-content--small {
+  max-width: 400px;
+}
+
+.modal-content--medium {
+  max-width: 600px;
+}
+
+.modal-content--large {
+  max-width: 800px;
+}
+
+.modal-content--full {
+  max-width: 95vw;
+  max-height: 95vh;
+  width: 95vw;
+}
+
+/* Modal Header */
 .modal-header {
   padding: var(--spacing-lg);
   border-bottom: 1px solid var(--color-neutral-200);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: var(--color-neutral-50);
+  flex-shrink: 0;
 }
 
+.modal-header h2,
 .modal-header h3 {
   margin: 0;
   font-size: var(--font-size-lg);
@@ -188,14 +230,25 @@
   cursor: pointer;
   padding: var(--spacing-xs);
   line-height: 1;
+  border-radius: var(--border-radius);
+  transition: all 0.2s ease;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .modal-close:hover {
   color: var(--color-neutral-700);
+  background: var(--color-neutral-200);
 }
 
+/* Modal Body */
 .modal-body {
   padding: var(--spacing-lg);
+  flex: 1;
+  overflow-y: auto;
 }
 
 .modal-body p {
@@ -208,12 +261,15 @@
   margin-bottom: 0;
 }
 
+/* Modal Actions */
 .modal-actions {
   padding: var(--spacing-lg);
   border-top: 1px solid var(--color-neutral-200);
   display: flex;
   gap: var(--spacing-md);
   justify-content: flex-end;
+  background: var(--color-neutral-50);
+  flex-shrink: 0;
 }
 
 .modal-actions .btn {
@@ -224,17 +280,60 @@
 }
 
 .modal-actions .btn--danger {
-  background: #EA4335 !important;
+  background: var(--color-danger) !important;
   color: white !important;
-  border: 2px solid #EA4335 !important;
+  border: 2px solid var(--color-danger) !important;
   font-weight: 600 !important;
-  box-shadow: 0 2px 4px rgba(234, 67, 53, 0.3) !important;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3) !important;
 }
 
 .modal-actions .btn--secondary {
   background: var(--color-neutral-100) !important;
   color: var(--color-neutral-700) !important;
   border: 1px solid var(--color-neutral-300) !important;
+}
+
+/* Accessibility & Responsive Design */
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding: var(--spacing-md);
+  }
+  
+  .modal-content {
+    max-width: 100%;
+    max-height: 95vh;
+    border-radius: var(--border-radius);
+  }
+  
+  .modal-content--full {
+    max-width: 100%;
+    width: 100%;
+    border-radius: 0;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .modal-overlay {
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: none;
+  }
+  
+  .modal-content {
+    border: 2px solid var(--color-neutral-800);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay,
+  .modal-content {
+    transition: none;
+  }
+  
+  .modal-overlay {
+    backdrop-filter: none;
+  }
 }
 
 /* System Status (temporary) */
@@ -562,33 +661,6 @@
   white-space: nowrap;
 }
 
-.org-info {
-  background: rgba(255,255,255,0.1);
-  padding: 15px;
-  border-radius: 8px;
-}
-
-.org-info h4 {
-  margin: 0 0 5px 0;
-}
-
-.org-info__description {
-  color: #ccc;
-  margin: 0 0 10px 0;
-  font-style: italic;
-}
-
-.org-info__limits {
-  display: flex;
-  gap: 15px;
-  font-size: 0.9rem;
-}
-
-.org-info__limit {
-  background: rgba(255,255,255,0.2);
-  padding: 4px 8px;
-  border-radius: 4px;
-}
 
 /* Organization Create Form */
 .org-create-form {

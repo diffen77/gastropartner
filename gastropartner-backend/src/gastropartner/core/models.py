@@ -436,24 +436,146 @@ class UsageLimitsCheck(BaseModel):
     upgrade_needed: bool
 
 
+# ===== ORGANIZATION SETTINGS MODELS =====
+
+class RestaurantProfile(BaseModel):
+    """Restaurant profile settings."""
+    
+    name: str = Field(..., min_length=1, max_length=255, description="Restaurant name")
+    phone: str | None = Field(None, max_length=50, description="Restaurant phone number")
+    timezone: str = Field(default="UTC", max_length=50, description="Restaurant timezone")
+    currency: str = Field(default="SEK", max_length=10, description="Default currency code")
+    address: str | None = Field(None, max_length=500, description="Restaurant address")
+    website: str | None = Field(None, max_length=255, description="Restaurant website")
+
+
+class BusinessSettings(BaseModel):
+    """Business operation settings."""
+    
+    margin_target: Decimal = Field(default=Decimal("30.0"), ge=0, le=100, decimal_places=2, description="Target margin percentage")
+    service_charge: Decimal = Field(default=Decimal("0.0"), ge=0, le=100, decimal_places=2, description="Default service charge percentage")
+    default_prep_time: int = Field(default=30, ge=0, description="Default prep time in minutes")
+    operating_hours: dict[str, Any] = Field(default_factory=dict, description="Operating hours by day")
+    
+    @field_validator("margin_target", "service_charge", mode="before")
+    @classmethod
+    def convert_decimal_fields(cls, v):
+        """Convert float/int/string to Decimal for proper handling."""
+        if v is None:
+            return v
+        if isinstance(v, int | float | str):
+            return Decimal(str(v))
+        return v
+    
+    model_config = ConfigDict(
+        json_encoders={
+            Decimal: float,  # Convert Decimal to float for JSON serialization
+        }
+    )
+
+
+class NotificationPreferences(BaseModel):
+    """Notification settings."""
+    
+    email_notifications: bool = Field(default=True, description="Enable email notifications")
+    sms_notifications: bool = Field(default=False, description="Enable SMS notifications")
+    inventory_alerts: bool = Field(default=True, description="Enable low inventory alerts")
+    cost_alerts: bool = Field(default=True, description="Enable cost variance alerts")
+    daily_reports: bool = Field(default=False, description="Enable daily summary reports")
+    weekly_reports: bool = Field(default=True, description="Enable weekly summary reports")
+
+
+class OrganizationSettingsBase(BaseModel):
+    """Base organization settings model."""
+    
+    restaurant_profile: RestaurantProfile
+    business_settings: BusinessSettings 
+    notification_preferences: NotificationPreferences
+
+
+class OrganizationSettingsCreate(OrganizationSettingsBase):
+    """Organization settings creation model."""
+    pass
+
+
+class OrganizationSettingsUpdate(BaseModel):
+    """Organization settings update model."""
+    
+    restaurant_profile: RestaurantProfile | None = None
+    business_settings: BusinessSettings | None = None
+    notification_preferences: NotificationPreferences | None = None
+    has_completed_onboarding: bool | None = None
+
+
+class OrganizationSettings(OrganizationSettingsBase, TenantMixin):
+    """
+    Complete organization settings model with MULTI-TENANT SECURITY.
+    
+    🛡️ SECURITY: This model includes organization_id and creator_id for complete data isolation.
+    All settings are scoped to a specific organization and cannot be accessed across organizations.
+    """
+    
+    settings_id: UUID = Field(default_factory=uuid4, description="Unique settings identifier")
+    creator_id: UUID = Field(..., description="User who created these settings - REQUIRED for multi-tenant security")
+    has_completed_onboarding: bool = Field(default=False, description="Whether organization has completed onboarding flow")
+    created_at: datetime
+    updated_at: datetime
+    
+    model_config = ConfigDict(
+        from_attributes=True,
+        use_enum_values=True,
+        json_encoders={
+            Decimal: float,  # Convert Decimal to float for JSON
+        }
+    )
+    
+    def is_onboarding_completed(self) -> bool:
+        """Check if onboarding has been completed."""
+        return self.has_completed_onboarding
+    
+    def complete_onboarding(self) -> None:
+        """Mark onboarding as completed."""
+        self.has_completed_onboarding = True
+
+
 # ===== FEATURE FLAGS MODELS =====
 
 class FeatureFlagsBase(BaseModel):
     """Base feature flags model."""
 
+    # Recipe flags
     show_recipe_prep_time: bool = False
     show_recipe_cook_time: bool = False
     show_recipe_instructions: bool = False
     show_recipe_notes: bool = False
+    
+    # Settings page section flags
+    enable_notifications_section: bool = True
+    enable_advanced_settings_section: bool = False
+    enable_account_management_section: bool = False
+    
+    # Page/module visibility flags
+    show_user_testing: bool = False
+    show_sales: bool = False
 
 
 class FeatureFlagsUpdate(BaseModel):
     """Feature flags update model."""
 
+    # Recipe flags
     show_recipe_prep_time: bool | None = None
     show_recipe_cook_time: bool | None = None
     show_recipe_instructions: bool | None = None
     show_recipe_notes: bool | None = None
+    
+    # Settings page section flags
+    enable_notifications_section: bool | None = None
+    enable_advanced_settings_section: bool | None = None
+    enable_account_management_section: bool | None = None
+    
+    # Page/module visibility flags
+    show_user_testing: bool | None = None
+    show_sales: bool | None = None
 
 
 class FeatureFlags(FeatureFlagsBase, TenantMixin):

@@ -1,0 +1,226 @@
+/**
+ * Svenska översättningar för GastroPartner
+ */
+
+export const sv = {
+  // Navigering
+  dashboard: 'Översikt',
+  ingredients: 'Ingredienser',
+  recipes: 'Recept',
+  menuItems: 'Maträtter',
+  costControl: 'Kostnadsanalys',
+  userTesting: 'Användartestning',
+  sales: 'Försäljning',
+  modules: 'Moduler',
+  settings: 'Inställningar',
+  superAdmin: 'SuperAdmin',
+
+  // Planer
+  freePlan: 'GRATIS',
+  premiumPlan: 'PREMIUM',
+  freePlanDescription: 'Kostnadsfri plan för recepthantering',
+  premiumPlanDescription: 'Obegränsade funktioner och prioriterat stöd',
+  freePlanNote: 'Kostnadsfri plan - Begränsade funktioner',
+  upgrade: 'Uppgradera',
+
+  // Allmänna knappar och åtgärder
+  save: 'Spara',
+  cancel: 'Avbryt',
+  delete: 'Ta bort',
+  edit: 'Redigera',
+  add: 'Lägg till',
+  create: 'Skapa',
+  update: 'Uppdatera',
+  submit: 'Skicka',
+  close: 'Stäng',
+  back: 'Tillbaka',
+  next: 'Nästa',
+  previous: 'Föregående',
+  refresh: 'Uppdatera',
+  search: 'Sök',
+  filter: 'Filtrera',
+  select: 'Välj',
+  choose: 'Välj',
+  remove: 'Ta bort',
+  confirm: 'Bekräfta',
+
+  // Status och meddelanden
+  loading: 'Laddar...',
+  error: 'Fel',
+  success: 'Framgång',
+  warning: 'Varning',
+  info: 'Information',
+  noResults: 'Inga resultat hittades',
+  noData: 'Ingen data tillgänglig',
+
+  // Formulär
+  required: 'Obligatorisk',
+  optional: 'Valfri',
+  name: 'Namn',
+  description: 'Beskrivning',
+  category: 'Kategori',
+  unit: 'Enhet',
+  cost: 'Kostnad',
+  supplier: 'Leverantör',
+  notes: 'Anteckningar',
+  actions: 'Åtgärder',
+
+  // Autentisering
+  email: 'E-post',
+  password: 'Lösenord',
+  fullName: 'Fullt namn',
+  login: 'Logga in',
+  register: 'Registrera',
+  logout: 'Logga ut',
+  signIn: 'Logga in',
+  signUp: 'Registrera',
+
+  // Validering
+  emailRequired: 'E-post krävs',
+  emailInvalid: 'Ogiltig e-postadress',
+  passwordRequired: 'Lösenord krävs',
+  passwordMinLength: 'Lösenord måste vara minst 8 tecken långt',
+  fullNameRequired: 'Fullt namn krävs',
+  nameRequired: 'Namn är obligatoriskt',
+  categoryRequired: 'Kategori är obligatorisk',
+  unitRequired: 'Enhet är obligatorisk',
+  costMinimum: 'Kostnad måste vara större än 0',
+
+  // Meddelanden
+  loadError: 'Kunde inte ladda data',
+  saveError: 'Ett fel uppstod vid sparande',
+  deleteConfirm: 'Är du säker på att du vill ta bort',
+  operationError: 'Ett fel uppstod',
+
+  // Ingredienser
+  newIngredient: 'Ny Ingrediens',
+  editIngredient: 'Redigera Ingrediens',
+  addIngredient: 'Lägg till ingrediens',
+  editIngredientTitle: 'Redigera ingrediens',
+  deleteIngredientTitle: 'Ta bort ingrediens',
+  loadIngredientsError: 'Kunde inte ladda ingredienser',
+  averageCost: 'Medelkostnad',
+  mostExpensive: 'Dyrast',
+  cheapest: 'Billigast',
+
+  // Kategorier för ingredienser
+  meat: 'Kött',
+  fishSeafood: 'Fisk & Skaldjur',
+  dairy: 'Mejeri',
+  vegetables: 'Grönsaker',
+  fruits: 'Frukt & Bär',
+  spicesHerbs: 'Kryddor & Örter',
+  dryGoods: 'Torrvaror',
+  baking: 'Bakning',
+  beverages: 'Drycker',
+  other: 'Övrigt',
+
+  // Recept
+  recipe: 'Recept',
+  newRecipe: 'Nytt Recept',
+  editRecipe: 'Redigera Recept',
+  costPerServing: 'Kostnad per portion',
+  servings: 'Portioner',
+
+  // Användartestning
+  userTestingDashboard: 'Översikt Användartestning',
+  successRate: 'Framgångsgrad',
+  conversionRate: 'Konverteringsgrad',
+  sessionDuration: 'Sessionslängd',
+  onboardingCompletion: 'Introduktions-fullföljande',
+
+  // Kostnadsanalys
+  costAnalysis: 'Kostnadsanalys',
+  costControlCenter: 'Kostnadskontrollcenter',
+  foodCostPercentage: 'Matkostnad %',
+  marginPercentage: 'Marginal %',
+  potentialRevenue: 'Potentiell omsättning',
+  foodCost: 'Matkostnad',
+  costBreakdown: 'Kostnadsuppdelning',
+  activeAlerts: 'Aktiva varningar',
+  costOptimizationOpportunities: 'Kostnadsoptimeringsmöjligheter',
+  potentialSavings: 'Potentiella besparingar',
+  priorityActions: 'Prioriterade åtgärder',
+  recommendations: 'Rekommendationer',
+  target: 'Mål',
+  items: 'poster',
+  excellent: 'Utmärkt',
+  good: 'Bra',
+  critical: 'Kritisk',
+  highPriorityAlerts: 'Högprioritetsvarningar',
+  last7Days: 'Senaste 7 dagarna',
+  last30Days: 'Senaste 30 dagarna',
+  last90Days: 'Senaste 90 dagarna',
+  costControlHealth: 'Kostnadskontroll-hälsa',
+  tryAgain: 'Försök igen',
+  errorLoadingCostControl: 'Fel vid laddning av kostnadskontroll',
+  loadingCostControlDashboard: 'Laddar kostnadskontroll-instrumentpanel...',
+  
+  // Alert-typer
+  costSpike: 'KOSTNADSPIK',
+  marginWarning: 'MARGINALVARNING',
+  budgetExceeded: 'BUDGET ÖVERSKRIDEN',
+  usageLimit: 'ANVÄNDARGRÄNS',
+
+  // Tidsformat
+  minutes: 'min',
+  hours: 'tim',
+  days: 'dagar',
+  weeks: 'veckor',
+  months: 'månader',
+
+  // Datum
+  today: 'Idag',
+  yesterday: 'Igår',
+  tomorrow: 'Imorgon',
+  thisWeek: 'Denna vecka',
+  lastWeek: 'Förra veckan',
+  nextWeek: 'Nästa vecka',
+  thisMonth: 'Denna månad',
+  lastMonth: 'Förra månaden',
+  nextMonth: 'Nästa månad',
+
+  // Månader
+  january: 'Januari',
+  february: 'Februari',
+  march: 'Mars',
+  april: 'April',
+  may: 'Maj',
+  june: 'Juni',
+  july: 'Juli',
+  august: 'Augusti',
+  september: 'September',
+  october: 'Oktober',
+  november: 'November',
+  december: 'December',
+
+  // Veckodagar
+  monday: 'Måndag',
+  tuesday: 'Tisdag',
+  wednesday: 'Onsdag',
+  thursday: 'Torsdag',
+  friday: 'Fredag',
+  saturday: 'Lördag',
+  sunday: 'Söndag',
+
+  // Veckodagar kort
+  mon: 'Mån',
+  tue: 'Tis',
+  wed: 'Ons',
+  thu: 'Tor',
+  fri: 'Fre',
+  sat: 'Lör',
+  sun: 'Sön',
+} as const;
+
+// Typ för säker access till översättningar
+export type TranslationKey = keyof typeof sv;
+
+// Hook för att använda översättningar
+export const useTranslation = () => {
+  const t = (key: TranslationKey): string => {
+    return sv[key] || key;
+  };
+
+  return { t };
+};
