@@ -9,6 +9,7 @@ export interface FeatureFlags {
   enable_notifications_section: boolean;
   enable_advanced_settings_section: boolean;
   enable_account_management_section: boolean;
+  show_ingredients: boolean;
   show_user_testing: boolean;
   show_sales: boolean;
 }
@@ -23,6 +24,7 @@ export const useFeatureFlags = () => {
     enable_notifications_section: false,
     enable_advanced_settings_section: false,
     enable_account_management_section: false,
+    show_ingredients: true,  // Default to true for backwards compatibility
     show_user_testing: false,
     show_sales: false,
   });

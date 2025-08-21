@@ -129,7 +129,7 @@ export function IngredientForm({ isOpen, onClose, onSubmit, isLoading = false, e
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={handleClose}>
+    <div className="modal-overlay modal-open" onClick={handleClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{editingIngredient ? 'Redigera Ingrediens' : 'Ny Ingrediens'}</h2>

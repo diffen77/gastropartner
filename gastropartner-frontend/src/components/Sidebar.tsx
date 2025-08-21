@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useFreemium } from '../hooks/useFreemium';
 import { useOrganizationSettings } from '../hooks/useOrganizationSettings';
-import { useFeatureFlags } from '../hooks/useFeatureFlags';
+import { useModuleSettings } from '../hooks/useModuleSettings';
 import { useTranslation } from '../localization/sv';
 import PlanStatusWidget from './PlanStatusWidget';
 import './Sidebar.css';
@@ -14,27 +14,28 @@ interface NavigationItem {
   icon: string;
   path: string;
   adminOnly?: boolean;
+  moduleId?: string; // Maps to module_id for filtering
 }
 
 // Navigation items will be translated dynamically
 const getNavigationItems = (t: (key: any) => string): NavigationItem[] => [
-  { id: 'dashboard', label: t('dashboard'), icon: '📊', path: '/' },
-  { id: 'ingredients', label: t('ingredients'), icon: '🥕', path: '/ingredienser' },
-  { id: 'recipes', label: t('recipes'), icon: '📝', path: '/recept' },
-  { id: 'dishes', label: t('menuItems'), icon: '🍽️', path: '/matratter' },
-  { id: 'cost-control', label: t('costAnalysis'), icon: '📈', path: '/kostnadsanalys' },
-  { id: 'user-testing', label: t('userTesting'), icon: '🧪', path: '/user-testing' },
-  { id: 'sales', label: t('sales'), icon: '💰', path: '/forsaljning' },
-  { id: 'modules', label: t('modules'), icon: '🧩', path: '/moduler' },
-  { id: 'settings', label: t('settings'), icon: '⚙️', path: '/installningar' },
-  { id: 'superadmin', label: t('superAdmin'), icon: '🛡️', path: '/superadmin', adminOnly: true },
+  { id: 'dashboard', label: t('dashboard'), icon: '📊', path: '/' }, // Always visible
+  { id: 'ingredients', label: t('ingredients'), icon: '🥕', path: '/ingredienser', moduleId: 'ingredients' },
+  { id: 'recipes', label: t('recipes'), icon: '📝', path: '/recept', moduleId: 'recipes' },
+  { id: 'dishes', label: t('menuItems'), icon: '🍽️', path: '/matratter', moduleId: 'menu' },
+  { id: 'cost-control', label: t('costAnalysis'), icon: '📈', path: '/kostnadsanalys', moduleId: 'analytics' },
+  { id: 'user-testing', label: t('userTesting'), icon: '🧪', path: '/user-testing', moduleId: 'user_testing' },
+  { id: 'sales', label: t('sales'), icon: '💰', path: '/forsaljning', moduleId: 'sales' },
+  { id: 'modules', label: t('modules'), icon: '🧩', path: '/moduler' }, // Always visible - settings page
+  { id: 'settings', label: t('settings'), icon: '⚙️', path: '/installningar' }, // Always visible - settings page
+  { id: 'superadmin', label: t('superAdmin'), icon: '🛡️', path: '/superadmin', adminOnly: true, moduleId: 'super_admin' },
 ];
 
 export function Sidebar() {
   const { user, signOut } = useAuth();
   const { usage, fetchPlanComparison } = useFreemium();
   const { restaurantName } = useOrganizationSettings();
-  const { featureFlags } = useFeatureFlags();
+  const { isModuleEnabled, loading: moduleLoading } = useModuleSettings();
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -47,12 +48,12 @@ export function Sidebar() {
       return false;
     }
     
-    // Filter items based on feature flags
-    if (item.id === 'user-testing' && !featureFlags.show_user_testing) {
-      return false;
-    }
-    if (item.id === 'sales' && !featureFlags.show_sales) {
-      return false;
+    // Filter items based on module settings
+    if (item.moduleId && !moduleLoading) {
+      // Only show if module is enabled
+      if (!isModuleEnabled(item.moduleId)) {
+        return false;
+      }
     }
     
     return true;

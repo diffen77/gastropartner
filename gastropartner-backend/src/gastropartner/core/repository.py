@@ -446,6 +446,7 @@ class FeatureFlagsRepository(BaseRepository[Any, Any, Any]):
                 "enable_notifications_section": True,
                 "enable_advanced_settings_section": False,
                 "enable_account_management_section": False,
+                "show_ingredients": True,  # Enabled by default for existing organizations
                 "show_user_testing": False,
                 "show_sales": False,
             }

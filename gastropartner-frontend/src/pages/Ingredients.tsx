@@ -5,12 +5,12 @@ import { MetricsCard } from '../components/MetricsCard';
 import { SearchableTable, TableColumn } from '../components/SearchableTable';
 import { EmptyState } from '../components/EmptyState';
 import { IngredientForm } from '../components/Ingredients/IngredientForm';
-// import { useTranslation } from '../localization/sv';
+import { useTranslation } from '../localization/sv';
 import { formatCostPerUnit, formatCurrency } from '../utils/formatting';
 import { apiClient, Ingredient, IngredientCreate } from '../utils/api';
 
 export function Ingredients() {
-  // const { t } = useTranslation();
+  const { translateError } = useTranslation();
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -46,7 +46,8 @@ export function Ingredients() {
       setError('');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ett fel uppstod';
-      setError(errorMessage);
+      const translatedError = translateError(errorMessage);
+      setError(translatedError);
       throw err; // Re-throw to let the form handle it
     } finally {
       setIsLoading(false);
@@ -69,7 +70,8 @@ export function Ingredients() {
       setError('');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ett fel uppstod';
-      setError(errorMessage);
+      const translatedError = translateError(errorMessage);
+      setError(translatedError);
     }
   };
 

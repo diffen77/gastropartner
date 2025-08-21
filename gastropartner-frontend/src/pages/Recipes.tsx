@@ -6,13 +6,13 @@ import { SearchableTable, TableColumn } from '../components/SearchableTable';
 import { EmptyState } from '../components/EmptyState';
 import { OrganizationSelector } from '../components/Organizations/OrganizationSelector';
 import PlanStatusWidget from '../components/PlanStatusWidget';
-// import { useTranslation } from '../localization/sv';
+import { useTranslation } from '../localization/sv';
 import { formatCurrency, formatPercentage } from '../utils/formatting';
 import { apiClient, Recipe, RecipeCreate } from '../utils/api';
 import { useFreemium } from '../hooks/useFreemium';
 
 export function Recipes() {
-  // const { t } = useTranslation();
+  const { translateError } = useTranslation();
   const { getUsagePercentage, isAtLimit } = useFreemium();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -47,7 +47,8 @@ export function Recipes() {
       setError('');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ett fel uppstod';
-      setError(errorMessage);
+      const translatedError = translateError(errorMessage);
+      setError(translatedError);
       throw err; // Re-throw to let the form handle it
     } finally {
       setIsLoading(false);
@@ -65,7 +66,8 @@ export function Recipes() {
       setEditingRecipe(null);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ett fel uppstod';
-      setError(errorMessage);
+      const translatedError = translateError(errorMessage);
+      setError(translatedError);
       throw err; // Re-throw to let the form handle it
     } finally {
       setIsLoading(false);
@@ -83,7 +85,8 @@ export function Recipes() {
       setDeleteConfirmation({ isOpen: false, recipe: null });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ett fel uppstod';
-      setError(errorMessage);
+      const translatedError = translateError(errorMessage);
+      setError(translatedError);
     } finally {
       setIsLoading(false);
     }

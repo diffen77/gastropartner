@@ -6,9 +6,11 @@ import { EmptyState } from '../components/EmptyState';
 import { OrganizationSelector } from '../components/Organizations/OrganizationSelector';
 import { apiClient, MenuItem } from '../utils/api';
 import { useFreemium } from '../hooks/useFreemium';
+import { useTranslation } from '../localization/sv';
 
 export function MenuItems() {
   const { getUsagePercentage } = useFreemium();
+  const { translateError } = useTranslation();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   // Note: Recipes could be loaded here for future recipe-linking functionality
   const [error, setError] = useState<string>('');
@@ -20,7 +22,9 @@ export function MenuItems() {
       setError('');
     } catch (err) {
       console.error('Failed to load menu items:', err);
-      setError('Kunde inte ladda maträtter');
+      const errorMessage = err instanceof Error ? err.message : 'Kunde inte ladda maträtter';
+      const translatedError = translateError(errorMessage);
+      setError(translatedError);
     }
   };
 

@@ -1,0 +1,283 @@
+/* ModuleManager Component Styles */
+.module-manager {
+  width: 100%;
+}
+
+.module-manager__header {
+  margin-bottom: var(--spacing-lg);
+}
+
+.module-manager__title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-neutral-900);
+  margin: 0 0 var(--spacing-sm) 0;
+}
+
+.module-manager__description {
+  color: var(--color-neutral-600);
+  margin: 0;
+  line-height: 1.5;
+  font-size: var(--font-size-sm);
+}
+
+.module-manager__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  text-align: center;
+  color: var(--color-neutral-600);
+}
+
+.module-manager__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+/* Module Card Styles */
+.module-card {
+  background: var(--color-neutral-0);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.module-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.module-card--enabled {
+  border-color: var(--color-success-200);
+  background: var(--color-success-50);
+}
+
+.module-card--disabled {
+  opacity: 0.7;
+}
+
+.module-card__header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.module-card__icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.module-card__info {
+  flex: 1;
+  min-width: 0; /* Prevents flex item from overflowing */
+}
+
+.module-card__title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-neutral-900);
+  margin: 0 0 var(--spacing-xs) 0;
+  line-height: 1.3;
+}
+
+.module-card__description {
+  color: var(--color-neutral-600);
+  margin: 0;
+  line-height: 1.4;
+  font-size: var(--font-size-sm);
+}
+
+.module-card__status {
+  flex-shrink: 0;
+}
+
+.module-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+.module-card__toggle-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-neutral-600);
+  font-weight: 500;
+}
+
+/* Base Toggle Styles - Ensure they're available */
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle__slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--color-neutral-300, #d1d5db);
+  transition: 0.2s;
+  border-radius: 24px;
+}
+
+.toggle__slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.2s;
+  border-radius: 50%;
+}
+
+.toggle input:checked + .toggle__slider {
+  background-color: var(--color-primary-500, #3b82f6);
+}
+
+.toggle input:checked + .toggle__slider:before {
+  transform: translateX(26px);
+}
+
+.toggle input:disabled + .toggle__slider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Enhanced Toggle Styles for ModuleManager */
+.toggle--large {
+  width: 60px;
+  height: 32px;
+}
+
+.toggle--large .toggle__slider {
+  border-radius: 32px;
+}
+
+.toggle--large .toggle__slider:before {
+  height: 26px;
+  width: 26px;
+  left: 3px;
+  bottom: 3px;
+}
+
+.toggle--large input:checked + .toggle__slider:before {
+  transform: translateX(28px);
+}
+
+.toggle__slider--loading {
+  position: relative;
+}
+
+.toggle__spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-neutral-400);
+  border-top: 2px solid var(--color-primary-500);
+  border-radius: 50%;
+  animation: toggle-spin 1s linear infinite;
+}
+
+@keyframes toggle-spin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Badge Extensions */
+.badge--success {
+  background-color: var(--color-success-100);
+  color: var(--color-success-700);
+}
+
+.badge--danger {
+  background-color: var(--color-danger-100);
+  color: var(--color-danger-700);
+}
+
+/* Footer */
+.module-manager__footer {
+  margin-top: var(--spacing-xl);
+  padding: var(--spacing-lg);
+  background: var(--color-neutral-50);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--color-neutral-200);
+}
+
+.module-manager__info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.module-manager__info p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-neutral-600);
+  line-height: 1.5;
+}
+
+.module-manager__info strong {
+  color: var(--color-neutral-800);
+  font-weight: 600;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .module-manager__grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+  
+  .module-card {
+    padding: var(--spacing-md);
+  }
+  
+  .module-card__header {
+    gap: var(--spacing-sm);
+  }
+  
+  .module-card__icon {
+    font-size: 1.5rem;
+  }
+  
+  .module-card__title {
+    font-size: var(--font-size-base);
+  }
+  
+  .module-card__actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-sm);
+  }
+  
+  .module-manager__info {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+}

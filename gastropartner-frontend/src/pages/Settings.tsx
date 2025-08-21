@@ -3,6 +3,7 @@ import { PageHeader } from '../components/PageHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../lib/supabase';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
+import { ModuleManager } from '../components/Settings/ModuleManager';
 
 function SettingsSection({ 
   icon, 
@@ -373,6 +374,17 @@ export function Settings() {
             value={settings.defaultMarginTarget}
             onChange={(value) => handleSettingChange('defaultMarginTarget', value)}
           />
+          </SettingsSection>
+        </div>
+
+        {/* Module Management */}
+        <div className="modules-section">
+          <SettingsSection
+            icon="🧩"
+            title="Modulhantering"
+            description="Aktivera och inaktivera funktionsmoduler för din organisation"
+          >
+            <ModuleManager />
           </SettingsSection>
         </div>
 
