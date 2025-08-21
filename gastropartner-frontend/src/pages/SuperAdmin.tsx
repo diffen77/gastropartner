@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { PageHeader } from '../components/PageHeader';
 import { useAuth } from '../contexts/AuthContext';
 
 interface FeatureFlag {
@@ -135,14 +136,10 @@ export function SuperAdmin() {
   if (loading) {
     return (
       <div className="main-content">
-        <div className="page-header">
-          <div className="page-header__content">
-            <div className="page-header__text">
-              <h1 className="page-header__title">🔧 Super Admin</h1>
-              <p className="page-header__subtitle">Loading super admin panel...</p>
-            </div>
-          </div>
-        </div>
+        <PageHeader 
+          title="🔧 Super Admin" 
+          subtitle="Loading super admin panel..."
+        />
         <div className="loading-container">
           <div className="loading-spinner"></div>
           <p>Loading super admin data...</p>
@@ -153,16 +150,12 @@ export function SuperAdmin() {
 
   return (
     <div className="main-content">
-      <div className="page-header">
-        <div className="page-header__content">
-          <div className="page-header__text">
-            <h1 className="page-header__title">🔧 Super Admin</h1>
-            <p className="page-header__subtitle">Feature Flag Management</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader 
+        title="🔧 Super Admin" 
+        subtitle="Feature Flag Management"
+      />
 
-      <div className="settings-container">
+      <div className="modules-container">
         {/* Success/Error Messages */}
         {success && (
           <div className="alert alert--success">

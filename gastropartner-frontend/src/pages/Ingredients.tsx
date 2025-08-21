@@ -186,7 +186,7 @@ export function Ingredients() {
         {/* Enhanced Metrics Grid */}
         <div className="modules-section">
           <h2>Översikt</h2>
-          <div className="metrics-grid">
+          <div className="modules-grid">
             <MetricsCard
               icon="📦"
               title="TOTALT ANTAL"

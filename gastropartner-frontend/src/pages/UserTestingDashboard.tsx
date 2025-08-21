@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { PageHeader } from '../components/PageHeader';
 import { MetricsCard } from '../components/MetricsCard';
 import { SearchableTable, TableColumn } from '../components/SearchableTable';
 import { UITextAnalyzerComponent } from '../components/UserTesting/UITextAnalyzer';
@@ -34,27 +35,6 @@ interface UserFeedback {
   user_id: string;
 }
 
-function PageHeader({ title, subtitle, children }: { 
-  title: string; 
-  subtitle?: string; 
-  children?: React.ReactNode; 
-}) {
-  return (
-    <div className="page-header">
-      <div className="page-header__content">
-        <div className="page-header__text">
-          <h1 className="page-header__title">{title}</h1>
-          {subtitle && <p className="page-header__subtitle">{subtitle}</p>}
-        </div>
-        {children && (
-          <div className="page-header__actions">
-            {children}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 export default function UserTestingDashboard() {
   const { t } = useTranslation();
@@ -213,7 +193,7 @@ export default function UserTestingDashboard() {
         </div>
       </PageHeader>
 
-      <div className="dashboard-content">
+      <div className="modules-container">
         {error && (
           <div className="error-banner">
             <span>⚠️ {error}</span>
@@ -223,9 +203,9 @@ export default function UserTestingDashboard() {
         {activeTab === 'overview' && metrics && (
           <>
             {/* User Activity Metrics */}
-            <section className="metrics-section">
-              <h2 className="section-title">📊 Användaraktivitet</h2>
-              <div className="metrics-grid">
+            <section className="modules-section">
+              <h2 className="">📊 Användaraktivitet</h2>
+              <div className="modules-grid">
                 <MetricsCard
                   icon="👥"
                   title="TOTALT ANTAL ANVÄNDARE"
@@ -258,9 +238,9 @@ export default function UserTestingDashboard() {
             </section>
 
             {/* Feedback Metrics */}
-            <section className="metrics-section">
-              <h2 className="section-title">💬 Feedback</h2>
-              <div className="metrics-grid">
+            <section className="modules-section">
+              <h2 className="">💬 Feedback</h2>
+              <div className="modules-grid">
                 <MetricsCard
                   icon="📝"
                   title="TOTAL FEEDBACK"
@@ -293,8 +273,8 @@ export default function UserTestingDashboard() {
             </section>
 
             {/* Most Used Features */}
-            <section className="metrics-section">
-              <h2 className="section-title">🏆 Mest Använda Funktioner</h2>
+            <section className="modules-section">
+              <h2 className="">🏆 Mest Använda Funktioner</h2>
               <div className="features-list">
                 {metrics.most_used_features.map((feature, index) => (
                   <div key={feature.feature} className="feature-item">
@@ -319,8 +299,8 @@ export default function UserTestingDashboard() {
         )}
 
         {activeTab === 'overview' && (
-          <section className="metrics-section">
-            <h2 className="section-title">💬 Senaste Feedback</h2>
+          <section className="modules-section">
+            <h2 className="">💬 Senaste Feedback</h2>
             <div className="table-section">
               <SearchableTable
                 columns={feedbackColumns}
@@ -333,7 +313,7 @@ export default function UserTestingDashboard() {
         )}
 
         {activeTab === 'tests' && (
-          <section className="metrics-section">
+          <section className="modules-section">
             <TestResultsViewer refreshInterval={30000} />
           </section>
         )}
