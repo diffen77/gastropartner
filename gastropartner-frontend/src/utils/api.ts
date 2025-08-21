@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1';
 
 interface MenuItem {
   menu_item_id: string;
@@ -203,6 +203,58 @@ export interface OrganizationUpdate {
   description?: string;
 }
 
+// Organization Settings interfaces for consistency with supabase.ts
+export interface RestaurantProfile {
+  name: string;
+  phone?: string;
+  timezone: string;
+  currency: string;
+  address?: string;
+  website?: string;
+}
+
+export interface BusinessSettings {
+  margin_target: number;
+  service_charge: number;
+  default_prep_time: number;
+  operating_hours: Record<string, any>;
+}
+
+export interface BusinessSettingsUpdate {
+  margin_target?: number;
+  service_charge?: number;
+  default_prep_time?: number;
+  operating_hours?: Record<string, any>;
+}
+
+export interface NotificationPreferences {
+  email_notifications: boolean;
+  sms_notifications: boolean;
+  inventory_alerts: boolean;
+  cost_alerts: boolean;
+  daily_reports: boolean;
+  weekly_reports: boolean;
+}
+
+export interface OrganizationSettings {
+  settings_id: string;
+  organization_id: string;
+  creator_id: string;
+  restaurant_profile: RestaurantProfile;
+  business_settings: BusinessSettings;
+  notification_preferences: NotificationPreferences;
+  has_completed_onboarding: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrganizationSettingsUpdate {
+  restaurant_profile?: RestaurantProfile;
+  business_settings?: BusinessSettingsUpdate;
+  notification_preferences?: NotificationPreferences;
+  has_completed_onboarding?: boolean;
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -217,7 +269,7 @@ class ApiClient {
     
     // Development fallback: use development token if no auth token exists
     if (!token && process.env.NODE_ENV === 'development') {
-      token = 'dev_token_development_gastropartner_nu';
+      token = 'dev_token_lediff_gmail_com';
     }
     
     const headers: HeadersInit = {
@@ -419,6 +471,31 @@ class ApiClient {
 
   async getOrganizationUsage(id: string): Promise<any> {
     return this.get(`/api/v1/organizations/${id}/usage`);
+  }
+
+  // Organization Settings API
+  /**
+   * Get organization settings with onboarding status.
+   * 🛡️ SECURITY: Multi-tenant secure - user must belong to organization.
+   */
+  async getOrganizationSettings(id: string): Promise<OrganizationSettings> {
+    return this.get<OrganizationSettings>(`/api/v1/organizations/${id}/settings`);
+  }
+
+  /**
+   * Update organization settings and automatically mark onboarding as completed.
+   * 🛡️ SECURITY: Multi-tenant secure - user must belong to organization.
+   */
+  async updateOrganizationSettings(id: string, settings: OrganizationSettingsUpdate): Promise<OrganizationSettings> {
+    return this.put<OrganizationSettings>(`/api/v1/organizations/${id}/settings`, settings);
+  }
+
+  /**
+   * Mark organization onboarding as completed.
+   * 🛡️ SECURITY: Multi-tenant secure - user must belong to organization.
+   */
+  async completeOrganizationOnboarding(id: string): Promise<{ message: string; success: boolean }> {
+    return this.post<{ message: string; success: boolean }>(`/api/v1/organizations/${id}/settings/complete-onboarding`, {});
   }
 
   // User Auth API

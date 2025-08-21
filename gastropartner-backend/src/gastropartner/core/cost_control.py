@@ -317,11 +317,9 @@ class CostControlService:
         # Generate recommendations
         recommendations = []
         if costs_analysis["cost_efficiency"]["food_cost_percentage"] > 35:
-            recommendations.append("Food cost percentage is high - consider ingredient substitutions")
+            recommendations.append("Matkostnadsprocenten är hög - överväg ingrediensutbyten")
         if costs_analysis["ingredient_analysis"]["average_cost_per_ingredient"] > 15:
-            recommendations.append("Average ingredient cost is above optimal - negotiate with suppliers")
-        if costs_analysis["menu_analysis"]["average_margin"] < 100:
-            recommendations.append("Menu margins are low - consider price adjustments")
+            recommendations.append("Genomsnittlig ingredienskostnad är över optimal nivå - förhandla med leverantörer")
 
         return CostForecast(
             period=period,
@@ -345,8 +343,8 @@ class CostControlService:
                     "alert_id": "alert-12345678-1234-1234-1234-123456789012",
                     "type": "margin_warning",
                     "severity": "medium",
-                    "message": "Food cost percentage is 30.0% - within acceptable range",
-                    "recommendation": "Continue monitoring food costs and pricing",
+                    "message": "Matkostnadsprocenten är 30,0% - inom acceptabla gränser",
+                    "recommendation": "Fortsätt övervaka matkostnader och prissättning",
                     "triggered_at": datetime.now().isoformat()
                 }
             ]
@@ -368,8 +366,8 @@ class CostControlService:
                 "alert_id": str(uuid4()),
                 "type": "margin_warning",
                 "severity": "high" if food_cost_pct > 40 else "medium",
-                "message": f"Food cost percentage is {food_cost_pct:.1f}% - exceeds recommended 35%",
-                "recommendation": "Review ingredient costs and menu pricing",
+                "message": f"Matkostnadsprocenten är {food_cost_pct:.1f}% - överstiger rekommenderade 35%",
+                "recommendation": "Granska ingredienskostnader och menyprissättning",
                 "triggered_at": datetime.now().isoformat()
             })
 
@@ -381,8 +379,8 @@ class CostControlService:
                 "alert_id": str(uuid4()),
                 "type": "cost_spike",
                 "severity": "medium",
-                "message": f"Average ingredient cost is ${avg_ingredient_cost:.2f} - above optimal range",
-                "recommendation": "Consider bulk purchasing or supplier negotiations",
+                "message": f"Genomsnittlig ingredienskostnad är {avg_ingredient_cost:.2f} kr - över optimal nivå",
+                "recommendation": "Överväg bulkinköp eller leverantörsförhandlingar",
                 "triggered_at": datetime.now().isoformat()
             })
 
@@ -425,11 +423,11 @@ class CostControlService:
         # Generate recommendations
         recommendations = []
         if costs_analysis["cost_efficiency"]["food_cost_percentage"] > 35:
-            recommendations.append("Reduce food cost percentage by optimizing recipes or adjusting prices")
+            recommendations.append("Minska matkostnadsprocenten genom att optimera recept eller justera priser")
         if len(top_cost_drivers) > 0 and top_cost_drivers[0]["cost"] > 25:
-            recommendations.append(f"High-cost ingredient '{top_cost_drivers[0]['name']}' needs attention")
+            recommendations.append(f"Högkostnadsingrediens '{top_cost_drivers[0]['name']}' behöver uppmärksamhet")
         if costs_analysis["menu_analysis"]["total_menu_items"] < 5:
-            recommendations.append("Expand menu offerings to improve revenue potential")
+            recommendations.append("Utöka menyutbudet för att förbättra intäktspotentialen")
 
         from uuid import uuid4
         return CostReport(
@@ -460,13 +458,13 @@ class CostControlService:
                     {
                         "type": "ingredient_substitution",
                         "target": "Premium Olive Oil",
-                        "suggestion": "Consider substituting high-cost ingredient ($25.00/unit)",
+                        "suggestion": "Överväg att ersätta högkostnadsingrediens (25,00 kr/enhet)",
                         "potential_saving": 5.0
                     },
                     {
                         "type": "price_optimization",
                         "target": "Margherita Pizza",
-                        "suggestion": "Consider increasing price by $2.50",
+                        "suggestion": "Överväg att höja priset med 25,00 kr",
                         "current_food_cost_pct": 32.0,
                         "potential_saving": 2.5
                     }
@@ -475,7 +473,7 @@ class CostControlService:
                     {
                         "type": "price_optimization",
                         "target": "Margherita Pizza",
-                        "suggestion": "Consider increasing price by $2.50",
+                        "suggestion": "Överväg att höja priset med 25,00 kr",
                         "potential_saving": 2.5
                     }
                 ],
@@ -502,7 +500,7 @@ class CostControlService:
                 optimizations.append({
                     "type": "ingredient_substitution",
                     "target": ingredient["name"],
-                    "suggestion": f"Consider substituting high-cost ingredient (${cost:.2f}/unit)",
+                    "suggestion": f"Överväg att ersätta högkostnadsingrediens ({cost:.2f} kr/enhet)",
                     "potential_saving": cost * 0.2  # 20% potential saving
                 })
                 potential_savings += cost * 0.2
@@ -529,7 +527,7 @@ class CostControlService:
                 optimizations.append({
                     "type": "price_optimization",
                     "target": item["name"],
-                    "suggestion": f"Consider increasing price by ${potential_price_increase:.2f}",
+                    "suggestion": f"Överväg att höja priset med {potential_price_increase:.2f} kr",
                     "current_food_cost_pct": food_cost_pct,
                     "potential_saving": potential_price_increase
                 })

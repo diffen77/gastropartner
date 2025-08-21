@@ -1,0 +1,327 @@
+:root {
+  /* Professional enterprise color palette */
+  --background: #ffffff;
+  --foreground: #1a1a1a;
+  --card: #ffffff;
+  --card-foreground: #1a1a1a;
+  
+  /* Neutral grays - professional base */
+  --muted: #f8f9fa;
+  --muted-foreground: #6c757d;
+  --border: #e9ecef;
+  --input: #e9ecef;
+  
+  /* Professional blue - primary actions */
+  --primary: #0066cc;
+  --primary-foreground: #ffffff;
+  --primary-hover: #0052a3;
+  
+  /* Success - subtle professional green */
+  --success: #22c55e;
+  --success-foreground: #ffffff;
+  --success-hover: #16a34a;
+  
+  /* Professional premium - subtle gold accent */
+  --premium: #f59e0b;
+  --premium-foreground: #ffffff;
+  --premium-hover: #d97706;
+  
+  /* Warning/Alert - professional orange */
+  --warning: #ef4444;
+  --warning-foreground: #ffffff;
+  
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  
+  /* Professional spacing and borders */
+  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-lg: 12px;
+  
+  /* Subtle professional shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  
+  /* Professional gradients - very subtle */
+  --gradient-primary: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+  --gradient-success: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  --gradient-premium: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+/* Dark mode - professional */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0f0f0f;
+    --foreground: #ffffff;
+    --card: #1a1a1a;
+    --card-foreground: #ffffff;
+    
+    --muted: #262626;
+    --muted-foreground: #a3a3a3;
+    --border: #404040;
+    --input: #404040;
+    
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
+    
+    --success: #22c55e;
+    --success-hover: #16a34a;
+    
+    --premium: #f59e0b;
+    --premium-hover: #d97706;
+  }
+}
+
+/* Professional button styles */
+.btn-free {
+  background: var(--gradient-success);
+  color: var(--success-foreground);
+  border: none;
+  padding: 14px 20px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.btn-free:hover {
+  background: var(--success-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-free:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-pro {
+  background: var(--gradient-premium);
+  color: var(--premium-foreground);
+  border: none;
+  padding: 14px 20px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.btn-pro:hover {
+  background: var(--premium-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-pro:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Professional features comparison */
+.features-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin: 24px 0;
+  padding: 20px;
+  background: var(--muted);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+}
+
+.features-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.features-section h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.features-section.free-features h4 {
+  color: var(--success);
+}
+
+.features-section.pro-features h4 {
+  color: var(--premium);
+}
+
+.features-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.features-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--muted-foreground);
+  padding: 2px 0;
+}
+
+.features-list li::before {
+  content: "•";
+  color: var(--muted-foreground);
+  font-weight: bold;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.free-features .features-list li::before {
+  color: var(--success);
+}
+
+.pro-features .features-list li::before {
+  color: var(--premium);
+}
+
+/* Professional buttons container */
+.buttons-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+/* Button text styling */
+.btn-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.btn-price {
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.9;
+  line-height: 1.2;
+}
+
+/* Professional module cards */
+.module-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.module-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary);
+}
+
+/* Professional loading states */
+.btn-loading {
+  background: var(--muted) !important;
+  color: var(--muted-foreground) !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+.btn-success {
+  background: var(--success) !important;
+  color: var(--success-foreground) !important;
+}
+
+/* Remove any childish animations or effects */
+@keyframes none {
+  /* No flashy animations */
+}
+
+/* Professional responsive design */
+@media (max-width: 768px) {
+  .features-comparison {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .buttons-container {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .btn-free,
+  .btn-pro {
+    padding: 16px 20px;
+  }
+}
+
+/* Clean, professional focus states */
+.btn-free:focus,
+.btn-pro:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Remove any gaudy gradients or effects */
+.btn-free::before,
+.btn-pro::before {
+  display: none;
+}
+
+/* Professional status indicators */
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-indicator.free {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--success);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.status-indicator.pro {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--premium);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}

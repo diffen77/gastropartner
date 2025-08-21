@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GastroPartner - Professionell Restauranghantering</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    
+    <style>
+        /* Professional Enterprise Color Palette */
+        :root {
+            --background: #ffffff;
+            --foreground: #1a1a1a;
+            --card: #ffffff;
+            --card-foreground: #1a1a1a;
+            
+            /* Neutral grays */
+            --muted: #f8f9fa;
+            --muted-foreground: #6c757d;
+            --border: #e9ecef;
+            --input: #e9ecef;
+            
+            /* Professional colors */
+            --primary: #0066cc;
+            --primary-foreground: #ffffff;
+            --primary-hover: #0052a3;
+            
+            --secondary: #f8f9fa;
+            --secondary-foreground: #1a1a1a;
+            
+            --success: #22c55e;
+            --success-foreground: #ffffff;
+            --success-hover: #16a34a;
+            
+            --premium: #f59e0b;
+            --premium-foreground: #ffffff;
+            --premium-hover: #d97706;
+            
+            --warning: #ef4444;
+            --warning-foreground: #ffffff;
+            
+            /* Typography */
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            --font-mono: 'SF Mono', Monaco, monospace;
+            
+            /* Borders and shadows */
+            --radius: 8px;
+            --radius-sm: 6px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Dark mode */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --background: #0f0f0f;
+                --foreground: #ffffff;
+                --card: #1a1a1a;
+                --card-foreground: #ffffff;
+                --muted: #262626;
+                --muted-foreground: #a3a3a3;
+                --border: #404040;
+                --input: #404040;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--background);
+            color: var(--foreground);
+            line-height: 1.5;
+        }
+
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background-color: var(--card);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-foreground);
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .brand-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--foreground);
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--foreground);
+        }
+
+        .page-subtitle {
+            color: var(--muted-foreground);
+            font-size: 1.1rem;
+        }
+
+        /* Modules Grid */
+        .modules-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .module-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s ease;
+        }
+
+        .module-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary);
+        }
+
+        .module-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .module-icon {
+            font-size: 2.5rem;
+            flex-shrink: 0;
+        }
+
+        .module-info {
+            flex: 1;
+        }
+
+        .module-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--foreground);
+        }
+
+        .module-description {
+            color: var(--muted-foreground);
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.4;
+        }
+
+        /* Professional Features Comparison */
+        .features-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 24px 0;
+            padding: 20px;
+            background: var(--muted);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+        }
+
+        .features-section h4 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 0 12px 0;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--foreground);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .features-section.free-features h4 {
+            color: var(--success);
+        }
+
+        .features-section.pro-features h4 {
+            color: var(--premium);
+        }
+
+        .features-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .features-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            font-size: 12px;
+            line-height: 1.4;
+            color: var(--muted-foreground);
+            padding: 2px 0;
+        }
+
+        .features-list li::before {
+            content: "•";
+            color: var(--muted-foreground);
+            font-weight: bold;
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+
+        .free-features .features-list li::before {
+            color: var(--success);
+        }
+
+        .pro-features .features-list li::before {
+            color: var(--premium);
+        }
+
+        /* Professional Button Container */
+        .buttons-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        /* Professional Free Button */
+        .btn-free {
+            background: var(--success);
+            color: var(--success-foreground);
+            border: none;
+            padding: 14px 20px;
+            border-radius: var(--radius);
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+
+        .btn-free:hover {
+            background: var(--success-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-free:active {
+            transform: translateY(0);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Professional PRO Button */
+        .btn-pro {
+            background: var(--premium);
+            color: var(--premium-foreground);
+            border: none;
+            padding: 14px 20px;
+            border-radius: var(--radius);
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+
+        .btn-pro:hover {
+            background: var(--premium-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-pro:active {
+            transform: translateY(0);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-title {
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        .btn-price {
+            font-size: 11px;
+            font-weight: 500;
+            opacity: 0.9;
+            line-height: 1.2;
+        }
+
+        /* Loading and Success States */
+        .btn-loading {
+            background: var(--muted) !important;
+            color: var(--muted-foreground) !important;
+            cursor: not-allowed !important;
+            transform: none !important;
+        }
+
+        .btn-success {
+            background: var(--success) !important;
+            color: var(--success-foreground) !important;
+        }
+
+        /* Professional Focus States */
+        .btn-free:focus,
+        .btn-pro:focus {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .modules-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .features-comparison {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .buttons-container {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            .btn-free,
+            .btn-pro {
+                padding: 16px 20px;
+            }
+            
+            .main-content {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <div class="logo-section">
+                <div class="logo">G</div>
+                <span class="brand-name">GastroPartner</span>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">🧩 Moduler</h1>
+                <p class="page-subtitle">Välj mellan gratis och PRO-versioner av våra professionella moduler</p>
+            </div>
+
+            <div class="modules-container">
+                <div class="modules-grid">
+                    <!-- Recepthantering Module -->
+                    <div class="module-card">
+                        <div class="module-header">
+                            <div class="module-icon">📝</div>
+                            <div class="module-info">
+                                <h3 class="module-title">Recepthantering</h3>
+                                <p class="module-description">Skapa och hantera recept med kostnadsberäkningar</p>
+                            </div>
+                        </div>
+                        
+                        <div class="features-comparison">
+                            <div class="features-section free-features">
+                                <h4>
+                                    <span>🆓</span>
+                                    <span>GRATIS VERSION</span>
+                                </h4>
+                                <ul class="features-list">
+                                    <li>5 recept maximum</li>
+                                    <li>Grundläggande kostnadskalkyler</li>
+                                    <li>Enkla instruktioner</li>
+                                    <li>Standardportioner</li>
+                                </ul>
+                            </div>
+                            <div class="features-section pro-features">
+                                <h4>
+                                    <span>💎</span>
+                                    <span>PRO VERSION</span>
+                                </h4>
+                                <ul class="features-list">
+                                    <li>Obegränsat antal recept</li>
+                                    <li>Avancerade näringsberäkningar</li>
+                                    <li>Detaljerade instruktioner</li>
+                                    <li>Flexibla portionsstorlekar</li>
+                                    <li>Export till kalkylark</li>
+                                    <li>Batch-kostnadsberäkningar</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="buttons-container">
+                            <button class="btn btn-free btn-animate">
+                                <span class="btn-title">AKTIVERA GRATIS</span>
+                                <span class="btn-price">0 kr/månad</span>
+                            </button>
+                            <button class="btn btn-pro btn-animate">
+                                <span class="btn-title">UPPGRADERA PRO</span>
+                                <span class="btn-price">299 kr/månad</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Ingredienshantering Module -->
+                    <div class="module-card">
+                        <div class="module-header">
+                            <div class="module-icon">🥕</div>
+                            <div class="module-info">
+                                <h3 class="module-title">Ingredienshantering</h3>
+                                <p class="module-description">Hantera ingredienser, leverantörer och kostnader</p>
+                            </div>
+                        </div>
+                        
+                        <div class="features-comparison">
+                            <div class="features-section free-features">
+                                <h4>
+                                    <span>🆓</span>
+                                    <span>GRATIS VERSION</span>
+                                </h4>
+                                <ul class="features-list">
+                                    <li>50 ingredienser maximum</li>
+                                    <li>Grundläggande kategorier</li>
+                                    <li>Enkel kostnadsspårning</li>
+                                    <li>En leverantör per ingrediens</li>
+                                </ul>
+                            </div>
+                            <div class="features-section pro-features">
+                                <h4>
+                                    <span>💎</span>
+                                    <span>PRO VERSION</span>
+                                </h4>
+                                <ul class="features-list">
+                                    <li>Obegränsat antal ingredienser</li>
+                                    <li>Avancerade kategorier</li>
+                                    <li>Automatisk kostnadsuppdatering</li>
+                                    <li>Flera leverantörer per ingrediens</li>
+                                    <li>Prishistorik och trender</li>
+                                    <li>Leverantörsjämförelser</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="buttons-container">
+                            <button class="btn btn-free btn-animate">
+                                <span class="btn-title">AKTIVERA GRATIS</span>
+                                <span class="btn-price">0 kr/månad</span>
+                            </button>
+                            <button class="btn btn-pro btn-animate">
+                                <span class="btn-title">UPPGRADERA PRO</span>
+                                <span class="btn-price">199 kr/månad</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Menyhantering Module -->
+                    <div class="module-card">
+                        <div class="module-header">
+                            <div class="module-icon">🍽️</div>
+                            <div class="module-info">
+                                <h3 class="module-title">Menyhantering</h3>
+                                <p class="module-description">Skapa maträtter och beräkna lönsamhet</p>
+                            </div>
+                        </div>
+                        
+                        <div class="features-comparison">
+                            <div class="features-section free-features">
+                                <h4>
+                                    <span>🆓</span>
+                                    <span>GRATIS VERSION</span>
+                                </h4>
+                                <ul class="features-list">
+                                    <li>10 maträtter maximum</li>
+                                    <li>Grundläggande prissättning</li>
+                                    <li>Enkel lönsamhetsanalys</li>
+                                    <li>En meny</li>
+                                </ul>
+                            </div>
+                            <div class="features-section pro-features">
+                                <h4>
+                                    <span>💎</span>
+                                    <span>PRO VERSION</span>
+                                </h4>
+                                <ul class="features-list">
+                                    <li>Obegränsat antal maträtter</li>
+                                    <li>Avancerad marginalberäkning</li>
+                                    <li>Detaljerad lönsamhetsanalys</li>
+                                    <li>Flera menyer och säsonger</li>
+                                    <li>A/B-testning av priser</li>
+                                    <li>Kampanjhantering</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="buttons-container">
+                            <button class="btn btn-free btn-animate">
+                                <span class="btn-title">AKTIVERA GRATIS</span>
+                                <span class="btn-price">0 kr/månad</span>
+                            </button>
+                            <button class="btn btn-pro btn-animate">
+                                <span class="btn-title">UPPGRADERA PRO</span>
+                                <span class="btn-price">249 kr/månad</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Kostnadsanalys Module -->
+                    <div class="module-card">
+                        <div class="module-header">
+                            <div class="module-icon">📈</div>
+                            <div class="module-info">
+                                <h3 class="module-title">Kostnadsanalys</h3>
+                                <p class="module-description">Djupgående analys av kostnader och lönsamhet</p>
+                            </div>
+                        </div>
+                        
+                        <div class="features-comparison">
+                            <div class="features-section free-features">
+                                <h4>
+                                    <span>🆓</span>
+                                    <span>GRATIS VERSION</span>
+                                </h4>
+                                <ul class="features-list">
+                                    <li>Grundläggande rapporter</li>
+                                    <li>Senaste 30 dagarna</li>
+                                    <li>Enkla jämförelser</li>
+                                    <li>Export till PDF</li>
+                                </ul>
+                            </div>
+                            <div class="features-section pro-features">
+                                <h4>
+                                    <span>💎</span>
+                                    <span>PRO VERSION</span>
+                                </h4>
+                                <ul class="features-list">
+                                    <li>Avancerade rapporter</li>
+                                    <li>Obegränsad historik</li>
+                                    <li>Prediktiv analys</li>
+                                    <li>Export till Excel/CSV</li>
+                                    <li>Automatiska insights</li>
+                                    <li>Benchmark mot bransch</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="buttons-container">
+                            <button class="btn btn-free btn-animate">
+                                <span class="btn-title">AKTIVERA GRATIS</span>
+                                <span class="btn-price">0 kr/månad</span>
+                            </button>
+                            <button class="btn btn-pro btn-animate">
+                                <span class="btn-title">UPPGRADERA PRO</span>
+                                <span class="btn-price">179 kr/månad</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Lagerhantering Module -->
+                    <div class="module-card">
+                        <div class="module-header">
+                            <div class="module-icon">📦</div>
+                            <div class="module-info">
+                                <h3 class="module-title">Lagerhantering</h3>
+                                <p class="module-description">Övervaka lager och automatisera beställningar</p>
+                            </div>
+                        </div>
+                        
+                        <div class="features-comparison">
+                            <div class="features-section free-features">
+                                <h4>
+                                    <span>🆓</span>
+                                    <span>GRATIS VERSION</span>
+                                </h4>
+                                <ul class="features-list">
+                                    <li>Grundläggande lagerräkning</li>
+                                    <li>Manuell uppdatering</li>
+                                    <li>Enkla lagernivåer</li>
+                                    <li>Grundläggande varningar</li>
+                                </ul>
+                            </div>
+                            <div class="features-section pro-features">
+                                <h4>
+                                    <span>💎</span>
+                                    <span>PRO VERSION</span>
+                                </h4>
+                                <ul class="features-list">
+                                    <li>Realtidslagerspårning</li>
+                                    <li>Automatiska beställningar</li>
+                                    <li>Intelligenta algoritmer</li>
+                                    <li>Avancerade varningar</li>
+                                    <li>Leverantörsintegration</li>
+                                    <li>FIFO/LIFO hantering</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="buttons-container">
+                            <button class="btn btn-free btn-animate">
+                                <span class="btn-title">AKTIVERA GRATIS</span>
+                                <span class="btn-price">0 kr/månad</span>
+                            </button>
+                            <button class="btn btn-pro btn-animate">
+                                <span class="btn-title">UPPGRADERA PRO</span>
+                                <span class="btn-price">159 kr/månad</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Personal & Schema Module -->
+                    <div class="module-card">
+                        <div class="module-header">
+                            <div class="module-icon">👥</div>
+                            <div class="module-info">
+                                <h3 class="module-title">Personal & Schema</h3>
+                                <p class="module-description">Hantera personal och schemaläggning</p>
+                            </div>
+                        </div>
+                        
+                        <div class="features-comparison">
+                            <div class="features-section free-features">
+                                <h4>
+                                    <span>🆓</span>
+                                    <span>GRATIS VERSION</span>
+                                </h4>
+                                <ul class="features-list">
+                                    <li>5 anställda maximum</li>
+                                    <li>Grundläggande schema</li>
+                                    <li>Manuell schemaläggning</li>
+                                    <li>Enkla tidrapporter</li>
+                                </ul>
+                            </div>
+                            <div class="features-section pro-features">
+                                <h4>
+                                    <span>💎</span>
+                                    <span>PRO VERSION</span>
+                                </h4>
+                                <ul class="features-list">
+                                    <li>Obegränsat antal anställda</li>
+                                    <li>Avancerad schemaläggning</li>
+                                    <li>Automatisk optimering</li>
+                                    <li>Detaljerade lönesystem</li>
+                                    <li>Mobilapp för personal</li>
+                                    <li>Kompetensmatris</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="buttons-container">
+                            <button class="btn btn-free btn-animate">
+                                <span class="btn-title">AKTIVERA GRATIS</span>
+                                <span class="btn-price">0 kr/månad</span>
+                            </button>
+                            <button class="btn btn-pro btn-animate">
+                                <span class="btn-title">UPPGRADERA PRO</span>
+                                <span class="btn-price">149 kr/månad</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Professional button interactions without flashy animations
+            
+            // Free button activation
+            document.querySelectorAll('.btn-free').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const originalContent = this.innerHTML;
+                    
+                    // Simple loading state
+                    this.classList.add('btn-loading');
+                    this.innerHTML = '<span class="btn-title">AKTIVERAR...</span>';
+                    
+                    setTimeout(() => {
+                        this.classList.remove('btn-loading');
+                        this.classList.add('btn-success');
+                        this.innerHTML = '<span class="btn-title">✓ AKTIVERAD</span>';
+                        
+                        setTimeout(() => {
+                            this.classList.remove('btn-success');
+                            this.innerHTML = originalContent;
+                        }, 2000);
+                    }, 1500);
+                });
+            });
+
+            // Pro button activation
+            document.querySelectorAll('.btn-pro').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const originalContent = this.innerHTML;
+                    
+                    // Simple loading state
+                    this.classList.add('btn-loading');
+                    this.innerHTML = '<span class="btn-title">UPPGRADERAR...</span>';
+                    
+                    setTimeout(() => {
+                        this.classList.remove('btn-loading');
+                        this.classList.add('btn-success');
+                        this.innerHTML = '<span class="btn-title">✓ PRO AKTIVERAD</span>';
+                        
+                        setTimeout(() => {
+                            this.classList.remove('btn-success');
+                            this.innerHTML = originalContent;
+                        }, 2000);
+                    }, 1500);
+                });
+            });
+
+            // Professional card hover effects (subtle)
+            document.querySelectorAll('.module-card').forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.borderColor = 'var(--primary)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.borderColor = 'var(--border)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

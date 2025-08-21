@@ -1,40 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { MenuItemForm } from '../components/MenuItems/MenuItemForm';
+import { PageHeader } from '../components/PageHeader';
 import { MetricsCard } from '../components/MetricsCard';
 import { SearchableTable, TableColumn } from '../components/SearchableTable';
 import { EmptyState } from '../components/EmptyState';
 import { OrganizationSelector } from '../components/Organizations/OrganizationSelector';
-import { apiClient, MenuItem, MenuItemCreate } from '../utils/api';
+import { apiClient, MenuItem } from '../utils/api';
 import { useFreemium } from '../hooks/useFreemium';
 
-function PageHeader({ title, subtitle, children }: { 
-  title: string; 
-  subtitle?: string; 
-  children?: React.ReactNode; 
-}) {
-  return (
-    <div className="page-header">
-      <div className="page-header__content">
-        <div className="page-header__text">
-          <h1 className="page-header__title">{title}</h1>
-          {subtitle && <p className="page-header__subtitle">{subtitle}</p>}
-        </div>
-        {children && (
-          <div className="page-header__actions">
-            {children}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export function MenuItems() {
-  const { getUsagePercentage, isAtLimit } = useFreemium();
+  const { getUsagePercentage } = useFreemium();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   // Note: Recipes could be loaded here for future recipe-linking functionality
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
 
   const loadMenuItems = async () => {
@@ -54,20 +30,6 @@ export function MenuItems() {
     loadMenuItems();
   }, []);
 
-  const handleCreateMenuItem = async (data: MenuItemCreate) => {
-    setIsLoading(true);
-    try {
-      await apiClient.createMenuItem(data);
-      await loadMenuItems(); // Reload the list
-      setError('');
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Ett fel uppstod';
-      setError(errorMessage);
-      throw err; // Re-throw to let the form handle it
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const formatCurrency = (amount?: number | string): string => {
     if (!amount) return '0 kr';
@@ -151,24 +113,15 @@ export function MenuItems() {
     : 0;
 
   const menuItemUsagePercentage = getUsagePercentage('menu_items');
-  const atMenuItemLimit = isAtLimit('menu_items');
 
   return (
     <div className="main-content">
       <PageHeader 
-        title="Maträtter" 
+        title="🍽️ Maträtter" 
         subtitle="Skapa maträtter från dina recept och optimera prissättning"
-      >
-        <button 
-          className="btn btn--primary"
-          onClick={() => setIsFormOpen(true)}
-          disabled={atMenuItemLimit}
-        >
-          <span>+</span> Ny Maträtt
-        </button>
-      </PageHeader>
+      />
 
-      <div className="dashboard-content">
+      <div className="modules-container">
         <OrganizationSelector />
         
         {error && (
@@ -177,105 +130,115 @@ export function MenuItems() {
           </div>
         )}
 
-        {atMenuItemLimit && (
-          <div className="warning-banner">
-            <span>⚠️ Du har nått gränsen för maträtter (2/2). Uppgradera för att skapa fler maträtter.</span>
+        {/* Status Overview */}
+        <div className="modules-status">
+          <div className="modules-status__item">
+            <span className="modules-status__count">{activeItems.length}</span>
+            <span className="modules-status__label">Aktiva maträtter</span>
           </div>
-        )}
-        
-        <div className="metrics-grid">
-          <MetricsCard
-            icon="📊"
-            title="GENOMSNITTLIG MARGINAL"
-            value={`${avgMarginPercentage.toFixed(1)}%`}
-            subtitle={`${formatCurrency(activeItems.reduce((sum, item) => {
-              const margin = typeof item.margin === 'string' 
-                ? parseFloat(item.margin) || 0 
-                : item.margin || 0;
-              return sum + margin;
-            }, 0) / Math.max(activeItems.length, 1))} per portion`}
-            color={avgMarginPercentage < 20 ? "danger" : avgMarginPercentage < 30 ? "warning" : "success"}
-          />
-          <MetricsCard
-            icon="🏆"
-            title="MEST LÖNSAM"
-            value={bestItem ? bestItem.name : "Ingen data"}
-            subtitle={bestItem ? `${formatPercentage(bestItem.margin_percentage)} marginal` : undefined}
-            color="success"
-          />
-          <MetricsCard
-            icon="📉"
-            title="MINST LÖNSAM"
-            value={worstItem ? worstItem.name : "Ingen data"}
-            subtitle={worstItem ? `${formatPercentage(worstItem.margin_percentage)} marginal` : undefined}
-            color="danger"
-          />
-          <MetricsCard
-            icon="📋"
-            title="MATRÄNDER ANVÄNDNING"
-            value={`${activeItems.length}/2`}
-            subtitle={`${menuItemUsagePercentage.toFixed(0)}% av limit`}
-            color={menuItemUsagePercentage < 60 ? "success" : menuItemUsagePercentage < 90 ? "warning" : "danger"}
-            trend={menuItemUsagePercentage > 80 ? "up" : "neutral"}
-          />
+          <div className="modules-status__item">
+            <span className="modules-status__count">{formatCurrency(avgSellingPrice)}</span>
+            <span className="modules-status__label">Ø försäljningspris</span>
+          </div>
+          <div className="modules-status__item">
+            <span className="modules-status__count">{avgMarginPercentage.toFixed(1)}%</span>
+            <span className="modules-status__label">Genomsnittlig marginal</span>
+          </div>
         </div>
 
-        <div className="table-section">
-          {tableData.length === 0 ? (
-            <EmptyState
-              icon="🍽️"
-              title="Inga maträtter än"
-              description="Skapa dina första maträtter från recept för att analysera lönsamhet och optimera prissättning"
-              actionLabel="Skapa Maträtt"
-              onAction={() => setIsFormOpen(true)}
+        {/* Enhanced Metrics Grid */}
+        <div className="modules-section">
+          <h2>Översikt</h2>
+          <div className="metrics-grid">
+            <MetricsCard
+              icon="📊"
+              title="GENOMSNITTLIG MARGINAL"
+              value={`${avgMarginPercentage.toFixed(1)}%`}
+              subtitle={`${formatCurrency(activeItems.reduce((sum, item) => {
+                const margin = typeof item.margin === 'string' 
+                  ? parseFloat(item.margin) || 0 
+                  : item.margin || 0;
+                return sum + margin;
+              }, 0) / Math.max(activeItems.length, 1))} per portion`}
+              color={avgMarginPercentage < 20 ? "danger" : avgMarginPercentage < 30 ? "warning" : "success"}
             />
-          ) : (
-            <SearchableTable
-              columns={columns}
-              data={tableData}
-              searchPlaceholder="Sök maträtter..."
-              emptyMessage="Inga maträtter hittades"
+            <MetricsCard
+              icon="🏆"
+              title="MEST LÖNSAM"
+              value={bestItem ? bestItem.name : "Ingen data"}
+              subtitle={bestItem ? `${formatPercentage(bestItem.margin_percentage)} marginal` : undefined}
+              color="success"
             />
-          )}
+            <MetricsCard
+              icon="📉"
+              title="MINST LÖNSAM"
+              value={worstItem ? worstItem.name : "Ingen data"}
+              subtitle={worstItem ? `${formatPercentage(worstItem.margin_percentage)} marginal` : undefined}
+              color="danger"
+            />
+            <MetricsCard
+              icon="📋"
+              title="MATRÄNDER ANVÄNDNING"
+              value={`${activeItems.length}/2`}
+              subtitle={`${menuItemUsagePercentage.toFixed(0)}% av limit`}
+              color={menuItemUsagePercentage < 60 ? "success" : menuItemUsagePercentage < 90 ? "warning" : "danger"}
+              trend={menuItemUsagePercentage > 80 ? "up" : "neutral"}
+            />
+          </div>
+        </div>
+
+        {/* Menu Items Table */}
+        <div className="modules-section">
+          <h2>Alla Maträtter</h2>
+          <div className="table-section">
+            {tableData.length === 0 ? (
+              <EmptyState
+                icon="🍽️"
+                title="Inga maträtter än"
+                description="Skapa dina första maträtter från recept för att analysera lönsamhet och optimera prissättning"
+              />
+            ) : (
+              <SearchableTable
+                columns={columns}
+                data={tableData}
+                searchPlaceholder="Sök maträtter..."
+                emptyMessage="Inga maträtter hittades"
+              />
+            )}
+          </div>
         </div>
 
         {/* Menu Statistics */}
         {activeItems.length > 0 && (
-          <div className="stats-section">
-            <h3>Maträtterstatistik</h3>
-            <div className="stats-grid">
-              <div className="stat-item">
-                <span className="stat-label">Totalt antal maträtter:</span>
-                <span className="stat-value">{activeItems.length}</span>
+          <div className="modules-section">
+            <h2>Detaljerad Statistik</h2>
+            <div className="modules-status">
+              <div className="modules-status__item">
+                <span className="modules-status__count">{activeItems.length}</span>
+                <span className="modules-status__label">Totalt antal maträtter</span>
               </div>
-              <div className="stat-item">
-                <span className="stat-label">Genomsnittligt försäljningspris:</span>
-                <span className="stat-value">{formatCurrency(avgSellingPrice)}</span>
+              <div className="modules-status__item">
+                <span className="modules-status__count">{formatCurrency(avgSellingPrice)}</span>
+                <span className="modules-status__label">Genomsnittligt pris</span>
               </div>
-              <div className="stat-item">
-                <span className="stat-label">Lönsamma maträtter (&gt;30% marginal):</span>
-                <span className="stat-value">{profitableCount}</span>
+              <div className="modules-status__item">
+                <span className="modules-status__count">{profitableCount}</span>
+                <span className="modules-status__label">Lönsamma (&gt;30%)</span>
               </div>
-              <div className="stat-item">
-                <span className="stat-label">Marginalspann:</span>
-                <span className="stat-value">
+              <div className="modules-status__item">
+                <span className="modules-status__count">
                   {bestItem && worstItem && bestItem.margin_percentage !== undefined && worstItem.margin_percentage !== undefined
                     ? `${formatPercentage(worstItem.margin_percentage)} - ${formatPercentage(bestItem.margin_percentage)}`
                     : '-'
                   }
                 </span>
+                <span className="modules-status__label">Marginalspann</span>
               </div>
             </div>
           </div>
         )}
       </div>
 
-      <MenuItemForm
-        isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        onSubmit={handleCreateMenuItem}
-        isLoading={isLoading}
-      />
     </div>
   );
 }

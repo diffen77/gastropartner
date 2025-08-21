@@ -1,0 +1,378 @@
+/* GastroPartner - Professionell SaaS Theme */
+:root {
+  /* === BRAND COLORS === */
+  --primary: oklch(0.6234 0.1891 24.3426);        /* Varm orange - CTA & brand */
+  --primary-foreground: oklch(0.9900 0 0);        /* Vit text på primary */
+  --secondary: oklch(0.9400 0.0200 24.3426);      /* Ljus orange - hover states */
+  --secondary-foreground: oklch(0.1500 0 0);      /* Mörk text på secondary */
+  
+  /* === NEUTRAL GRAYS === */
+  --background: oklch(0.9950 0 0);                /* Nästan vit bakgrund */
+  --foreground: oklch(0.1200 0 0);                /* Mörkgrå text */
+  --muted: oklch(0.9600 0 0);                     /* Ljusgrå bakgrunder */
+  --muted-foreground: oklch(0.4500 0 0);          /* Medium grå text */
+  
+  /* === SEMANTIC COLORS === */
+  --success: oklch(0.6900 0.1500 142.0000);       /* Grön - framgång */
+  --success-foreground: oklch(0.9900 0 0);
+  --warning: oklch(0.7500 0.1200 85.0000);        /* Gul - varningar */
+  --warning-foreground: oklch(0.1500 0 0);
+  --destructive: oklch(0.6200 0.2000 27.0000);    /* Röd - fel/fara */
+  --destructive-foreground: oklch(0.9900 0 0);
+  
+  /* === STATUS COLORS === */
+  --premium: oklch(0.5500 0.2000 280.0000);       /* Lila - premium moduler */
+  --premium-foreground: oklch(0.9900 0 0);
+  --free: oklch(0.7000 0.1500 142.0000);          /* Grön - gratis */
+  --inactive: oklch(0.6000 0.0100 0);             /* Grå - inaktiva moduler */
+  
+  /* === UI COMPONENTS === */
+  --card: oklch(0.9900 0 0);                      /* Vita kort */
+  --card-foreground: oklch(0.1200 0 0);
+  --border: oklch(0.9200 0 0);                    /* Subtila borders */
+  --input: oklch(0.9800 0 0);                     /* Input bakgrunder */
+  --ring: oklch(0.6234 0.1891 24.3426);          /* Focus rings - matchars primary */
+  
+  /* === TYPOGRAPHY === */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  
+  /* === SPACING & SIZING === */
+  --radius: 0.5rem;                               /* Medium rundade hörn */
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
+  
+  /* === SHADOWS (Subtila, professionella) === */
+  --shadow-sm: 0 1px 2px 0px oklch(0 0 0 / 0.05);
+  --shadow: 0 1px 3px 0px oklch(0 0 0 / 0.10), 0 1px 2px -1px oklch(0 0 0 / 0.10);
+  --shadow-md: 0 4px 6px -1px oklch(0 0 0 / 0.10), 0 2px 4px -2px oklch(0 0 0 / 0.05);
+  --shadow-lg: 0 10px 15px -3px oklch(0 0 0 / 0.10), 0 4px 6px -4px oklch(0 0 0 / 0.05);
+  --shadow-xl: 0 20px 25px -5px oklch(0 0 0 / 0.10), 0 8px 10px -6px oklch(0 0 0 / 0.05);
+  
+  /* === TRANSITIONS === */
+  --transition-fast: 150ms ease-out;
+  --transition-normal: 250ms ease-out;
+  --transition-slow: 350ms ease-out;
+}
+
+/* === DARK MODE (Optional för framtida användning) === */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: oklch(0.0800 0 0);
+    --foreground: oklch(0.9200 0 0);
+    --card: oklch(0.1000 0 0);
+    --card-foreground: oklch(0.9200 0 0);
+    --muted: oklch(0.1400 0 0);
+    --muted-foreground: oklch(0.6500 0 0);
+    --border: oklch(0.2000 0 0);
+    --input: oklch(0.1400 0 0);
+  }
+}
+
+/* === UTILITY CLASSES === */
+
+/* Typography Scale - Optimerad för läsbarhet */
+.text-xs { font-size: 0.75rem; line-height: 1rem; }      /* 12px */
+.text-sm { font-size: 0.875rem; line-height: 1.25rem; }  /* 14px */
+.text-base { font-size: 1rem; line-height: 1.5rem; }     /* 16px - Base för god läsbarhet */
+.text-lg { font-size: 1.125rem; line-height: 1.75rem; }  /* 18px */
+.text-xl { font-size: 1.25rem; line-height: 1.75rem; }   /* 20px */
+.text-2xl { font-size: 1.5rem; line-height: 2rem; }      /* 24px */
+.text-3xl { font-size: 1.875rem; line-height: 2.25rem; } /* 30px */
+
+/* Font Weights */
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+
+/* Colors */
+.text-primary { color: var(--primary); }
+.text-success { color: var(--success); }
+.text-warning { color: var(--warning); }
+.text-destructive { color: var(--destructive); }
+.text-premium { color: var(--premium); }
+.text-muted { color: var(--muted-foreground); }
+
+.bg-primary { background-color: var(--primary); color: var(--primary-foreground); }
+.bg-secondary { background-color: var(--secondary); color: var(--secondary-foreground); }
+.bg-success { background-color: var(--success); color: var(--success-foreground); }
+.bg-warning { background-color: var(--warning); color: var(--warning-foreground); }
+.bg-destructive { background-color: var(--destructive); color: var(--destructive-foreground); }
+.bg-premium { background-color: var(--premium); color: var(--premium-foreground); }
+.bg-card { background-color: var(--card); color: var(--card-foreground); }
+.bg-muted { background-color: var(--muted); color: var(--muted-foreground); }
+
+/* Component Specific Styles */
+
+/* Buttons - Extra stora för touch-vänlighet */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-height: 48px; /* Touch-vänligt */
+  text-decoration: none !important;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+
+.btn-primary:hover {
+  background-color: oklch(0.5734 0.1891 24.3426); /* Mörkare orange */
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+  border-color: var(--border);
+}
+
+.btn-secondary:hover {
+  background-color: oklch(0.9200 0.0200 24.3426);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-destructive {
+  background-color: var(--destructive);
+  color: var(--destructive-foreground);
+}
+
+.btn-premium {
+  background: linear-gradient(135deg, var(--premium) 0%, oklch(0.4500 0.2000 280.0000) 100%);
+  color: var(--premium-foreground);
+  position: relative;
+  overflow: hidden;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  border: 2px solid var(--premium);
+  box-shadow: var(--shadow-lg);
+  transition: all var(--transition-normal);
+}
+
+.btn-premium::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left 0.6s ease-out;
+}
+
+.btn-premium:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-xl);
+  background: linear-gradient(135deg, oklch(0.4500 0.2000 280.0000) 0%, oklch(0.4000 0.2000 280.0000) 100%);
+}
+
+.btn-premium:hover::before {
+  left: 100%;
+}
+
+.btn-premium:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-premium i {
+  font-size: 1.1em;
+}
+
+/* Cards */
+.card {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-normal);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.card-premium {
+  border: 2px solid var(--premium);
+  position: relative;
+}
+
+.card-premium::before {
+  content: '💎 PREMIUM';
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  background: var(--premium);
+  color: var(--premium-foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0 var(--radius-lg) 0 var(--radius);
+}
+
+/* Navigation Tabs */
+.nav-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  font-weight: 500;
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-fast);
+  text-decoration: none !important;
+  color: var(--foreground);
+  border: 2px solid transparent;
+  min-height: 60px; /* Extra stor för enkelhet */
+}
+
+.nav-tab:hover {
+  background-color: var(--muted);
+  transform: translateY(-1px);
+}
+
+.nav-tab.active {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: var(--shadow-sm);
+}
+
+.nav-tab.premium::after {
+  content: '💎';
+  font-size: 0.75rem;
+}
+
+.nav-tab.inactive {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: var(--radius-xl);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.status-free {
+  background-color: var(--success);
+  color: var(--success-foreground);
+}
+
+.status-premium {
+  background-color: var(--premium);
+  color: var(--premium-foreground);
+}
+
+.status-inactive {
+  background-color: var(--inactive);
+  color: var(--background);
+}
+
+/* Input Fields */
+.input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--input);
+  color: var(--foreground);
+  transition: all var(--transition-fast);
+  min-height: 48px; /* Touch-vänligt */
+}
+
+.input:focus {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px oklch(0.6234 0.1891 24.3426 / 0.1);
+  outline: none;
+}
+
+/* Tables */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--card);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.table th {
+  background-color: var(--muted);
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  color: var(--muted-foreground);
+}
+
+.table td {
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.table tbody tr:hover {
+  background-color: var(--muted);
+}
+
+/* Spacing Utilities */
+.p-4 { padding: 1rem; }
+.p-6 { padding: 1.5rem; }
+.p-8 { padding: 2rem; }
+.m-4 { margin: 1rem; }
+.m-6 { margin: 1.5rem; }
+.gap-4 { gap: 1rem; }
+.gap-6 { gap: 1.5rem; }
+
+/* Layout */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.justify-center { justify-content: center; }
+.space-y-4 > * + * { margin-top: 1rem; }
+.space-y-6 > * + * { margin-top: 1.5rem; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .btn {
+    padding: 1rem 1.5rem;
+    min-height: 52px; /* Större på mobil */
+  }
+  
+  .nav-tab {
+    padding: 1.25rem;
+    min-height: 64px;
+  }
+  
+  .input {
+    padding: 1rem;
+    min-height: 52px;
+  }
+}

@@ -1,26 +1,5 @@
 import React from 'react';
-
-function PageHeader({ title, subtitle, children }: { 
-  title: string; 
-  subtitle?: string; 
-  children?: React.ReactNode; 
-}) {
-  return (
-    <div className="page-header">
-      <div className="page-header__content">
-        <div className="page-header__text">
-          <h1 className="page-header__title">{title}</h1>
-          {subtitle && <p className="page-header__subtitle">{subtitle}</p>}
-        </div>
-        {children && (
-          <div className="page-header__actions">
-            {children}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+import { PageHeader } from '../components/PageHeader';
 
 function ComingSoonCard({ 
   icon, 
@@ -55,16 +34,20 @@ export function Sales() {
         subtitle="Hantera försäljning, orderhantering och kundinformation"
       />
 
-      <div className="coming-soon-container">
-        <div className="coming-soon-hero">
-          <div className="coming-soon-hero__icon">💰</div>
-          <h2 className="coming-soon-hero__title">Försäljningsmodulen kommer snart!</h2>
-          <p className="coming-soon-hero__subtitle">
-            Vi utvecklar kraftfulla verktyg för att hantera din försäljning och kundrelationer.
-          </p>
+      <div className="modules-container">
+        <div className="modules-section">
+          <div className="coming-soon-hero">
+            <div className="coming-soon-hero__icon">💰</div>
+            <h2 className="coming-soon-hero__title">Försäljningsmodulen kommer snart!</h2>
+            <p className="coming-soon-hero__subtitle">
+              Vi utvecklar kraftfulla verktyg för att hantera din försäljning och kundrelationer.
+            </p>
+          </div>
         </div>
 
-        <div className="coming-soon-grid">
+        <div className="modules-section">
+          <h2>Kommande Funktioner</h2>
+          <div className="coming-soon-grid">
           <ComingSoonCard
             icon="📊"
             title="Försäljningsrapporter"
@@ -112,14 +95,17 @@ export function Sales() {
               "Ekonomisystemsintegration"
             ]}
           />
+          </div>
         </div>
 
-        <div className="coming-soon-cta">
-          <h3>Vill du få tillgång först?</h3>
-          <p>Kontakta oss för att bli en av de första att testa försäljningsmodulen.</p>
-          <button className="btn btn--primary" disabled>
-            Intresseanmälan (Kommer snart)
-          </button>
+        <div className="modules-section">
+          <div className="coming-soon-cta">
+            <h3>Vill du få tillgång först?</h3>
+            <p>Kontakta oss för att bli en av de första att testa försäljningsmodulen.</p>
+            <button className="btn btn--primary" disabled>
+              Intresseanmälan (Kommer snart)
+            </button>
+          </div>
         </div>
       </div>
     </div>

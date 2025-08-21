@@ -50,6 +50,64 @@ export interface Organization {
   current_menu_items: number;
 }
 
+// Organization Settings interfaces
+export interface RestaurantProfile {
+  name: string;
+  phone?: string;
+  timezone: string;
+  currency: string;
+  address?: string;
+  website?: string;
+}
+
+export interface BusinessSettings {
+  margin_target: number;
+  service_charge: number;
+  default_prep_time: number;
+  operating_hours: Record<string, any>;
+}
+
+export interface BusinessSettingsUpdate {
+  margin_target?: number;
+  service_charge?: number;
+  default_prep_time?: number;
+  operating_hours?: Record<string, any>;
+}
+
+export interface NotificationPreferences {
+  email_notifications: boolean;
+  sms_notifications: boolean;
+  inventory_alerts: boolean;
+  cost_alerts: boolean;
+  daily_reports: boolean;
+  weekly_reports: boolean;
+}
+
+export interface OrganizationSettings {
+  settings_id: string;
+  organization_id: string;
+  creator_id: string;
+  restaurant_profile: RestaurantProfile;
+  business_settings: BusinessSettings;
+  notification_preferences: NotificationPreferences;
+  has_completed_onboarding: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrganizationSettingsCreate {
+  restaurant_profile: RestaurantProfile;
+  business_settings: BusinessSettings;
+  notification_preferences: NotificationPreferences;
+}
+
+export interface OrganizationSettingsUpdate {
+  restaurant_profile?: RestaurantProfile;
+  business_settings?: BusinessSettingsUpdate;
+  notification_preferences?: NotificationPreferences;
+  has_completed_onboarding?: boolean;
+}
+
 export interface AuthResponse {
   access_token: string;
   refresh_token: string;
@@ -275,6 +333,42 @@ class ApiClient {
       };
       upgrade_needed: boolean;
     }>(`/api/v1/organizations/${id}/usage`);
+  }
+
+  // Organization Settings methods
+  /**
+   * Get organization settings with onboarding status.
+   * 🛡️ SECURITY: Multi-tenant secure - user must belong to organization.
+   */
+  async getOrganizationSettings(organizationId: string): Promise<OrganizationSettings> {
+    return this.request<OrganizationSettings>(`/api/v1/organizations/${organizationId}/settings`);
+  }
+
+  /**
+   * Update organization settings and automatically mark onboarding as completed.
+   * 🛡️ SECURITY: Multi-tenant secure - user must belong to organization.
+   */
+  async updateOrganizationSettings(
+    organizationId: string,
+    settings: OrganizationSettingsUpdate
+  ): Promise<OrganizationSettings> {
+    return this.request<OrganizationSettings>(`/api/v1/organizations/${organizationId}/settings`, {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    });
+  }
+
+  /**
+   * Mark organization onboarding as completed.
+   * 🛡️ SECURITY: Multi-tenant secure - user must belong to organization.
+   */
+  async completeOrganizationOnboarding(organizationId: string): Promise<{ message: string; success: boolean }> {
+    return this.request<{ message: string; success: boolean }>(
+      `/api/v1/organizations/${organizationId}/settings/complete-onboarding`,
+      {
+        method: 'POST',
+      }
+    );
   }
 }
 

@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GastroPartner - Moduler med PRO Prissättning</title>
+    <link rel="stylesheet" href="modules_pricing_theme.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--background);
+            color: var(--foreground);
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .page-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-header p {
+            color: var(--muted-foreground);
+            font-size: 1.1rem;
+        }
+
+        .modules-section {
+            margin-bottom: 3rem;
+        }
+
+        .modules-section h2 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--foreground);
+        }
+
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .module-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .module-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .module-card__header {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .module-card__icon {
+            font-size: 2.5rem;
+            flex-shrink: 0;
+        }
+
+        .module-card__info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .module-card__title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--foreground);
+        }
+
+        .module-card__status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .status--active {
+            background: var(--accent);
+            color: var(--accent-foreground);
+        }
+
+        .status--beta {
+            background: var(--warning);
+            color: var(--warning-foreground);
+        }
+
+        .status--pro {
+            background: linear-gradient(135deg, var(--pro) 0%, var(--warning) 100%);
+            color: var(--pro-foreground);
+        }
+
+        .module-card__description {
+            color: var(--muted-foreground);
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+
+        .module-card__features {
+            list-style: none;
+            margin-bottom: 1.5rem;
+        }
+
+        .module-card__features li {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0;
+            color: var(--foreground);
+            font-size: 0.9rem;
+        }
+
+        .module-card__features li::before {
+            content: "✅";
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius);
+            font-weight: 500;
+            text-decoration: none;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            width: 100%;
+        }
+
+        .btn--outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--foreground);
+        }
+
+        .btn--outline:hover {
+            background: var(--muted);
+        }
+
+        .comparison-badge {
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            z-index: 10;
+        }
+
+        .upgrade-highlight {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.05) 0%, rgba(255, 165, 0, 0.05) 100%);
+            border: 2px dashed var(--pro);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="page-header">
+            <h1>🧩 Moduler</h1>
+            <p>Hantera och aktivera olika funktionsmoduler i ditt system</p>
+        </div>
+
+        <div class="modules-section">
+            <h2>Aktiva Moduler</h2>
+            <div class="modules-grid">
+                <!-- Regular Ingredient Module -->
+                <div class="module-card">
+                    <div class="module-card__header">
+                        <div class="module-card__icon">🥕</div>
+                        <div class="module-card__info">
+                            <h3 class="module-card__title">Ingredienshantering</h3>
+                            <span class="module-card__status status--active">Aktiverad</span>
+                        </div>
+                    </div>
+                    <p class="module-card__description">
+                        Hantera ingredienser, leverantörer och kostnader
+                    </p>
+                    <ul class="module-card__features">
+                        <li>Ingrediensregister med kategorier</li>
+                        <li>Kostnadsspårning per enhet</li>
+                        <li>Leverantörshantering</li>
+                        <li>Automatisk uppdatering</li>
+                    </ul>
+                </div>
+
+                <!-- PRO Recipe Module with Pricing -->
+                <div class="module-card module-card--pro upgrade-highlight">
+                    <div class="comparison-badge">MEST POPULÄR</div>
+                    <div class="module-card__header">
+                        <div class="module-card__icon">📝</div>
+                        <div class="module-card__info">
+                            <h3 class="module-card__title">Recepthantering</h3>
+                            <span class="module-card__status status--pro">PRO</span>
+                        </div>
+                    </div>
+                    <p class="module-card__description">
+                        Skapa och hantera recept med avancerade kostnadsberäkningar
+                    </p>
+                    <ul class="module-card__features">
+                        <li>Detaljerade recept med instruktioner</li>
+                        <li>Automatisk kostnadsberäkning</li>
+                        <li>Portionsstorlekar och skalning</li>
+                        <li>Näringsinnehållsanalys</li>
+                    </ul>
+                    
+                    <!-- PRO Pricing Section -->
+                    <div class="pricing-section">
+                        <div class="pricing-header">
+                            <span>💰</span>
+                            <strong>PRO: 299 kr/månad</strong>
+                        </div>
+                        <ul class="pricing-benefits">
+                            <li>Obegränsade recept</li>
+                            <li>Avancerad näringsanalys</li>
+                            <li>Batch-kostnadsberäkningar</li>
+                            <li>Export till kalkylark</li>
+                            <li>Prioriterad support</li>
+                        </ul>
+                    </div>
+                    
+                    <button class="btn btn--pro">
+                        🚀 Uppgradera till PRO
+                    </button>
+                </div>
+
+                <!-- Regular Menu Module -->
+                <div class="module-card">
+                    <div class="module-card__header">
+                        <div class="module-card__icon">🍽️</div>
+                        <div class="module-card__info">
+                            <h3 class="module-card__title">Menyhantering</h3>
+                            <span class="module-card__status status--active">Aktiverad</span>
+                        </div>
+                    </div>
+                    <p class="module-card__description">
+                        Skapa maträtter och beräkna lönsamhet
+                    </p>
+                    <ul class="module-card__features">
+                        <li>Matträtt från recept</li>
+                        <li>Prissättning och marginaler</li>
+                        <li>Lönsamhetsanalys</li>
+                        <li>Säsongsmeny och kampanjer</li>
+                    </ul>
+                </div>
+
+                <!-- Regular Cost Analysis Module -->
+                <div class="module-card">
+                    <div class="module-card__header">
+                        <div class="module-card__icon">📈</div>
+                        <div class="module-card__info">
+                            <h3 class="module-card__title">Kostnadsanalys</h3>
+                            <span class="module-card__status status--active">Aktiverad</span>
+                        </div>
+                    </div>
+                    <p class="module-card__description">
+                        Djupgående analys av kostnader och lönsamhet
+                    </p>
+                    <ul class="module-card__features">
+                        <li>Realtidskostnadsberäkning</li>
+                        <li>Marginalanalys per produkt</li>
+                        <li>Trendspårning över tid</li>
+                        <li>Jämförelser och benchmarks</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="modules-section">
+            <h2>Beta-moduler</h2>
+            <div class="modules-grid">
+                <!-- Regular Beta Module -->
+                <div class="module-card">
+                    <div class="module-card__header">
+                        <div class="module-card__icon">🧪</div>
+                        <div class="module-card__info">
+                            <h3 class="module-card__title">User Testing</h3>
+                            <span class="module-card__status status--beta">Beta</span>
+                        </div>
+                    </div>
+                    <p class="module-card__description">
+                        Samla användarfeedback och förbättra upplevelsen
+                    </p>
+                    <ul class="module-card__features">
+                        <li>Feedbackformulär och enkäter</li>
+                        <li>Användaranalys och insights</li>
+                        <li>A/B-testning av funktioner</li>
+                        <li>Automatiserad rapportering</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add subtle animations on load
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.module-card');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    card.style.transition = 'all 0.6s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+            
+            // Add click animation to PRO button
+            const proButton = document.querySelector('.btn--pro');
+            if (proButton) {
+                proButton.addEventListener('click', function(e) {
+                    // Create ripple effect
+                    const ripple = document.createElement('span');
+                    const rect = this.getBoundingClientRect();
+                    const size = Math.max(rect.width, rect.height);
+                    const x = e.clientX - rect.left - size / 2;
+                    const y = e.clientY - rect.top - size / 2;
+                    
+                    ripple.style.cssText = `
+                        position: absolute;
+                        width: ${size}px;
+                        height: ${size}px;
+                        left: ${x}px;
+                        top: ${y}px;
+                        background: rgba(255, 255, 255, 0.3);
+                        border-radius: 50%;
+                        transform: scale(0);
+                        animation: ripple 0.6s ease-out;
+                        pointer-events: none;
+                    `;
+                    
+                    this.style.position = 'relative';
+                    this.style.overflow = 'hidden';
+                    this.appendChild(ripple);
+                    
+                    setTimeout(() => ripple.remove(), 600);
+                });
+            }
+        });
+        
+        // Add ripple animation CSS
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes ripple {
+                0% { transform: scale(0); opacity: 1; }
+                100% { transform: scale(2); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

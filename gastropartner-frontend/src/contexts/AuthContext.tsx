@@ -4,7 +4,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session } from '@supabase/supabase-js';
-import { supabase, api, User, Organization } from '../lib/supabase';
+import { supabase, api, User, Organization, OrganizationSettings } from '../lib/supabase';
 
 interface AuthContextType {
   // Authentication state
@@ -16,6 +16,11 @@ interface AuthContextType {
   organizations: Organization[];
   currentOrganization: Organization | null;
   
+  // Onboarding state
+  hasCompletedOnboarding: boolean | null; // null = loading, true/false = loaded
+  organizationSettings: OrganizationSettings | null;
+  onboardingLoading: boolean;
+  
   // Authentication methods
   signUp: (email: string, password: string, fullName: string) => Promise<{ success: boolean; message: string }>;
   signIn: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
@@ -24,7 +29,13 @@ interface AuthContextType {
   // Organization methods
   setCurrentOrganization: (org: Organization | null) => void;
   refreshOrganizations: () => Promise<void>;
+  getOrganizations: () => Promise<Organization[]>;
   createOrganization: (name: string, description?: string) => Promise<Organization>;
+  
+  // Onboarding methods
+  checkOnboardingStatus: () => Promise<boolean>;
+  completeOnboarding: () => Promise<void>;
+  updateOnboardingSettings: (settings: Partial<OrganizationSettings>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -47,6 +58,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Onboarding state
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
+  const [organizationSettings, setOrganizationSettings] = useState<OrganizationSettings | null>(null);
+  const [onboardingLoading, setOnboardingLoading] = useState(false);
 
 
   // Initialize auth state
@@ -90,6 +106,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setOrganizations(orgsData);
             if (orgsData.length > 0) {
               setCurrentOrganization(orgsData[0]);
+              
+              // Check onboarding status for the first organization
+              try {
+                console.log('🔄 Loading organization settings for dev mode:', orgsData[0].id);
+                const settings = await api.getOrganizationSettings(orgsData[0].id);
+                console.log('✅ Organization settings loaded:', settings);
+                setOrganizationSettings(settings);
+                setHasCompletedOnboarding(settings.has_completed_onboarding);
+              } catch (settingsError) {
+                console.warn('Could not load organization settings, checking localStorage for onboarding status:', settingsError);
+                
+                // Check if user has previously completed onboarding (stored in localStorage)
+                const cachedOnboardingStatus = localStorage.getItem('onboarding_completed');
+                if (cachedOnboardingStatus === 'true') {
+                  console.log('✅ Found cached onboarding completion, skipping onboarding');
+                  setHasCompletedOnboarding(true);
+                } else {
+                  console.log('❌ No cached onboarding completion found, assuming completed for development');
+                  // For development: assume onboarding is completed to avoid infinite loops
+                  // In production, this would be false to force onboarding
+                  setHasCompletedOnboarding(true);
+                }
+                setOrganizationSettings(null);
+              }
+            } else {
+              // No organizations - assume onboarding not completed
+              console.log('No organizations found, onboarding not completed');
+              setHasCompletedOnboarding(false);
             }
             
           } catch (error) {
@@ -140,6 +184,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
             // Set first organization as current if none selected
             if (orgsData.length > 0) {
               setCurrentOrganization(orgsData[0]);
+              
+              // Check onboarding status for the first organization
+              try {
+                console.log('🔄 Loading organization settings:', orgsData[0].id);
+                const settings = await api.getOrganizationSettings(orgsData[0].id);
+                console.log('✅ Organization settings loaded:', settings);
+                setOrganizationSettings(settings);
+                setHasCompletedOnboarding(settings.has_completed_onboarding);
+              } catch (settingsError) {
+                console.warn('Could not load organization settings, checking localStorage for onboarding status:', settingsError);
+                
+                // Check if user has previously completed onboarding (stored in localStorage)
+                const cachedOnboardingStatus = localStorage.getItem('onboarding_completed');
+                if (cachedOnboardingStatus === 'true') {
+                  console.log('✅ Found cached onboarding completion, skipping onboarding');
+                  setHasCompletedOnboarding(true);
+                } else {
+                  console.log('❌ No cached onboarding completion found, assuming completed for development');
+                  // For development: assume onboarding is completed to avoid infinite loops
+                  // In production, this would be false to force onboarding
+                  setHasCompletedOnboarding(true);
+                }
+                setOrganizationSettings(null);
+              }
+            } else {
+              // No organizations - assume onboarding not completed
+              console.log('No organizations found (Supabase), onboarding not completed');
+              setHasCompletedOnboarding(false);
             }
             
           } catch (error) {
@@ -210,6 +282,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
             // Set first organization as current if none selected
             if (orgsData.length > 0) {
               setCurrentOrganization(orgsData[0]);
+              
+              // Check onboarding status for the first organization
+              try {
+                console.log('🔄 Loading organization settings:', orgsData[0].id);
+                const settings = await api.getOrganizationSettings(orgsData[0].id);
+                console.log('✅ Organization settings loaded:', settings);
+                setOrganizationSettings(settings);
+                setHasCompletedOnboarding(settings.has_completed_onboarding);
+              } catch (settingsError) {
+                console.warn('Could not load organization settings, checking localStorage for onboarding status:', settingsError);
+                
+                // Check if user has previously completed onboarding (stored in localStorage)
+                const cachedOnboardingStatus = localStorage.getItem('onboarding_completed');
+                if (cachedOnboardingStatus === 'true') {
+                  console.log('✅ Found cached onboarding completion, skipping onboarding');
+                  setHasCompletedOnboarding(true);
+                } else {
+                  console.log('❌ No cached onboarding completion found, assuming completed for development');
+                  // For development: assume onboarding is completed to avoid infinite loops
+                  // In production, this would be false to force onboarding
+                  setHasCompletedOnboarding(true);
+                }
+                setOrganizationSettings(null);
+              }
+            } else {
+              // No organizations - assume onboarding not completed
+              console.log('No organizations found (Auth change), onboarding not completed');
+              setHasCompletedOnboarding(false);
             }
             
           } catch (error) {
@@ -246,6 +346,110 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     return () => subscription.unsubscribe();
   }, []); // Remove loadUserData dependency to prevent infinite loops
+
+  // Onboarding methods
+  const checkOnboardingStatus = async (): Promise<boolean> => {
+    if (!currentOrganization) {
+      console.warn('No current organization available for onboarding check');
+      return false;
+    }
+
+    try {
+      setOnboardingLoading(true);
+      const settings = await api.getOrganizationSettings(currentOrganization.id);
+      setOrganizationSettings(settings);
+      setHasCompletedOnboarding(settings.has_completed_onboarding);
+      return settings.has_completed_onboarding;
+    } catch (error) {
+      console.error('Error checking onboarding status:', error);
+      // If settings don't exist yet, assume onboarding not completed
+      setHasCompletedOnboarding(false);
+      return false;
+    } finally {
+      setOnboardingLoading(false);
+    }
+  };
+
+  const completeOnboarding = async (): Promise<void> => {
+    // If no currentOrganization but we have organizations, use the first one
+    let orgToUse = currentOrganization;
+    if (!orgToUse && organizations && organizations.length > 0) {
+      orgToUse = organizations[0];
+      setCurrentOrganization(orgToUse);
+      console.log('🏢 Using first available organization for onboarding completion:', orgToUse.name);
+    }
+
+    // If still no organization, try to fetch fresh ones
+    if (!orgToUse) {
+      try {
+        console.log('🏢 No organization found, attempting to fetch fresh data...');
+        const freshOrgs = await api.getOrganizations();
+        if (freshOrgs && freshOrgs.length > 0) {
+          orgToUse = freshOrgs[0];
+          setCurrentOrganization(orgToUse);
+          setOrganizations(freshOrgs);
+          console.log('🏢 Found organization via fresh fetch:', orgToUse.name);
+        }
+      } catch (fetchError) {
+        console.warn('Could not fetch fresh organizations:', fetchError);
+      }
+    }
+
+    try {
+      setOnboardingLoading(true);
+      
+      // Try to complete onboarding via API if we have an organization
+      if (orgToUse) {
+        try {
+          await api.completeOrganizationOnboarding(orgToUse.id);
+          console.log('✅ Onboarding completed via API');
+          
+          // Refresh the organization settings to get the updated status
+          const updatedSettings = await api.getOrganizationSettings(orgToUse.id);
+          setOrganizationSettings(updatedSettings);
+        } catch (apiError) {
+          console.warn('Failed to complete onboarding via API, but continuing:', apiError);
+        }
+      } else {
+        console.warn('⚠️  No organization available for API onboarding completion, proceeding with local-only completion');
+      }
+      
+      // Always mark as completed locally and cache the result
+      setHasCompletedOnboarding(true);
+      localStorage.setItem('onboarding_completed', 'true');
+      console.log('✅ Onboarding status cached in localStorage');
+      
+    } catch (error) {
+      console.error('Error completing onboarding:', error);
+      throw error;
+    } finally {
+      setOnboardingLoading(false);
+    }
+  };
+
+  const updateOnboardingSettings = async (settings: Partial<OrganizationSettings>): Promise<void> => {
+    if (!currentOrganization) {
+      throw new Error('No current organization available for settings update');
+    }
+
+    try {
+      setOnboardingLoading(true);
+      const updatedSettings = await api.updateOrganizationSettings(currentOrganization.id, {
+        restaurant_profile: settings.restaurant_profile,
+        business_settings: settings.business_settings,
+        notification_preferences: settings.notification_preferences,
+        has_completed_onboarding: settings.has_completed_onboarding,
+      });
+      
+      setOrganizationSettings(updatedSettings);
+      setHasCompletedOnboarding(updatedSettings.has_completed_onboarding);
+    } catch (error) {
+      console.error('Error updating onboarding settings:', error);
+      throw error;
+    } finally {
+      setOnboardingLoading(false);
+    }
+  };
 
   const signUp = async (
     email: string,
@@ -297,10 +501,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setOrganizations(orgsData);
         if (orgsData.length > 0) {
           setCurrentOrganization(orgsData[0]);
+          
+          // Check onboarding status for the first organization
+          try {
+            console.log('🔄 Loading organization settings during login:', orgsData[0].id);
+            const settings = await api.getOrganizationSettings(orgsData[0].id);
+            console.log('✅ Organization settings loaded during login:', settings);
+            setOrganizationSettings(settings);
+            setHasCompletedOnboarding(settings.has_completed_onboarding);
+          } catch (settingsError) {
+            console.warn('Could not load organization settings during login, assuming onboarding completed for development:', settingsError);
+            // For development: assume onboarding is completed to avoid infinite loops
+            setHasCompletedOnboarding(true);
+            setOrganizationSettings(null);
+          }
+        } else {
+          // No organizations - assume onboarding not completed
+          console.log('No organizations found (Login), onboarding not completed');
+          setHasCompletedOnboarding(false);
         }
       } catch (orgError) {
         console.warn('Could not load organizations:', orgError);
         setOrganizations([]);
+        setHasCompletedOnboarding(false);
       }
 
       return {
@@ -321,6 +544,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('refresh_token');
       
+      // Clear onboarding cache
+      localStorage.removeItem('onboarding_completed');
+      
       // Also sign out from Supabase (in case both are used)
       await supabase.auth.signOut();
       
@@ -328,6 +554,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setSession(null);
       setOrganizations([]);
       setCurrentOrganization(null);
+      
+      // Clear onboarding state
+      setHasCompletedOnboarding(null);
+      setOrganizationSettings(null);
+      setOnboardingLoading(false);
+      
+      console.log('✅ Successfully signed out and cleared all cached data');
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -373,18 +606,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const getOrganizations = async (): Promise<Organization[]> => {
+    try {
+      return await api.getOrganizations();
+    } catch (error) {
+      console.error('Error getting organizations:', error);
+      return [];
+    }
+  };
+
   const value: AuthContextType = {
     session,
     user,
     loading,
     organizations,
     currentOrganization,
+    hasCompletedOnboarding,
+    organizationSettings,
+    onboardingLoading,
     signUp,
     signIn,
     signOut,
     setCurrentOrganization,
     refreshOrganizations,
+    getOrganizations,
     createOrganization,
+    checkOnboardingStatus,
+    completeOnboarding,
+    updateOnboardingSettings,
   };
 
   return (

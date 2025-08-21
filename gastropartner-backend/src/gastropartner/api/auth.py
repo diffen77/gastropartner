@@ -1,5 +1,7 @@
 """Authentication API endpoints."""
 
+import jwt
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field
 from supabase import Client
@@ -15,6 +17,58 @@ from gastropartner.core.models import (
 )
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
+
+
+def create_development_jwt_token(user_id: str, email: str, organization_id: str) -> str:
+    """
+    Create a proper JWT token for development with organization_id claim.
+    
+    This creates a JWT that mimics Supabase JWT structure with the claims
+    that our RLS policies expect to find.
+    
+    Args:
+        user_id: User UUID
+        email: User email
+        organization_id: Organization UUID
+        
+    Returns:
+        JWT token string
+    """
+    # Use a simple secret for development (in production, use proper secrets)
+    secret = "development-secret-key"
+    
+    # Calculate expiration (1 hour from now)
+    now = datetime.now(timezone.utc)
+    exp = now + timedelta(hours=1)
+    
+    # Create JWT payload with Supabase-compatible structure
+    payload = {
+        # Standard JWT claims
+        "iss": "supabase",
+        "sub": user_id,
+        "aud": "authenticated", 
+        "exp": int(exp.timestamp()),
+        "iat": int(now.timestamp()),
+        "email": email,
+        "phone": "",
+        "app_metadata": {
+            "provider": "development",
+            "providers": ["development"]
+        },
+        "user_metadata": {
+            "email": email,
+            "full_name": f"Development User ({email})"
+        },
+        "role": "authenticated",
+        # CRITICAL: Add organization_id claim for RLS policies
+        "organization_id": organization_id,
+        # Additional custom claims that our RLS policies might use
+        "user_role": "owner"
+    }
+    
+    # Create JWT token
+    token = jwt.encode(payload, secret, algorithm="HS256")
+    return token
 
 
 class LoginRequest(BaseModel):
@@ -273,13 +327,11 @@ async def dev_login(
 ) -> AuthResponse:
     """
     Development login that bypasses email confirmation.
+    Creates proper JWT tokens with organization_id claims for RLS policies.
     
     ⚠️ FOR DEVELOPMENT USE ONLY - DO NOT USE IN PRODUCTION
     """
     try:
-        # For development, accept any email/password for simplicity
-        # In a real dev environment, you might want basic validation
-
         # Simple validation - just check password is not empty
         if not login_data.password or len(login_data.password) < 1:
             raise HTTPException(
@@ -287,33 +339,66 @@ async def dev_login(
                 detail="Password cannot be empty",
             )
 
-        # Create a development user response
-        user_data = {
-            "id": "12345678-1234-1234-1234-123456789012",
-            "email": login_data.email,
-            "created_at": "2024-01-01T00:00:00Z",
-            "updated_at": "2024-01-01T00:00:00Z",
-            "email_confirmed_at": "2024-01-01T00:00:00Z",
-            "last_sign_in_at": "2024-01-01T00:00:00Z",
-            "user_metadata": {"full_name": "Development User"}
-        }
+        # Look up actual user from Supabase auth.users table
+        try:
+            response = supabase.rpc('get_auth_user_by_email', {'user_email': login_data.email}).execute()
+            
+            if not response.data or len(response.data) == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Development user {login_data.email} not found. User must be registered first."
+                )
+            
+            user_data = response.data[0]
+            user_id = user_data["id"]
+            
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to lookup user: {e}"
+            ) from e
 
-        # Create a simple dev token (this is NOT secure - dev only!)
-        dev_token = f"dev_token_{login_data.email.replace('@', '_').replace('.', '_')}"
+        # Look up user's organization from organization_users table
+        try:
+            # Use admin client to bypass RLS for organization lookup
+            from gastropartner.core.database import get_supabase_client_with_auth
+            admin_supabase = get_supabase_client_with_auth(user_id)
+            
+            org_response = admin_supabase.table("organization_users").select(
+                "organization_id"
+            ).eq("user_id", user_id).execute()
+            
+            if not org_response.data or len(org_response.data) == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"User {login_data.email} is not member of any organization"
+                )
+            
+            organization_id = org_response.data[0]["organization_id"]
+            
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to lookup user organization: {e}"
+            ) from e
 
+        # Create proper JWT token with organization_id claim
+        jwt_token = create_development_jwt_token(user_id, login_data.email, organization_id)
+        
+        # Create User object from database data
         user = User(
-            id=user_data["id"],
-            email=user_data["email"],
-            full_name=user_data["user_metadata"]["full_name"],
-            created_at=user_data["created_at"],
-            updated_at=user_data["updated_at"],
-            email_confirmed_at=user_data["email_confirmed_at"],
-            last_sign_in_at=user_data["last_sign_in_at"],
+            id=user_id,
+            email=login_data.email,
+            full_name=user_data.get("raw_user_meta_data", {}).get("full_name", f"Development User ({login_data.email})") if user_data.get("raw_user_meta_data") else f"Development User ({login_data.email})",
+            created_at=user_data.get("created_at", "2024-01-01T00:00:00Z"),
+            updated_at=user_data.get("updated_at", "2024-01-01T00:00:00Z"),
+            email_confirmed_at=user_data.get("email_confirmed_at", "2024-01-01T00:00:00Z"),
+            last_sign_in_at=user_data.get("last_sign_in_at", "2024-01-01T00:00:00Z"),
         )
 
         return AuthResponse(
-            access_token=dev_token,
-            refresh_token=f"{dev_token}_refresh",
+            access_token=jwt_token,
+            refresh_token=f"{jwt_token}_refresh",
             user=user,
             expires_in=3600,  # 1 hour
         )

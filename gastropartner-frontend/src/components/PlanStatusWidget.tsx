@@ -1,5 +1,6 @@
 import React from 'react';
 import { Crown, Zap } from 'lucide-react';
+import { useTranslation } from '../localization/sv';
 
 interface PlanStatusWidgetProps {
   plan?: string;
@@ -14,6 +15,7 @@ const PlanStatusWidget: React.FC<PlanStatusWidgetProps> = ({
   showUpgradeButton = false,
   onUpgrade 
 }) => {
+  const { t } = useTranslation();
   const isPremium = plan?.toLowerCase() === 'premium';
   
   if (compact) {
@@ -29,7 +31,7 @@ const PlanStatusWidget: React.FC<PlanStatusWidgetProps> = ({
           <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
         )}
         <span className="font-semibold">
-          {isPremium ? 'PREMIUM' : 'FREE'}
+          {isPremium ? t('premiumPlan') : t('freePlan')}
         </span>
       </div>
     );
@@ -57,14 +59,14 @@ const PlanStatusWidget: React.FC<PlanStatusWidgetProps> = ({
             <h3 className={`font-bold text-lg ${
               isPremium ? 'text-yellow-900' : 'text-blue-900'
             }`}>
-              {isPremium ? 'PREMIUM PLAN' : 'FREE PLAN'}
+              {isPremium ? t('premiumPlan') : t('freePlan')}
             </h3>
             <p className={`text-sm ${
               isPremium ? 'text-yellow-700' : 'text-blue-700'
             }`}>
               {isPremium 
-                ? 'Obegränsade funktioner och prioriterat stöd'
-                : 'Kostnadsfri plan för recepthantering'
+                ? t('premiumPlanDescription')
+                : t('freePlanDescription')
               }
             </p>
           </div>
@@ -75,14 +77,14 @@ const PlanStatusWidget: React.FC<PlanStatusWidgetProps> = ({
             onClick={onUpgrade}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
           >
-            Uppgradera
+            {t('upgrade')}
           </button>
         )}
       </div>
       
       {!isPremium && (
         <div className="mt-3 text-xs text-blue-600 bg-blue-100 rounded px-2 py-1 inline-block">
-          Kostnadsfri plan - Begränsade funktioner
+          {t('freePlanNote')}
         </div>
       )}
     </div>

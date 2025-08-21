@@ -1,36 +1,18 @@
 import React, { useEffect, useState } from 'react';
+import { PageHeader } from '../components/PageHeader';
 import { RecipeForm } from '../components/Recipes/RecipeForm';
 import { MetricsCard } from '../components/MetricsCard';
 import { SearchableTable, TableColumn } from '../components/SearchableTable';
 import { EmptyState } from '../components/EmptyState';
 import { OrganizationSelector } from '../components/Organizations/OrganizationSelector';
 import PlanStatusWidget from '../components/PlanStatusWidget';
+// import { useTranslation } from '../localization/sv';
+import { formatCurrency, formatPercentage } from '../utils/formatting';
 import { apiClient, Recipe, RecipeCreate } from '../utils/api';
 import { useFreemium } from '../hooks/useFreemium';
 
-function PageHeader({ title, subtitle, children }: { 
-  title: string; 
-  subtitle?: string; 
-  children?: React.ReactNode; 
-}) {
-  return (
-    <div className="page-header">
-      <div className="page-header__content">
-        <div className="page-header__text">
-          <h1 className="page-header__title">{title}</h1>
-          {subtitle && <p className="page-header__subtitle">{subtitle}</p>}
-        </div>
-        {children && (
-          <div className="page-header__actions">
-            {children}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export function Recipes() {
+  // const { t } = useTranslation();
   const { getUsagePercentage, isAtLimit } = useFreemium();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -168,7 +150,7 @@ export function Recipes() {
       servings: recipe.servings.toString(),
       ingredients_count: ingredientsCount.toString(),
       cost_per_serving: costPerServing && !isNaN(costPerServing)
-        ? `${costPerServing.toFixed(2)} kr` 
+        ? formatCurrency(costPerServing) 
         : '-',
       description: recipe.description,
       originalRecipe: recipe, // Include original recipe for edit/delete operations
@@ -211,13 +193,21 @@ export function Recipes() {
   return (
     <div className="main-content">
       <PageHeader 
-        title="Recept" 
+        title="📝 Recept" 
         subtitle="Skapa recept och beräkna kostnader för dina rätter"
       >
-        <div className="flex items-center space-x-3">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-sm">
-            <span className="text-blue-900 font-medium">Plan: FREE</span>
-            <span className="text-blue-700 ml-2">({activeRecipes.length}/5 recept)</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
+          <div style={{ 
+            background: 'rgba(0, 102, 204, 0.1)', 
+            border: '1px solid rgba(0, 102, 204, 0.2)', 
+            borderRadius: 'var(--border-radius)', 
+            padding: 'var(--spacing-xs) var(--spacing-sm)', 
+            fontSize: 'var(--font-size-sm)',
+            color: 'var(--color-primary-blue)',
+            fontWeight: '500'
+          }}>
+            <span>Plan: FREE</span>
+            <span style={{ marginLeft: 'var(--spacing-xs)' }}>({activeRecipes.length}/5 recept)</span>
           </div>
           <button 
             className="btn btn--primary"
@@ -230,11 +220,11 @@ export function Recipes() {
         </div>
       </PageHeader>
 
-      <div className="dashboard-content">
+      <div className="modules-container">
         <OrganizationSelector />
         
         {/* Plan Status Widget */}
-        <div className="mb-6">
+        <div style={{ marginBottom: 'var(--spacing-xl)' }}>
           <PlanStatusWidget 
             plan="free" 
             showUpgradeButton={true}
@@ -249,100 +239,132 @@ export function Recipes() {
         )}
 
         {atRecipeLimit && (
-          <div className="warning-banner">
+          <div className="error-banner">
             <span>⚠️ Du har nått gränsen för recept på FREE-planen (5/5). Uppgradera till Premium för obegränsade recept.</span>
           </div>
         )}
         
         {/* Plan Status Information */}
         {!atRecipeLimit && recipeUsagePercentage > 60 && (
-          <div className="info-banner" style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af', padding: '12px', borderRadius: '8px', marginBottom: '20px' }}>
-            <span>ℹ️ FREE-plan: Du har använt {activeRecipes.length} av 5 tillgängliga recept ({recipeUsagePercentage.toFixed(0)}%). Uppgradera till Premium för obegränsade recept.</span>
+          <div style={{ 
+            backgroundColor: '#eff6ff', 
+            border: '1px solid #bfdbfe', 
+            color: '#1e40af', 
+            padding: 'var(--spacing-md)', 
+            borderRadius: 'var(--border-radius)', 
+            marginBottom: 'var(--spacing-lg)',
+            fontWeight: '500'
+          }}>
+            <span>ℹ️ FREE-plan: Du har använt {activeRecipes.length} av 5 tillgängliga recept ({formatPercentage(recipeUsagePercentage, 0)}). Uppgradera till Premium för obegränsade recept.</span>
           </div>
         )}
+
+        {/* Status Overview */}
+        <div className="modules-status">
+          <div className="modules-status__item">
+            <span className="modules-status__count">{activeRecipes.length}</span>
+            <span className="modules-status__label">Aktiva recept</span>
+          </div>
+          <div className="modules-status__item">
+            <span className="modules-status__count">{formatCurrency(avgCostPerServing)}</span>
+            <span className="modules-status__label">Genomsnittskostnad</span>
+          </div>
+          <div className="modules-status__item">
+            <span className="modules-status__count">{avgIngredients}</span>
+            <span className="modules-status__label">Ø ingredienser/recept</span>
+          </div>
+        </div>
         
-        <div className="metrics-grid">
-          <MetricsCard
-            icon="💰"
-            title="GENOMSNITTSKOSTNAD"
-            value={`${avgCostPerServing.toFixed(2)} kr`}
-            subtitle="per portion"
-            color={avgCostPerServing < 30 ? "success" : avgCostPerServing < 60 ? "warning" : "danger"}
-          />
-          <MetricsCard
-            icon="🏆"
-            title="BILLIGASTE RECEPT"
-            value={cheapest ? cheapest.name : "Inget recept"}
-            subtitle={cheapest && cheapest.cost_per_serving 
-              ? `${parseFloat(cheapest.cost_per_serving.toString()).toFixed(2)} kr/portion` 
-              : undefined}
-            color="success"
-          />
-          <MetricsCard
-            icon="💸"
-            title="DYRASTE RECEPT"
-            value={mostExpensive ? mostExpensive.name : "Inget recept"}
-            subtitle={mostExpensive && mostExpensive.cost_per_serving 
-              ? `${parseFloat(mostExpensive.cost_per_serving.toString()).toFixed(2)} kr/portion` 
-              : undefined}
-            color="danger"
-          />
-          <MetricsCard
-            icon="📋"
-            title="RECEPTANVÄNDNING"
-            value={`${activeRecipes.length}/5`}
-            subtitle={`${recipeUsagePercentage.toFixed(0)}% av limit`}
-            color={recipeUsagePercentage < 60 ? "success" : recipeUsagePercentage < 90 ? "warning" : "danger"}
-            trend={recipeUsagePercentage > 80 ? "up" : "neutral"}
-          />
+        {/* Enhanced Metrics Grid */}
+        <div className="modules-section">
+          <h2>Översikt</h2>
+          <div className="metrics-grid">
+            <MetricsCard
+              icon="💰"
+              title="GENOMSNITTSKOSTNAD"
+              value={formatCurrency(avgCostPerServing)}
+              subtitle="per portion"
+              color={avgCostPerServing < 30 ? "success" : avgCostPerServing < 60 ? "warning" : "danger"}
+            />
+            <MetricsCard
+              icon="🏆"
+              title="BILLIGASTE RECEPT"
+              value={cheapest ? cheapest.name : "Inget recept"}
+              subtitle={cheapest && cheapest.cost_per_serving 
+                ? formatCurrency(parseFloat(cheapest.cost_per_serving.toString())) + '/portion' 
+                : undefined}
+              color="success"
+            />
+            <MetricsCard
+              icon="💸"
+              title="DYRASTE RECEPT"
+              value={mostExpensive ? mostExpensive.name : "Inget recept"}
+              subtitle={mostExpensive && mostExpensive.cost_per_serving 
+                ? formatCurrency(parseFloat(mostExpensive.cost_per_serving.toString())) + '/portion' 
+                : undefined}
+              color="danger"
+            />
+            <MetricsCard
+              icon="📋"
+              title="RECEPTANVÄNDNING"
+              value={`${activeRecipes.length}/5`}
+              subtitle={`${formatPercentage(recipeUsagePercentage, 0)} av limit`}
+              color={recipeUsagePercentage < 60 ? "success" : recipeUsagePercentage < 90 ? "warning" : "danger"}
+              trend={recipeUsagePercentage > 80 ? "up" : "neutral"}
+            />
+          </div>
         </div>
 
-        <div className="table-section">
-          {tableData.length === 0 ? (
-            <EmptyState
-              icon="📝"
-              title="Inga recept än"
-              description="Skapa ditt första recept för att beräkna ingredienskostnader och portionskalkyler"
-              actionLabel="Skapa Recept"
-              onAction={() => setIsFormOpen(true)}
-            />
-          ) : (
-            <SearchableTable
-              columns={columns}
-              data={tableData}
-              searchPlaceholder="Sök recept..."
-              emptyMessage="Inga recept hittades"
-            />
-          )}
+        {/* Recipes Table */}
+        <div className="modules-section">
+          <h2>Alla Recept</h2>
+          <div className="table-section">
+            {tableData.length === 0 ? (
+              <EmptyState
+                icon="📝"
+                title="Inga recept än"
+                description="Skapa ditt första recept för att beräkna ingredienskostnader och portionskalkyler"
+                actionLabel="Skapa Recept"
+                onAction={() => setIsFormOpen(true)}
+              />
+            ) : (
+              <SearchableTable
+                columns={columns}
+                data={tableData}
+                searchPlaceholder="Sök recept..."
+                emptyMessage="Inga recept hittades"
+              />
+            )}
+          </div>
         </div>
 
         {/* Recipe Statistics */}
         {activeRecipes.length > 0 && (
-          <div className="stats-section">
-            <h3>Receptstatistik</h3>
-            <div className="stats-grid">
-              <div className="stat-item">
-                <span className="stat-label">Totalt antal recept:</span>
-                <span className="stat-value">{activeRecipes.length}</span>
+          <div className="modules-section">
+            <h2>Detaljerad Statistik</h2>
+            <div className="modules-status">
+              <div className="modules-status__item">
+                <span className="modules-status__count">{activeRecipes.length}</span>
+                <span className="modules-status__label">Totalt antal recept</span>
               </div>
-              <div className="stat-item">
-                <span className="stat-label">Genomsnittligt antal ingredienser:</span>
-                <span className="stat-value">{avgIngredients}</span>
+              <div className="modules-status__item">
+                <span className="modules-status__count">{avgIngredients}</span>
+                <span className="modules-status__label">Ø antal ingredienser</span>
               </div>
-              <div className="stat-item">
-                <span className="stat-label">Totala ingredienser:</span>
-                <span className="stat-value">{totalIngredients}</span>
+              <div className="modules-status__item">
+                <span className="modules-status__count">{totalIngredients}</span>
+                <span className="modules-status__label">Totala ingredienser</span>
               </div>
-              <div className="stat-item">
-                <span className="stat-label">Kostnadsspann:</span>
-                <span className="stat-value">
+              <div className="modules-status__item">
+                <span className="modules-status__count">
                   {cheapest && mostExpensive && 
                    cheapest.cost_per_serving && 
                    mostExpensive.cost_per_serving
-                    ? `${parseFloat(cheapest.cost_per_serving.toString()).toFixed(2)} - ${parseFloat(mostExpensive.cost_per_serving.toString()).toFixed(2)} kr`
+                    ? `${formatCurrency(parseFloat(cheapest.cost_per_serving.toString()))} - ${formatCurrency(parseFloat(mostExpensive.cost_per_serving.toString()))}`
                     : '-'
                   }
                 </span>
+                <span className="modules-status__label">Kostnadsspann</span>
               </div>
             </div>
           </div>

@@ -143,29 +143,6 @@ export function OrganizationSelector() {
         </div>
       </div>
 
-      {currentOrganization && (
-        <div className="org-selector__info">
-          <div className="org-info">
-            <h4>{currentOrganization.name}</h4>
-            {currentOrganization.description && (
-              <p className="org-info__description">
-                {currentOrganization.description}
-              </p>
-            )}
-            <div className="org-info__limits">
-              <span className="org-info__limit">
-                Ingredienser: {currentOrganization.current_ingredients || 0}/{currentOrganization.max_ingredients || 0}
-              </span>
-              <span className="org-info__limit">
-                Recept: {currentOrganization.current_recipes || 0}/{currentOrganization.max_recipes || 0}
-              </span>
-              <span className="org-info__limit">
-                Maträtter: {currentOrganization.current_menu_items || 0}/{currentOrganization.max_menu_items || 0}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

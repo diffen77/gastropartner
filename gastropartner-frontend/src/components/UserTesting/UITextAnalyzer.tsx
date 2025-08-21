@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  UITextAnalyzer, 
   AnalysisResult, 
   UIElement, 
   FunctionalCategory,
@@ -31,15 +30,24 @@ export const UITextAnalyzerComponent: React.FC<UITextAnalyzerProps> = ({
     }
   }, [isOpen, autoAnalyze]);
 
-  // Prevent body scroll when modal is open
+  // Handle ESC key and prevent body scroll when modal is open
   useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
     if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
       document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = '';
-      };
     }
-  }, [isOpen]);
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = '';
+    };
+  }, [isOpen, onClose]);
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
@@ -168,8 +176,8 @@ export const UITextAnalyzerComponent: React.FC<UITextAnalyzerProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="ui-analyzer-overlay" onClick={handleOverlayClick}>
-      <div className="ui-analyzer-modal" onClick={handleModalClick}>
+    <div className={`modal-overlay ${isOpen ? 'modal-open' : ''}`} onClick={handleOverlayClick}>
+      <div className="modal-content modal-content--full ui-analyzer-modal" onClick={handleModalClick}>
         <div className="ui-analyzer-header">
           <h2>🔍 UI Text Analyzer</h2>
           <div className="header-actions">

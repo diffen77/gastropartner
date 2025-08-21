@@ -35,12 +35,14 @@ async def list_user_organizations(
     supabase: Client = Depends(get_authenticated_supabase_client),
 ):
     """List all organizations the current user belongs to."""
-    # For development user, return a basic development organization with usage counts
-    if str(current_user.id) == "12345678-1234-1234-1234-123456789012":
+    # For development users, return their respective development organizations with usage counts
+    # Using actual user IDs from database instead of placeholder
+    if str(current_user.id) == "817df0a1-f7ee-4bb2-bffa-582d4c59115f":  # diffen@me.com
         from datetime import datetime
 
         # Calculate current usage for development organization
-        dev_org_id = "87654321-4321-4321-4321-210987654321"
+        # Using actual organization ID for diffen@me.com user
+        dev_org_id = "d8feea69-f863-446c-981f-01dfc6bbd106"
 
         try:
             # Count current ingredients
@@ -68,15 +70,87 @@ async def list_user_organizations(
             current_recipes = 0
             current_menu_items = 0
 
+        # Try to get restaurant name from organization_settings
+        organization_name = "Development Restaurant"  # Default fallback
+        try:
+            settings_response = supabase.table("organization_settings").select(
+                "restaurant_profile"
+            ).eq("organization_id", dev_org_id).execute()
+            
+            if settings_response.data and settings_response.data[0].get("restaurant_profile"):
+                restaurant_profile = settings_response.data[0]["restaurant_profile"]
+                if isinstance(restaurant_profile, dict) and restaurant_profile.get("name"):
+                    organization_name = restaurant_profile["name"]
+                    print(f"🍽️ Using restaurant name from settings: {organization_name}")
+                else:
+                    print(f"🍽️ No restaurant name in settings, using fallback: {organization_name}")
+            else:
+                print(f"🍽️ No organization_settings found, using fallback: {organization_name}")
+        except Exception as e:
+            print(f"⚠️ Failed to get restaurant name from settings: {e}, using fallback: {organization_name}")
+
         return [{
             "role": "owner",
             "joined_at": datetime.now(UTC).isoformat(),
             "organization": {
-                "organization_id": "87654321-4321-4321-4321-210987654321",
-                "name": "Development Organization",
-                "slug": "dev-org",
+                "organization_id": "d8feea69-f863-446c-981f-01dfc6bbd106",
+                "name": organization_name,  # Use restaurant name from settings or fallback
+                "slug": organization_name.lower().replace(" ", "-"),  # Create slug from name
                 "plan": "free",
-                "description": "Default organization for development",
+                "description": "Development restaurant organization",
+                "created_at": datetime.now(UTC).isoformat(),
+                "max_ingredients": 1000,
+                "max_recipes": 500,
+                "max_menu_items": 200,
+                "current_ingredients": current_ingredients,
+                "current_recipes": current_recipes,
+                "current_menu_items": current_menu_items,
+            }
+        }]
+    
+    # Handle lediff@gmail.com development user
+    elif str(current_user.id) == "9fae3cfb-43f9-453a-8414-c56f85ac56ff":  # lediff@gmail.com
+        from datetime import datetime
+
+        # Calculate current usage for lediff@gmail.com development organization
+        # Using actual organization ID for lediff@gmail.com user
+        dev_org_id = "87fc8b59-8f81-48ee-849c-dd1dc9a8ac6c"
+
+        try:
+            # Count current ingredients
+            ingredients_count = supabase.table("ingredients").select(
+                "ingredient_id", count="exact"
+            ).eq("organization_id", dev_org_id).eq("is_active", True).execute()
+            current_ingredients = ingredients_count.count or 0
+
+            # Count current recipes
+            recipes_count = supabase.table("recipes").select(
+                "recipe_id", count="exact"
+            ).eq("organization_id", dev_org_id).eq("is_active", True).execute()
+            current_recipes = recipes_count.count or 0
+
+            # Count current menu items
+            menu_items_count = supabase.table("menu_items").select(
+                "menu_item_id", count="exact"
+            ).eq("organization_id", dev_org_id).eq("is_active", True).execute()
+            current_menu_items = menu_items_count.count or 0
+
+        except Exception as e:
+            print(f"Failed to get usage counts for lediff dev org: {e}")
+            # Fallback to 0 if database queries fail
+            current_ingredients = 0
+            current_recipes = 0
+            current_menu_items = 0
+
+        return [{
+            "role": "owner",
+            "joined_at": datetime.now(UTC).isoformat(),
+            "organization": {
+                "organization_id": "87fc8b59-8f81-48ee-849c-dd1dc9a8ac6c",
+                "name": "lediff@gmail.com Organization",
+                "slug": "lediff-gmail-organization",
+                "plan": "free",
+                "description": "User Organization",
                 "created_at": datetime.now(UTC).isoformat(),
                 "max_ingredients": 1000,
                 "max_recipes": 500,

@@ -2,6 +2,9 @@ import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useFreemium } from '../hooks/useFreemium';
+import { useOrganizationSettings } from '../hooks/useOrganizationSettings';
+import { useFeatureFlags } from '../hooks/useFeatureFlags';
+import { useTranslation } from '../localization/sv';
 import PlanStatusWidget from './PlanStatusWidget';
 import './Sidebar.css';
 
@@ -13,29 +16,47 @@ interface NavigationItem {
   adminOnly?: boolean;
 }
 
-const navigationItems: NavigationItem[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: '📊', path: '/' },
-  { id: 'ingredients', label: 'Ingredienser', icon: '🥕', path: '/ingredienser' },
-  { id: 'recipes', label: 'Recept', icon: '📝', path: '/recept' },
-  { id: 'dishes', label: 'Maträtter', icon: '🍽️', path: '/matratter' },
-  { id: 'cost-control', label: 'Kostnadsanalys', icon: '📈', path: '/kostnadsanalys' },
-  { id: 'user-testing', label: 'User Testing', icon: '🧪', path: '/user-testing' },
-  { id: 'sales', label: 'Försäljning', icon: '💰', path: '/forsaljning' },
-  { id: 'modules', label: 'Moduler', icon: '🧩', path: '/moduler' },
-  { id: 'settings', label: 'Inställningar', icon: '⚙️', path: '/installningar' },
-  { id: 'superadmin', label: 'SuperAdmin', icon: '🛡️', path: '/superadmin', adminOnly: true },
+// Navigation items will be translated dynamically
+const getNavigationItems = (t: (key: any) => string): NavigationItem[] => [
+  { id: 'dashboard', label: t('dashboard'), icon: '📊', path: '/' },
+  { id: 'ingredients', label: t('ingredients'), icon: '🥕', path: '/ingredienser' },
+  { id: 'recipes', label: t('recipes'), icon: '📝', path: '/recept' },
+  { id: 'dishes', label: t('menuItems'), icon: '🍽️', path: '/matratter' },
+  { id: 'cost-control', label: t('costAnalysis'), icon: '📈', path: '/kostnadsanalys' },
+  { id: 'user-testing', label: t('userTesting'), icon: '🧪', path: '/user-testing' },
+  { id: 'sales', label: t('sales'), icon: '💰', path: '/forsaljning' },
+  { id: 'modules', label: t('modules'), icon: '🧩', path: '/moduler' },
+  { id: 'settings', label: t('settings'), icon: '⚙️', path: '/installningar' },
+  { id: 'superadmin', label: t('superAdmin'), icon: '🛡️', path: '/superadmin', adminOnly: true },
 ];
 
 export function Sidebar() {
   const { user, signOut } = useAuth();
   const { usage, fetchPlanComparison } = useFreemium();
+  const { restaurantName } = useOrganizationSettings();
+  const { featureFlags } = useFeatureFlags();
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const isSuperAdmin = user?.email?.toLowerCase() === 'diffen@me.com';
 
-  const visibleItems = navigationItems.filter(item => 
-    !item.adminOnly || (item.adminOnly && isSuperAdmin)
-  );
+  const navigationItems = getNavigationItems(t);
+  const visibleItems = navigationItems.filter(item => {
+    // Filter admin-only items
+    if (item.adminOnly && !isSuperAdmin) {
+      return false;
+    }
+    
+    // Filter items based on feature flags
+    if (item.id === 'user-testing' && !featureFlags.show_user_testing) {
+      return false;
+    }
+    if (item.id === 'sales' && !featureFlags.show_sales) {
+      return false;
+    }
+    
+    return true;
+  });
 
   return (
     <aside className="sidebar">
@@ -43,7 +64,7 @@ export function Sidebar() {
         <div className="sidebar__logo">
           <span className="sidebar__logo-icon">🍽️</span>
           <div className="sidebar__brand">
-            <h1 className="sidebar__brand-name">Härryda BBQ</h1>
+            <h1 className="sidebar__brand-name">{restaurantName}</h1>
             <p className="sidebar__brand-subtitle">GastroPartner.nu</p>
           </div>
         </div>

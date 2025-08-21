@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { MetricsCard } from '../MetricsCard';
 import { SearchableTable, TableColumn } from '../SearchableTable';
 import { CheckCircle, XCircle, AlertCircle, Clock, Play, RotateCcw } from 'lucide-react';
+import { useTranslation } from '../../localization/sv';
 import './TestResultsViewer.css';
 
 interface TestResult {
@@ -54,6 +55,7 @@ interface TestResultsViewerProps {
 export const TestResultsViewer: React.FC<TestResultsViewerProps> = ({ 
   refreshInterval = 30000 
 }) => {
+  const { t } = useTranslation();
   const [testSummary, setTestSummary] = useState<TestSummary | null>(null);
   const [backendResults, setBackendResults] = useState<TestSuite | null>(null);
   const [frontendResults, setFrontendResults] = useState<TestSuite | null>(null);
@@ -315,7 +317,7 @@ export const TestResultsViewer: React.FC<TestResultsViewerProps> = ({
                   value={testSummary.backend.totalTests}
                 />
                 <MetricsCard
-                  title="Success Rate"
+                  title={t('successRate')}
                   value={`${getSuccessRate(testSummary.backend.passed, testSummary.backend.totalTests)}%`}
                   trend={testSummary.backend.failed === 0 ? 'up' : 'down'}
                 />
@@ -360,7 +362,7 @@ export const TestResultsViewer: React.FC<TestResultsViewerProps> = ({
                   value={testSummary.frontend.totalTests}
                 />
                 <MetricsCard
-                  title="Success Rate"
+                  title={t('successRate')}
                   value={`${getSuccessRate(testSummary.frontend.passed, testSummary.frontend.totalTests)}%`}
                   trend={testSummary.frontend.failed === 0 ? 'up' : 'down'}
                 />

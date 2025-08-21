@@ -1,34 +1,16 @@
 import React, { useEffect, useState } from 'react';
+import { PageHeader } from '../components/PageHeader';
 import { OrganizationSelector } from '../components/Organizations/OrganizationSelector';
 import { MetricsCard } from '../components/MetricsCard';
 import { SearchableTable, TableColumn } from '../components/SearchableTable';
 import { EmptyState } from '../components/EmptyState';
 import { IngredientForm } from '../components/Ingredients/IngredientForm';
-import { apiClient, Ingredient, IngredientCreate, IngredientUpdate } from '../utils/api';
-
-function PageHeader({ title, subtitle, children }: { 
-  title: string; 
-  subtitle?: string; 
-  children?: React.ReactNode; 
-}) {
-  return (
-    <div className="page-header">
-      <div className="page-header__content">
-        <div className="page-header__text">
-          <h1 className="page-header__title">{title}</h1>
-          {subtitle && <p className="page-header__subtitle">{subtitle}</p>}
-        </div>
-        {children && (
-          <div className="page-header__actions">
-            {children}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+// import { useTranslation } from '../localization/sv';
+import { formatCostPerUnit, formatCurrency } from '../utils/formatting';
+import { apiClient, Ingredient, IngredientCreate } from '../utils/api';
 
 export function Ingredients() {
+  // const { t } = useTranslation();
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -143,7 +125,7 @@ export function Ingredients() {
   const tableData = ingredients.map(ingredient => ({
     name: ingredient.name,
     category: ingredient.category,
-    cost_per_unit: `${Number(ingredient.cost_per_unit).toFixed(2)} kr/${ingredient.unit}`,
+    cost_per_unit: formatCostPerUnit(ingredient.cost_per_unit, ingredient.unit),
     unit: ingredient.unit,
     supplier: ingredient.supplier || '-',
   }));
@@ -165,7 +147,7 @@ export function Ingredients() {
   return (
     <div className="main-content">
       <PageHeader 
-        title="Ingredienser" 
+        title="🥬 Ingredienser" 
         subtitle="Hantera dina råvaror och kostnad per enhet"
       >
         <button 
@@ -176,7 +158,7 @@ export function Ingredients() {
         </button>
       </PageHeader>
 
-      <div className="dashboard-content">
+      <div className="modules-container">
         <OrganizationSelector />
         
         {error && (
@@ -185,54 +167,78 @@ export function Ingredients() {
           </div>
         )}
         
-        <div className="metrics-grid">
-          <MetricsCard
-            icon="📦"
-            title="TOTALT ANTAL"
-            value={activeIngredients.length.toString()}
-            subtitle={`${categories.length} kategorier`}
-            color="primary"
-          />
-          <MetricsCard
-            icon="💰"
-            title="GENOMSNITTLIG KOSTNAD"
-            value={avgCost > 0 ? `${avgCost.toFixed(2)} kr` : "0 kr"}
-            subtitle="Per enhet"
-            color={avgCost > 50 ? "warning" : "success"}
-          />
-          <MetricsCard
-            icon="📈"
-            title="DYRASTE INGREDIENS"
-            value={mostExpensive ? mostExpensive.name : "Ingen data"}
-            subtitle={mostExpensive ? `${Number(mostExpensive.cost_per_unit).toFixed(2)} kr/${mostExpensive.unit}` : undefined}
-            color="danger"
-          />
-          <MetricsCard
-            icon="💸"
-            title="BILLIGASTE INGREDIENS"
-            value={cheapest ? cheapest.name : "Ingen data"}
-            subtitle={cheapest ? `${Number(cheapest.cost_per_unit).toFixed(2)} kr/${cheapest.unit}` : undefined}
-            color="success"
-          />
+        {/* Status Overview */}
+        <div className="modules-status">
+          <div className="modules-status__item">
+            <span className="modules-status__count">{activeIngredients.length}</span>
+            <span className="modules-status__label">Aktiva ingredienser</span>
+          </div>
+          <div className="modules-status__item">
+            <span className="modules-status__count">{categories.length}</span>
+            <span className="modules-status__label">Kategorier</span>
+          </div>
+          <div className="modules-status__item">
+            <span className="modules-status__count">{avgCost > 0 ? formatCurrency(avgCost) : "0 kr"}</span>
+            <span className="modules-status__label">Genomsnittskostnad</span>
+          </div>
         </div>
 
-        <div className="table-section">
-          {tableData.length === 0 ? (
-            <EmptyState
-              icon="🥬"
-              title="Inga ingredienser än"
-              description="Lägg till dina första ingredienser för att börja bygga recept och beräkna kostnader"
-              actionLabel="Lägg till Ingrediens"
-              onAction={() => setIsFormOpen(true)}
+        {/* Enhanced Metrics Grid */}
+        <div className="modules-section">
+          <h2>Översikt</h2>
+          <div className="metrics-grid">
+            <MetricsCard
+              icon="📦"
+              title="TOTALT ANTAL"
+              value={activeIngredients.length.toString()}
+              subtitle={`${categories.length} kategorier`}
+              color="primary"
             />
-          ) : (
-            <SearchableTable
-              columns={columns}
-              data={tableData}
-              searchPlaceholder="Sök ingredienser..."
-              emptyMessage="Inga ingredienser hittades"
+            <MetricsCard
+              icon="💰"
+              title="GENOMSNITTLIG KOSTNAD"
+              value={avgCost > 0 ? formatCurrency(avgCost) : formatCurrency(0)}
+              subtitle="Per enhet"
+              color={avgCost > 50 ? "warning" : "success"}
             />
-          )}
+            <MetricsCard
+              icon="📈"
+              title="DYRASTE INGREDIENS"
+              value={mostExpensive ? mostExpensive.name : "Ingen data"}
+              subtitle={mostExpensive ? formatCostPerUnit(mostExpensive.cost_per_unit, mostExpensive.unit) : undefined}
+              color="danger"
+            />
+            <MetricsCard
+              icon="💸"
+              title="BILLIGASTE INGREDIENS"
+              value={cheapest ? cheapest.name : "Ingen data"}
+              subtitle={cheapest ? formatCostPerUnit(cheapest.cost_per_unit, cheapest.unit) : undefined}
+              color="success"
+            />
+          </div>
+        </div>
+
+        {/* Ingredients Table */}
+        <div className="modules-section">
+          <h2>Alla Ingredienser</h2>
+          <div className="table-section">
+            {tableData.length === 0 ? (
+              <EmptyState
+                icon="🥬"
+                title="Inga ingredienser än"
+                description="Lägg till dina första ingredienser för att börja bygga recept och beräkna kostnader"
+                actionLabel="Lägg till Ingrediens"
+                onAction={() => setIsFormOpen(true)}
+              />
+            ) : (
+              <SearchableTable
+                columns={columns}
+                data={tableData}
+                searchPlaceholder="Sök ingredienser..."
+                emptyMessage="Inga ingredienser hittades"
+              />
+            )}
+          </div>
         </div>
       </div>
 
