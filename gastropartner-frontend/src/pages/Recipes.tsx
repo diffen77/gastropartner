@@ -215,7 +215,7 @@ export function Recipes() {
             disabled={atRecipeLimit}
             title={atRecipeLimit ? "Du har nått gränsen för FREE-planen. Uppgradera för fler recept." : "Skapa nytt recept"}
           >
-            <span>+</span> Nytt Recept
+            + Nytt Recept
           </button>
         </div>
       </PageHeader>
@@ -278,7 +278,7 @@ export function Recipes() {
         {/* Enhanced Metrics Grid */}
         <div className="modules-section">
           <h2>Översikt</h2>
-          <div className="metrics-grid">
+          <div className="modules-grid">
             <MetricsCard
               icon="💰"
               title="GENOMSNITTSKOSTNAD"
