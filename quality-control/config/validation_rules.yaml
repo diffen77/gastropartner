@@ -1,0 +1,123 @@
+# GastroPartner Quality Control Validation Rules
+
+# Security validation settings
+security:
+  multi_tenant:
+    enforce_organization_id: true
+    required_patterns:
+      - "organization_id"
+      - "user.organization"
+    blocked_patterns:
+      - "SELECT * FROM"  # Force explicit column selection
+      - "DELETE FROM.*WHERE.*NOT"  # Prevent accidental bulk deletes
+  
+  authentication:
+    jwt_required_endpoints: true
+    validate_permissions: true
+
+# Functional validation settings  
+functional:
+  typescript:
+    strict_mode: true
+    no_implicit_any: true
+    check_imports: true
+    validate_props: true
+  
+  react:
+    enforce_prop_types: true
+    check_hooks_rules: true
+    validate_accessibility: true
+    validate_state_synchronization: true  # NEW: Catch React context sync issues
+  
+  api:
+    validate_contracts: true
+    check_status_codes: true
+    enforce_error_handling: true
+
+# Design system validation
+design:
+  css:
+    enforce_naming_convention: "BEM"  # Block Element Modifier
+    max_specificity: 3
+    require_design_tokens: true
+  
+  components:
+    max_lines: 300
+    require_stories: false  # Set to true when Storybook is added
+    accessibility_level: "AA"  # WCAG 2.1 level
+  
+  consistency:
+    check_color_usage: true
+    validate_spacing: true
+    font_size_scale: true
+
+# Backend validation settings
+backend:
+  python:
+    max_line_length: 100
+    max_function_length: 50
+    max_class_length: 100
+    enforce_type_hints: true
+  
+  fastapi:
+    validate_routes: true
+    check_request_models: true
+    validate_responses: true
+    enforce_documentation: true
+  
+  database:
+    require_organization_filter: true
+    validate_migrations: true
+    check_indexes: true
+
+# Performance budgets
+performance:
+  frontend:
+    bundle_size_limit: "500KB"  # Initial bundle
+    total_size_limit: "2MB"     # Total assets
+    lighthouse_score_min: 90
+  
+  backend:
+    response_time_max: "200ms"
+    memory_usage_max: "500MB"
+    cpu_usage_max: 80  # percentage
+
+# Quality thresholds
+quality:
+  code_coverage:
+    minimum: 80
+    critical_paths: 95
+  
+  complexity:
+    cyclomatic_max: 10
+    cognitive_max: 15
+  
+  maintainability:
+    index_min: 70
+    duplication_max: 5  # percentage
+
+# File patterns to monitor
+file_patterns:
+  frontend:
+    - "**/*.tsx"
+    - "**/*.ts" 
+    - "**/*.css"
+    - "**/*.json"
+  
+  backend:
+    - "**/*.py"
+    - "**/*.sql"
+    - "**/*.yaml"
+    - "**/*.yml"
+  
+  config:
+    - "**/package.json"
+    - "**/pyproject.toml"
+    - "**/*.config.*"
+
+# Validation timing
+timing:
+  file_save_delay: 1000  # ms to wait after file save before validation
+  max_parallel_validations: 3
+  validation_timeout: 30000  # ms timeout for each validation
+  cache_duration: 300  # seconds to cache validation results

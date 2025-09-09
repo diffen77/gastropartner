@@ -1,0 +1,35 @@
+# Pre-commit configuration for GastroPartner Quality Control
+repos:
+  # Quality Control System - Our custom agent-based validation
+  - repo: local
+    hooks:
+      - id: quality-control-validation
+        name: GastroPartner Quality Control
+        entry: bash -c 'cd gastropartner-backend && uv run python ../quality-control/main.py validate "../$@"' --
+        language: system
+        files: \.(py|ts|tsx|js|jsx|css|scss)$
+        pass_filenames: true
+        verbose: true
+        stages: [pre-commit]
+        description: "Automated quality control using AI agents"
+
+  # Python Backend Hooks
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: Ruff Linter (Backend)
+        entry: bash -c 'cd gastropartner-backend && uv run ruff check'
+        language: system
+        files: ^gastropartner-backend/.*\.py$
+        pass_filenames: false
+
+      - id: ruff-format
+        name: Ruff Formatter (Backend)
+        entry: bash -c 'cd gastropartner-backend && uv run ruff format'
+        language: system
+        files: ^gastropartner-backend/.*\.py$
+        pass_filenames: false
+
+# Configuration
+default_stages: [pre-commit]
+minimum_pre_commit_version: 3.0.0

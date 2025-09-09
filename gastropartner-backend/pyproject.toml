@@ -16,6 +16,10 @@ dependencies = [
     "pyjwt>=2.10.1",
     "psutil>=7.0.0",
     "psycopg2-binary>=2.9.10",
+    "pydantic-ai>=0.8.0",
+    "watchdog>=6.0.0",
+    "rich>=14.1.0",
+    "asyncio-throttle>=1.0.2",
 ]
 
 [project.optional-dependencies]
@@ -84,4 +88,5 @@ dev = [
     "pytest-cov>=6.2.1",
     "ruff>=0.12.8",
     "pip-audit>=2.7.0",
+    "pre-commit>=4.3.0",
 ]

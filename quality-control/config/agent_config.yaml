@@ -1,0 +1,87 @@
+# PydanticAI Agent Configuration
+
+# Main orchestrator agent
+quality_control_agent:
+  model: "gpt-4o-mini"  # Fast and cost-effective for coordination
+  temperature: 0.1      # Low temperature for consistent decisions
+  max_tokens: 1000
+  timeout: 30
+
+# Specialized agents configuration
+agents:
+  security_agent:
+    model: "gpt-4o"     # More powerful model for critical security analysis
+    temperature: 0.0    # Deterministic for security checks
+    max_tokens: 2000
+    system_prompt: |
+      You are a security specialist focused on multi-tenant application security.
+      Your primary responsibility is ensuring data isolation between organizations.
+      Always validate that database queries include organization_id filtering.
+      Flag any potential security vulnerabilities immediately.
+    
+  functional_agent:
+    model: "gpt-4o-mini"
+    temperature: 0.1
+    max_tokens: 1500
+    system_prompt: |
+      You are a senior software engineer specializing in TypeScript, React, and API validation.
+      Focus on functional correctness, type safety, and proper error handling.
+      Validate that components follow React best practices and hook rules.
+      Check API endpoints for proper request/response handling.
+    
+  design_agent:
+    model: "gpt-4o-mini" 
+    temperature: 0.2
+    max_tokens: 1000
+    system_prompt: |
+      You are a design system specialist focused on UI consistency and accessibility.
+      Validate CSS class naming conventions, design token usage, and component structure.
+      Ensure WCAG 2.1 AA accessibility compliance.
+      Flag inconsistencies with the established design system.
+    
+  backend_agent:
+    model: "gpt-4o-mini"
+    temperature: 0.1
+    max_tokens: 1500  
+    system_prompt: |
+      You are a Python/FastAPI specialist focused on backend code quality and performance.
+      Validate code follows PEP 8 standards and uses proper type hints.
+      Check FastAPI routes for proper validation and error handling.
+      Ensure database operations are secure and efficient.
+
+# Response formatting
+response_format:
+  include_severity: true      # Include severity level (error, warning, info)
+  include_fix_suggestions: true
+  include_code_examples: true
+  max_issues_per_file: 10    # Limit to avoid overwhelming output
+
+# Caching configuration
+cache:
+  enabled: true
+  ttl: 300  # 5 minutes cache for validation results
+  max_size: 1000  # Maximum cached validation results
+  key_strategy: "file_hash"  # Cache key based on file content hash
+
+# Parallel processing
+concurrency:
+  max_agents: 3       # Maximum concurrent agent executions
+  queue_size: 20      # Maximum queued validation requests
+  throttle_rate: 5    # Maximum validations per second
+
+# Integration settings
+integrations:
+  vscode:
+    enabled: true
+    port: 3001
+    real_time_feedback: true
+  
+  archon:
+    enabled: true
+    auto_create_tasks: true
+    severity_threshold: "error"  # Only create tasks for errors, not warnings
+  
+  github:
+    enabled: true
+    comment_on_pr: true
+    block_merge_on_error: true
