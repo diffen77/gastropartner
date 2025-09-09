@@ -45,14 +45,11 @@ yarn-error.log*
 # React build
 gastropartner-frontend/build/
 
-# Environment files
+# Environment files (NEVER commit secrets!)
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env.staging
-.env.production
+.env.*
+!.env.production
+!.env.*.template
 
 # IDE
 .vscode/
