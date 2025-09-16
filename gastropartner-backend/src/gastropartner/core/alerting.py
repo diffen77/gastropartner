@@ -9,6 +9,7 @@ import httpx
 from pydantic import BaseModel, Field
 
 from gastropartner.config import get_settings
+from gastropartner.utils.logger import dev_logger
 
 settings = get_settings()
 
@@ -56,9 +57,9 @@ class AlertManager:
                         "to": settings.notification_email,
                         "smtp_server": "smtp.gmail.com",  # Default, should be configurable
                         "smtp_port": 587,
-                        "use_tls": True
+                        "use_tls": True,
                     },
-                    severity_filter=["critical", "high", "medium"]
+                    severity_filter=["critical", "high", "medium"],
                 )
             )
 
@@ -67,11 +68,8 @@ class AlertManager:
             self.notification_channels.append(
                 NotificationChannel(
                     type="slack",
-                    config={
-                        "webhook_url": settings.slack_webhook_url,
-                        "channel": "#alerts"
-                    },
-                    severity_filter=["critical", "high"]
+                    config={"webhook_url": settings.slack_webhook_url, "channel": "#alerts"},
+                    severity_filter=["critical", "high"],
                 )
             )
 
@@ -82,9 +80,9 @@ class AlertManager:
                     type="pagerduty",
                     config={
                         "integration_key": settings.pagerduty_integration_key,
-                        "service_id": settings.pagerduty_service_id
+                        "service_id": settings.pagerduty_service_id,
                     },
-                    severity_filter=["critical"]
+                    severity_filter=["critical"],
                 )
             )
 
@@ -95,7 +93,7 @@ class AlertManager:
         description: str,
         severity: str = "medium",
         source: str = "system",
-        metadata: dict[str, Any] | None = None
+        metadata: dict[str, Any] | None = None,
     ) -> Alert:
         """Create a new alert."""
 
@@ -105,7 +103,7 @@ class AlertManager:
             description=description,
             severity=severity,
             source=source,
-            metadata=metadata or {}
+            metadata=metadata or {},
         )
 
         self.active_alerts[alert_id] = alert
@@ -186,20 +184,28 @@ class AlertManager:
             # Create email content
             subject = f"🚨 [{alert.severity.upper()}] {alert.title}"
 
-            # HTML email body
-            html_body = f"""
+            # HTML email body (prepared for future implementation)
+            _html_body = f"""
             <html>
             <body style="font-family: Arial, sans-serif; max-width: 600px;">
-                <div style="background: {'#dc2626' if alert.severity == 'critical' else '#f59e0b' if alert.severity == 'high' else '#3b82f6'}; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+                <div style="background: {
+                "#dc2626"
+                if alert.severity == "critical"
+                else "#f59e0b"
+                if alert.severity == "high"
+                else "#3b82f6"
+            }; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
                     <h2 style="margin: 0;">🚨 System Alert</h2>
                 </div>
                 <div style="border: 1px solid #e5e7eb; padding: 20px; border-radius: 0 0 8px 8px;">
                     <h3 style="color: #1f2937; margin-top: 0;">{alert.title}</h3>
-                    
+
                     <table style="width: 100%; border-collapse: collapse;">
                         <tr>
                             <td style="padding: 8px 0; font-weight: bold; color: #374151;">Severity:</td>
-                            <td style="padding: 8px 0; color: #6b7280;">{alert.severity.upper()}</td>
+                            <td style="padding: 8px 0; color: #6b7280;">{
+                alert.severity.upper()
+            }</td>
                         </tr>
                         <tr>
                             <td style="padding: 8px 0; font-weight: bold; color: #374151;">Source:</td>
@@ -207,26 +213,36 @@ class AlertManager:
                         </tr>
                         <tr>
                             <td style="padding: 8px 0; font-weight: bold; color: #374151;">Time:</td>
-                            <td style="padding: 8px 0; color: #6b7280;">{alert.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')}</td>
+                            <td style="padding: 8px 0; color: #6b7280;">{
+                alert.timestamp.strftime("%Y-%m-%d %H:%M:%S UTC")
+            }</td>
                         </tr>
                         <tr>
                             <td style="padding: 8px 0; font-weight: bold; color: #374151;">Alert ID:</td>
-                            <td style="padding: 8px 0; color: #6b7280; font-family: monospace;">{alert.id}</td>
+                            <td style="padding: 8px 0; color: #6b7280; font-family: monospace;">{
+                alert.id
+            }</td>
                         </tr>
                     </table>
-                    
+
                     <div style="margin: 20px 0; padding: 15px; background: #f9fafb; border-left: 4px solid #3b82f6; border-radius: 4px;">
                         <h4 style="margin: 0 0 10px 0; color: #1f2937;">Description:</h4>
-                        <p style="margin: 0; color: #374151; line-height: 1.6;">{alert.description}</p>
+                        <p style="margin: 0; color: #374151; line-height: 1.6;">{
+                alert.description
+            }</p>
                     </div>
-                    
-                    {f'''
+
+                    {
+                f'''
                     <div style="margin: 20px 0;">
                         <h4 style="color: #1f2937;">Additional Information:</h4>
                         <pre style="background: #f3f4f6; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px;">{json.dumps(alert.metadata, indent=2)}</pre>
                     </div>
-                    ''' if alert.metadata else ''}
-                    
+                    '''
+                if alert.metadata
+                else ""
+            }
+
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center;">
                         <p style="margin: 0; color: #6b7280; font-size: 14px;">
                             This is an automated alert from GastroPartner monitoring system.
@@ -240,33 +256,39 @@ class AlertManager:
             </html>
             """
 
-            # Plain text fallback
-            text_body = f"""
+            # Plain text fallback (prepared for future implementation)
+            _text_body = f"""
 GastroPartner System Alert
 
 Title: {alert.title}
 Severity: {alert.severity.upper()}
 Source: {alert.source}
-Time: {alert.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')}
+Time: {alert.timestamp.strftime("%Y-%m-%d %H:%M:%S UTC")}
 Alert ID: {alert.id}
 
 Description:
 {alert.description}
 
-{'Additional Information:' + json.dumps(alert.metadata, indent=2) if alert.metadata else ''}
+{"Additional Information:" + json.dumps(alert.metadata, indent=2) if alert.metadata else ""}
 
 This is an automated alert from GastroPartner monitoring system.
 Visit https://gastropartner.com/status for more information.
             """
 
             # TODO: Implement actual email sending
-            # For now, just log the email that would be sent
-            print(f"📧 EMAIL ALERT: {subject}")
-            print(f"   To: {channel.config['to']}")
-            print(f"   Content: {alert.description}")
+            # IMPLEMENTATION PLAN:
+            # 1. Add email service dependency (e.g., SendGrid, AWS SES, SMTP)
+            # 2. Configure email templates and styling
+            # 3. Add retry logic and queue for reliability
+            # 4. Test with staging email addresses before production
+            # CURRENT STATUS: Email content is prepared but not sent (development safe)
+            dev_logger.info_print(f"EMAIL ALERT: {subject}")
+            dev_logger.info_print(f"   To: {channel.config['to']}")
+            dev_logger.info_print(f"   Content: {alert.description}")
+            dev_logger.info_print("   NOTE: Email sending not implemented yet - logging only")
 
         except Exception as e:
-            print(f"Failed to send email notification: {e}")
+            dev_logger.error_print(f"Failed to send email notification: {e}")
 
     async def _send_slack_notification(self, alert: Alert, channel: NotificationChannel):
         """Send Slack notification."""
@@ -277,15 +299,12 @@ Visit https://gastropartner.com/status for more information.
                 "critical": "#dc2626",
                 "high": "#ea580c",
                 "medium": "#f59e0b",
-                "low": "#22c55e"
+                "low": "#22c55e",
             }.get(alert.severity, "#6b7280")
 
-            emoji = {
-                "critical": "🚨",
-                "high": "⚠️",
-                "medium": "🟡",
-                "low": "🔵"
-            }.get(alert.severity, "📋")
+            emoji = {"critical": "🚨", "high": "⚠️", "medium": "🟡", "low": "🔵"}.get(
+                alert.severity, "📋"
+            )
 
             payload = {
                 "channel": channel.config.get("channel", "#alerts"),
@@ -297,43 +316,29 @@ Visit https://gastropartner.com/status for more information.
                         "title": f"{emoji} {alert.title}",
                         "text": alert.description,
                         "fields": [
-                            {
-                                "title": "Severity",
-                                "value": alert.severity.upper(),
-                                "short": True
-                            },
-                            {
-                                "title": "Source",
-                                "value": alert.source,
-                                "short": True
-                            },
+                            {"title": "Severity", "value": alert.severity.upper(), "short": True},
+                            {"title": "Source", "value": alert.source, "short": True},
                             {
                                 "title": "Time",
-                                "value": alert.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC'),
-                                "short": False
+                                "value": alert.timestamp.strftime("%Y-%m-%d %H:%M:%S UTC"),
+                                "short": False,
                             },
-                            {
-                                "title": "Alert ID",
-                                "value": f"`{alert.id}`",
-                                "short": False
-                            }
+                            {"title": "Alert ID", "value": f"`{alert.id}`", "short": False},
                         ],
                         "footer": "GastroPartner Monitoring",
-                        "ts": int(alert.timestamp.timestamp())
+                        "ts": int(alert.timestamp.timestamp()),
                     }
-                ]
+                ],
             }
 
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    channel.config["webhook_url"],
-                    json=payload,
-                    timeout=10.0
+                    channel.config["webhook_url"], json=payload, timeout=10.0
                 )
                 response.raise_for_status()
 
         except Exception as e:
-            print(f"Failed to send Slack notification: {e}")
+            dev_logger.error_print(f"Failed to send Slack notification: {e}")
 
     async def _send_pagerduty_notification(self, alert: Alert, channel: NotificationChannel):
         """Send PagerDuty notification."""
@@ -354,27 +359,20 @@ Visit https://gastropartner.com/status for more information.
                     "custom_details": {
                         "description": alert.description,
                         "alert_id": alert.id,
-                        **alert.metadata
-                    }
+                        **alert.metadata,
+                    },
                 },
-                "links": [
-                    {
-                        "href": "https://gastropartner.com/status",
-                        "text": "Status Page"
-                    }
-                ]
+                "links": [{"href": "https://gastropartner.com/status", "text": "Status Page"}],
             }
 
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    "https://events.pagerduty.com/v2/enqueue",
-                    json=payload,
-                    timeout=10.0
+                    "https://events.pagerduty.com/v2/enqueue", json=payload, timeout=10.0
                 )
                 response.raise_for_status()
 
         except Exception as e:
-            print(f"Failed to send PagerDuty notification: {e}")
+            dev_logger.error_print(f"Failed to send PagerDuty notification: {e}")
 
     async def _send_webhook_notification(self, alert: Alert, channel: NotificationChannel):
         """Send webhook notification."""
@@ -388,9 +386,9 @@ Visit https://gastropartner.com/status for more information.
                     "severity": alert.severity,
                     "source": alert.source,
                     "timestamp": alert.timestamp.isoformat(),
-                    "metadata": alert.metadata
+                    "metadata": alert.metadata,
                 },
-                "event_type": "alert_created"
+                "event_type": "alert_created",
             }
 
             async with httpx.AsyncClient() as client:
@@ -398,12 +396,12 @@ Visit https://gastropartner.com/status for more information.
                     channel.config["url"],
                     json=payload,
                     headers=channel.config.get("headers", {}),
-                    timeout=10.0
+                    timeout=10.0,
                 )
                 response.raise_for_status()
 
         except Exception as e:
-            print(f"Failed to send webhook notification: {e}")
+            dev_logger.error_print(f"Failed to send webhook notification: {e}")
 
     async def _send_email_resolution(self, alert: Alert, channel: NotificationChannel):
         """Send email resolution notification."""
@@ -413,18 +411,26 @@ Visit https://gastropartner.com/status for more information.
             duration = alert.resolved_at - alert.timestamp if alert.resolved_at else None
 
             # TODO: Implement resolution email
-            print(f"📧 EMAIL RESOLUTION: {subject}")
-            print(f"   Duration: {duration}")
+            # IMPLEMENTATION PLAN:
+            # 1. Create resolution email template (matches alert design)
+            # 2. Include resolution time and summary statistics
+            # 3. Add automatic resolution reporting for incident tracking
+            # CURRENT STATUS: Resolution email content is prepared but not sent
+            dev_logger.info_print(f"EMAIL RESOLUTION: {subject}")
+            dev_logger.info_print(f"   Duration: {duration}")
+            dev_logger.info_print(
+                "   NOTE: Resolution email sending not implemented yet - logging only"
+            )
 
         except Exception as e:
-            print(f"Failed to send email resolution: {e}")
+            dev_logger.error_print(f"Failed to send email resolution: {e}")
 
     async def _send_slack_resolution(self, alert: Alert, channel: NotificationChannel):
         """Send Slack resolution notification."""
 
         try:
             duration = alert.resolved_at - alert.timestamp if alert.resolved_at else None
-            duration_str = str(duration).split('.')[0] if duration else "Unknown"
+            duration_str = str(duration).split(".")[0] if duration else "Unknown"
 
             payload = {
                 "channel": channel.config.get("channel", "#alerts"),
@@ -436,33 +442,23 @@ Visit https://gastropartner.com/status for more information.
                         "title": f"✅ RESOLVED: {alert.title}",
                         "text": f"Alert has been resolved after {duration_str}",
                         "fields": [
-                            {
-                                "title": "Alert ID",
-                                "value": f"`{alert.id}`",
-                                "short": True
-                            },
-                            {
-                                "title": "Duration",
-                                "value": duration_str,
-                                "short": True
-                            }
+                            {"title": "Alert ID", "value": f"`{alert.id}`", "short": True},
+                            {"title": "Duration", "value": duration_str, "short": True},
                         ],
                         "footer": "GastroPartner Monitoring",
-                        "ts": int(alert.resolved_at.timestamp()) if alert.resolved_at else None
+                        "ts": int(alert.resolved_at.timestamp()) if alert.resolved_at else None,
                     }
-                ]
+                ],
             }
 
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    channel.config["webhook_url"],
-                    json=payload,
-                    timeout=10.0
+                    channel.config["webhook_url"], json=payload, timeout=10.0
                 )
                 response.raise_for_status()
 
         except Exception as e:
-            print(f"Failed to send Slack resolution: {e}")
+            dev_logger.error_print(f"Failed to send Slack resolution: {e}")
 
     async def _send_pagerduty_resolution(self, alert: Alert, channel: NotificationChannel):
         """Send PagerDuty resolution notification."""
@@ -471,19 +467,17 @@ Visit https://gastropartner.com/status for more information.
             payload = {
                 "routing_key": channel.config["integration_key"],
                 "event_action": "resolve",
-                "dedup_key": alert.id
+                "dedup_key": alert.id,
             }
 
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    "https://events.pagerduty.com/v2/enqueue",
-                    json=payload,
-                    timeout=10.0
+                    "https://events.pagerduty.com/v2/enqueue", json=payload, timeout=10.0
                 )
                 response.raise_for_status()
 
         except Exception as e:
-            print(f"Failed to send PagerDuty resolution: {e}")
+            dev_logger.error_print(f"Failed to send PagerDuty resolution: {e}")
 
     def get_active_alerts(self) -> list[Alert]:
         """Get all active alerts."""
@@ -507,15 +501,13 @@ async def alert_service_down(service_name: str, details: str = ""):
         description=f"The {service_name} service is not responding. {details}",
         severity="critical",
         source=service_name,
-        metadata={
-            "service": service_name,
-            "alert_type": "service_down",
-            "details": details
-        }
+        metadata={"service": service_name, "alert_type": "service_down", "details": details},
     )
 
 
-async def alert_high_response_time(service_name: str, response_time_ms: float, threshold_ms: float = 5000):
+async def alert_high_response_time(
+    service_name: str, response_time_ms: float, threshold_ms: float = 5000
+):
     """Alert when response time is too high."""
     await alert_manager.create_alert(
         alert_id=f"high_response_time_{service_name}",
@@ -527,8 +519,8 @@ async def alert_high_response_time(service_name: str, response_time_ms: float, t
             "service": service_name,
             "alert_type": "high_response_time",
             "response_time_ms": response_time_ms,
-            "threshold_ms": threshold_ms
-        }
+            "threshold_ms": threshold_ms,
+        },
     )
 
 
@@ -540,10 +532,7 @@ async def alert_database_connection_failed(error: str):
         description=f"Unable to connect to the database: {error}",
         severity="critical",
         source="database",
-        metadata={
-            "alert_type": "database_connection_failed",
-            "error": error
-        }
+        metadata={"alert_type": "database_connection_failed", "error": error},
     )
 
 

@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useFreemium } from '../hooks/useFreemium';
 import { useOrganizationSettings } from '../hooks/useOrganizationSettings';
-import { useModuleSettings } from '../hooks/useModuleSettings';
+import { useModuleSettings } from '../contexts/ModuleSettingsContext';
 import { useTranslation } from '../localization/sv';
+import { useMobileMenu } from '../contexts/MobileMenuContext';
 import PlanStatusWidget from './PlanStatusWidget';
 import './Sidebar.css';
 
@@ -15,20 +16,19 @@ interface NavigationItem {
   path: string;
   adminOnly?: boolean;
   moduleId?: string; // Maps to module_id for filtering
+  requiresRole?: 'system_admin' | 'org_admin' | 'user'; // New role-based access control
 }
 
 // Navigation items will be translated dynamically
 const getNavigationItems = (t: (key: any) => string): NavigationItem[] => [
   { id: 'dashboard', label: t('dashboard'), icon: '📊', path: '/' }, // Always visible
-  { id: 'ingredients', label: t('ingredients'), icon: '🥕', path: '/ingredienser', moduleId: 'ingredients' },
-  { id: 'recipes', label: t('recipes'), icon: '📝', path: '/recept', moduleId: 'recipes' },
-  { id: 'dishes', label: t('menuItems'), icon: '🍽️', path: '/matratter', moduleId: 'menu' },
+  { id: 'recipe-management', label: 'Recepthantering', icon: '🍽️', path: '/recepthantering', moduleId: 'recipes' },
   { id: 'cost-control', label: t('costAnalysis'), icon: '📈', path: '/kostnadsanalys', moduleId: 'analytics' },
-  { id: 'user-testing', label: t('userTesting'), icon: '🧪', path: '/user-testing', moduleId: 'user_testing' },
+  { id: 'analytics', label: 'Affärsanalys', icon: '📊', path: '/analys', moduleId: 'analytics' },
   { id: 'sales', label: t('sales'), icon: '💰', path: '/forsaljning', moduleId: 'sales' },
   { id: 'modules', label: t('modules'), icon: '🧩', path: '/moduler' }, // Always visible - settings page
   { id: 'settings', label: t('settings'), icon: '⚙️', path: '/installningar' }, // Always visible - settings page
-  { id: 'superadmin', label: t('superAdmin'), icon: '🛡️', path: '/superadmin', adminOnly: true, moduleId: 'super_admin' },
+  { id: 'systemadmin', label: t('systemAdmin'), icon: '🛡️', path: '/superadmin', requiresRole: 'system_admin' },
 ];
 
 export function Sidebar() {
@@ -37,31 +37,67 @@ export function Sidebar() {
   const { restaurantName } = useOrganizationSettings();
   const { isModuleEnabled, loading: moduleLoading } = useModuleSettings();
   const { t } = useTranslation();
+  const { isOpen, close } = useMobileMenu();
   const location = useLocation();
   const navigate = useNavigate();
-  const isSuperAdmin = user?.email?.toLowerCase() === 'diffen@me.com';
+  // Get user role - for now using legacy email check during transition
+  const isSystemAdmin = user?.email?.toLowerCase() === 'diffen@me.com';
+  // TODO: Replace with proper role checking from user_profiles table
+  const getUserRole = (): 'system_admin' | 'org_admin' | 'user' => {
+    if (isSystemAdmin) return 'system_admin';
+    // TODO: Check if user is org admin based on user_organizations table
+    return 'user';
+  };
+  const userRole = getUserRole();
 
   const navigationItems = getNavigationItems(t);
   const visibleItems = navigationItems.filter(item => {
-    // Filter admin-only items
-    if (item.adminOnly && !isSuperAdmin) {
+    // Filter role-based items
+    if (item.requiresRole) {
+      switch (item.requiresRole) {
+        case 'system_admin':
+          return userRole === 'system_admin';
+        case 'org_admin':
+          return userRole === 'system_admin' || userRole === 'org_admin';
+        default:
+          return true;
+      }
+    }
+
+    // Legacy admin-only items (for backward compatibility during transition)
+    if (item.adminOnly && !isSystemAdmin) {
       return false;
     }
-    
-    // Filter items based on module settings
-    if (item.moduleId && !moduleLoading) {
+
+    // Filter items based on module settings (skip for system admin items)
+    if (item.moduleId && !moduleLoading && !item.requiresRole) {
       // Only show if module is enabled
       if (!isModuleEnabled(item.moduleId)) {
         return false;
       }
     }
-    
+
     return true;
   });
 
+  // Close mobile menu when location changes
+  useEffect(() => {
+    close();
+  }, [location.pathname, close]);
+
   return (
-    <aside className="sidebar">
-      <div className="sidebar__header">
+    <>
+      {/* Mobile overlay */}
+      {isOpen && (
+        <div
+          className="sidebar__mobile-overlay"
+          onClick={close}
+          aria-label="Stäng navigering"
+        />
+      )}
+
+      <aside className={`sidebar ${isOpen ? 'sidebar--open' : ''}`}>
+        <div className="sidebar__header">
         <div className="sidebar__logo">
           <span className="sidebar__logo-icon">🍽️</span>
           <div className="sidebar__brand">
@@ -101,14 +137,6 @@ export function Sidebar() {
             navigate('/upgrade');
           }}
         />
-        <div style={{ 
-          marginTop: '8px', 
-          fontSize: '11px', 
-          color: '#6b7280', 
-          textAlign: 'center' 
-        }}>
-          Recepthantering
-        </div>
       </div>
 
       <div className="sidebar__footer">
@@ -121,5 +149,6 @@ export function Sidebar() {
         </button>
       </div>
     </aside>
+    </>
   );
 }

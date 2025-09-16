@@ -1,450 +1,260 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { PageHeader } from '../components/PageHeader';
-import { useAuth } from '../contexts/AuthContext';
+import RoleProtectedRoute from '../components/RoleProtectedRoute';
+import { ModuleName } from '../utils/modulesApi';
+import { useModuleSettings } from '../contexts/ModuleSettingsContext';
+import '../styles/feature-flags.css';
 
-interface FeatureFlag {
-  flags_id: string;
-  organization_id: string;
-  show_recipe_prep_time: boolean;
-  show_recipe_cook_time: boolean;
-  show_recipe_instructions: boolean;
-  show_recipe_notes: boolean;
-  enable_notifications_section: boolean;
-  enable_advanced_settings_section: boolean;
-  enable_account_management_section: boolean;
-  enable_company_profile_section: boolean;
-  enable_business_settings_section: boolean;
-  enable_settings_header: boolean;
-  enable_settings_footer: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-interface Organization {
-  organization_id: string;
-  name: string;
-  slug: string;
-  plan: string;
-  created_at: string;
+interface GlobalModule {
+  name: ModuleName;
+  title: string;
+  description: string;
+  icon: string;
+  enabled: boolean;
+  category: 'core' | 'analytics' | 'sales' | 'integrations';
 }
 
 export function SuperAdmin() {
-  const { session } = useAuth();
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [featureFlags, setFeatureFlags] = useState<FeatureFlag[]>([]);
-  const [selectedOrganization, setSelectedOrganization] = useState<string>('');
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const { modules, updateModuleStatus, loading: moduleLoading } = useModuleSettings();
+  const [loading, setLoading] = useState(false);
+  const [, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!session) return;
+  // Map ModuleConfig to GlobalModule format
+  const globalModules: GlobalModule[] = [
+    {
+      name: 'recipes',
+      title: 'Recepthantering',
+      description: 'Komplett hantering av ingredienser, recept och menyartiklar',
+      icon: '🍽️',
+      enabled: modules.find(m => m.id === 'recipes')?.enabled ?? true,
+      category: 'core'
+    },
+    {
+      name: 'analytics',
+      title: 'Kostnadsanalys',
+      description: 'Djupgående analys av kostnader och lönsamhet',
+      icon: '📈',
+      enabled: modules.find(m => m.id === 'analytics')?.enabled ?? false,
+      category: 'analytics'
+    },
+    {
+      name: 'sales',
+      title: 'Försäljningsmodul',
+      description: 'Komplett försäljningshantering med CRM',
+      icon: '💰',
+      enabled: modules.find(m => m.id === 'sales')?.enabled ?? false,
+      category: 'sales'
+    },
+    {
+      name: 'advanced_analytics',
+      title: 'Advanced Analytics',
+      description: 'Djupgående dataanalys och AI-insights',
+      icon: '📊',
+      enabled: false, // Not in ModuleSettingsContext, keep disabled
+      category: 'analytics'
+    },
+    {
+      name: 'mobile_app',
+      title: 'Mobilapp',
+      description: 'Hantera verksamheten från mobilen',
+      icon: '📱',
+      enabled: false, // Not in ModuleSettingsContext, keep disabled
+      category: 'integrations'
+    },
+    {
+      name: 'integrations',
+      title: 'Integrationer',
+      description: 'Anslut till externa system och tjänster',
+      icon: '🔄',
+      enabled: false, // Not in ModuleSettingsContext, keep disabled
+      category: 'integrations'
+    }
+  ];
 
-      try {
-        setError(null);
-        const token = session.access_token;
-
-        // Fetch organizations
-        const orgResponse = await fetch('/api/v1/superadmin/agencies', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (orgResponse.ok) {
-          const orgData = await orgResponse.json();
-          setOrganizations(orgData.agencies || []);
-        }
-
-        // Fetch all feature flags
-        const flagsResponse = await fetch('/api/v1/superadmin/feature-flags', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (flagsResponse.ok) {
-          const flagsData = await flagsResponse.json();
-          setFeatureFlags(flagsData.feature_flags || []);
-        }
-
-      } catch (err) {
-        console.error('Error fetching super admin data:', err);
-        setError('Failed to load super admin data. Make sure you have super admin privileges.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [session]);
-
-  const updateFeatureFlag = async (organizationId: string, flagName: string, value: boolean) => {
-    if (!session) return;
-
+  const handleModuleToggle = async (moduleName: ModuleName, enabled: boolean) => {
+    setLoading(true);
     try {
-      setSaving(true);
-      setError(null);
-      setSuccess(null);
+      // Map ModuleName to module_id format used in ModuleSettingsContext
+      const moduleIdMap: Record<string, string> = {
+        'recipes': 'recipes',
+        'analytics': 'analytics', 
+        'sales': 'sales',
+        'ingredients': 'ingredients',
+        'menu': 'menu'
+      };
 
-      const token = session.access_token;
-      const response = await fetch(`/api/v1/superadmin/feature-flags/${organizationId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          [flagName]: value,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to update feature flag: ${response.statusText}`);
+      const moduleId = moduleIdMap[moduleName];
+      if (moduleId) {
+        const success = await updateModuleStatus(moduleId, enabled);
+        if (!success) {
+          throw new Error('Failed to update module status');
+        }
       }
-
-      await response.json();
       
-      // Update local state
-      setFeatureFlags(prev => 
-        prev.map(flag => 
-          flag.organization_id === organizationId 
-            ? { ...flag, [flagName]: value }
-            : flag
-        )
-      );
-
-      setSuccess(`✅ Feature flag updated successfully!`);
-      setTimeout(() => setSuccess(null), 3000);
-
+      console.log(`Global module ${moduleName} ${enabled ? 'enabled' : 'disabled'}`);
     } catch (err) {
-      console.error('Error updating feature flag:', err);
-      setError(`Failed to update feature flag: ${(err as Error).message}`);
+      console.error('Error updating global module:', err);
+      setError(`Kunde inte uppdatera modul ${moduleName}`);
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
-  const getOrganizationFlags = (orgId: string): FeatureFlag | undefined => {
-    return featureFlags.find(flag => flag.organization_id === orgId);
+  const getModulesByCategory = (category: string) => {
+    return globalModules.filter(module => module.category === category);
   };
 
-  if (loading) {
-    return (
-      <div className="main-content">
-        <PageHeader 
-          title="🔧 Super Admin" 
-          subtitle="Loading super admin panel..."
-        />
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p>Loading super admin data...</p>
-        </div>
-      </div>
-    );
-  }
+  const getEnabledCount = () => {
+    return globalModules.filter(module => module.enabled).length;
+  };
 
   return (
-    <div className="main-content">
-      <PageHeader 
-        title="🔧 Super Admin" 
-        subtitle="Feature Flag Management"
-      />
+    <RoleProtectedRoute 
+      requiredRole="system_admin"
+      fallbackMessage="Endast systemadministratörer har tillgång till globala modulinställningar."
+    >
+      <div className="main-content">
+        <PageHeader 
+          title="🌐 Globala Standardvärden" 
+          subtitle="Hantera vilka moduler som är tillgängliga för alla organisationer"
+        />
 
-      <div className="modules-container">
-        {/* Success/Error Messages */}
-        {success && (
-          <div className="alert alert--success">
-            {success}
+        <div className="global-modules-container">
+          {/* Status Overview */}
+          <div className="modules-status">
+            <div className="modules-status__item">
+              <span className="modules-status__count">{getEnabledCount()}</span>
+              <span className="modules-status__label">Aktiverade moduler</span>
+            </div>
+            <div className="modules-status__item">
+              <span className="modules-status__count">{globalModules.length - getEnabledCount()}</span>
+              <span className="modules-status__label">Inaktiverade moduler</span>
+            </div>
+            <div className="modules-status__item">
+              <span className="modules-status__count">{globalModules.length}</span>
+              <span className="modules-status__label">Totalt moduler</span>
+            </div>
           </div>
-        )}
+
+          {/* Core Modules */}
+          <div className="modules-section">
+            <h2>Kärnmoduler</h2>
+            <p className="modules-section__description">
+              Grundläggande funktionalitet som organisationer behöver
+            </p>
+            <div className="global-modules-grid">
+              {getModulesByCategory('core').map(module => (
+                <GlobalModuleCard
+                  key={module.name}
+                  module={module}
+                  onToggle={handleModuleToggle}
+                  isLoading={loading || moduleLoading}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Analytics Modules */}
+          <div className="modules-section">
+            <h2>Analysmoduler</h2>
+            <p className="modules-section__description">
+              Dataanalys och affärsintelligens
+            </p>
+            <div className="global-modules-grid">
+              {getModulesByCategory('analytics').map(module => (
+                <GlobalModuleCard
+                  key={module.name}
+                  module={module}
+                  onToggle={handleModuleToggle}
+                  isLoading={loading || moduleLoading}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Sales Modules */}
+          <div className="modules-section">
+            <h2>Försäljningsmoduler</h2>
+            <p className="modules-section__description">
+              CRM och försäljningshantering
+            </p>
+            <div className="global-modules-grid">
+              {getModulesByCategory('sales').map(module => (
+                <GlobalModuleCard
+                  key={module.name}
+                  module={module}
+                  onToggle={handleModuleToggle}
+                  isLoading={loading || moduleLoading}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Integration Modules */}
+          <div className="modules-section">
+            <h2>Integrations- och Tilläggsmoduler</h2>
+            <p className="modules-section__description">
+              Externa integrationer och mobil funktionalitet
+            </p>
+            <div className="global-modules-grid">
+              {getModulesByCategory('integrations').map(module => (
+                <GlobalModuleCard
+                  key={module.name}
+                  module={module}
+                  onToggle={handleModuleToggle}
+                  isLoading={loading || moduleLoading}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </RoleProtectedRoute>
+  );
+}
+
+function GlobalModuleCard({ 
+  module, 
+  onToggle, 
+  isLoading 
+}: { 
+  module: GlobalModule;
+  onToggle: (moduleName: ModuleName, enabled: boolean) => void;
+  isLoading: boolean;
+}) {
+  return (
+    <div className={`global-module-card ${module.enabled ? 'enabled' : 'disabled'}`}>
+      <div className="global-module-card__header">
+        <div className="global-module-card__icon">{module.icon}</div>
+        <div className="global-module-card__info">
+          <h3 className="global-module-card__title">{module.title}</h3>
+          <p className="global-module-card__description">{module.description}</p>
+        </div>
+      </div>
+      
+      <div className="global-module-card__actions">
+        <div className="global-module-card__status">
+          <span className={`status-badge ${module.enabled ? 'active' : 'inactive'}`}>
+            {module.enabled ? '✅ Aktiverad' : '❌ Inaktiverad'}
+          </span>
+        </div>
         
-        {error && (
-          <div className="alert alert--error">
-            {error}
-          </div>
-        )}
-
-        {/* Organization Selector */}
-        <div className="settings-section">
-          <div className="settings-section__header">
-            <div className="settings-section__icon">🏢</div>
-            <div className="settings-section__info">
-              <h3 className="settings-section__title">Organization Selection</h3>
-              <p className="settings-section__description">Select an organization to manage feature flags</p>
-            </div>
-          </div>
-          <div className="settings-section__content">
-            <div className="settings-item">
-              <div className="settings-item__info">
-                <label className="settings-item__label">Organization</label>
-                <p className="settings-item__description">Choose organization to modify feature flags</p>
+        <button
+          className={`toggle-button ${module.enabled ? 'enabled' : 'disabled'}`}
+          onClick={() => onToggle(module.name, !module.enabled)}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <div className="loading-spinner small"></div>
+          ) : (
+            <>
+              <div className={`toggle-switch ${module.enabled ? 'on' : 'off'}`}>
+                <div className="toggle-handle"></div>
               </div>
-              <div className="settings-item__control">
-                <select 
-                  value={selectedOrganization}
-                  onChange={(e) => setSelectedOrganization(e.target.value)}
-                  className="input"
-                >
-                  <option value="">Select Organization...</option>
-                  {organizations.map(org => (
-                    <option key={org.organization_id} value={org.organization_id}>
-                      {org.name} ({org.slug}) - {org.plan}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Feature Flags Management */}
-        {selectedOrganization && (
-          <div className="settings-section">
-            <div className="settings-section__header">
-              <div className="settings-section__icon">🚩</div>
-              <div className="settings-section__info">
-                <h3 className="settings-section__title">Feature Flags</h3>
-                <p className="settings-section__description">
-                  Manage feature flags for {organizations.find(o => o.organization_id === selectedOrganization)?.name}
-                </p>
-              </div>
-            </div>
-            <div className="settings-section__content">
-              {(() => {
-                const orgFlags = getOrganizationFlags(selectedOrganization);
-                
-                if (!orgFlags) {
-                  return (
-                    <div className="settings-item">
-                      <p>No feature flags found for this organization. They will be created automatically when first accessed.</p>
-                    </div>
-                  );
-                }
-
-                return (
-                  <>
-                    {/* Settings Page Section Flags */}
-                    <h4 style={{ marginBottom: '1rem', color: '#6b7280' }}>Settings Page Sections</h4>
-                    
-                    <div className="settings-item">
-                      <div className="settings-item__info">
-                        <label className="settings-item__label">Enable Notifications Section</label>
-                        <p className="settings-item__description">Show/hide notifications settings section</p>
-                      </div>
-                      <div className="settings-item__control">
-                        <label className="toggle">
-                          <input 
-                            type="checkbox" 
-                            checked={orgFlags.enable_notifications_section}
-                            onChange={(e) => updateFeatureFlag(selectedOrganization, 'enable_notifications_section', e.target.checked)}
-                            disabled={saving}
-                          />
-                          <span className="toggle__slider"></span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="settings-item">
-                      <div className="settings-item__info">
-                        <label className="settings-item__label">Enable Advanced Settings Section</label>
-                        <p className="settings-item__description">Show/hide advanced settings section (API access, data export, etc.)</p>
-                      </div>
-                      <div className="settings-item__control">
-                        <label className="toggle">
-                          <input 
-                            type="checkbox" 
-                            checked={orgFlags.enable_advanced_settings_section}
-                            onChange={(e) => updateFeatureFlag(selectedOrganization, 'enable_advanced_settings_section', e.target.checked)}
-                            disabled={saving}
-                          />
-                          <span className="toggle__slider"></span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="settings-item">
-                      <div className="settings-item__info">
-                        <label className="settings-item__label">Enable Account Management Section</label>
-                        <p className="settings-item__description">Show/hide account management section (password change, billing, etc.)</p>
-                      </div>
-                      <div className="settings-item__control">
-                        <label className="toggle">
-                          <input 
-                            type="checkbox" 
-                            checked={orgFlags.enable_account_management_section}
-                            onChange={(e) => updateFeatureFlag(selectedOrganization, 'enable_account_management_section', e.target.checked)}
-                            disabled={saving}
-                          />
-                          <span className="toggle__slider"></span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="settings-item">
-                      <div className="settings-item__info">
-                        <label className="settings-item__label">Enable Company Profile Section</label>
-                        <p className="settings-item__description">Show/hide company profile section (restaurant name, contact info, etc.)</p>
-                      </div>
-                      <div className="settings-item__control">
-                        <label className="toggle">
-                          <input 
-                            type="checkbox" 
-                            checked={orgFlags.enable_company_profile_section}
-                            onChange={(e) => updateFeatureFlag(selectedOrganization, 'enable_company_profile_section', e.target.checked)}
-                            disabled={saving}
-                          />
-                          <span className="toggle__slider"></span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="settings-item">
-                      <div className="settings-item__info">
-                        <label className="settings-item__label">Enable Business Settings Section</label>
-                        <p className="settings-item__description">Show/hide business settings section (currency, margin targets, etc.)</p>
-                      </div>
-                      <div className="settings-item__control">
-                        <label className="toggle">
-                          <input 
-                            type="checkbox" 
-                            checked={orgFlags.enable_business_settings_section}
-                            onChange={(e) => updateFeatureFlag(selectedOrganization, 'enable_business_settings_section', e.target.checked)}
-                            disabled={saving}
-                          />
-                          <span className="toggle__slider"></span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="settings-item">
-                      <div className="settings-item__info">
-                        <label className="settings-item__label">Enable Settings Header</label>
-                        <p className="settings-item__description">Show/hide settings page header and save button</p>
-                      </div>
-                      <div className="settings-item__control">
-                        <label className="toggle">
-                          <input 
-                            type="checkbox" 
-                            checked={orgFlags.enable_settings_header}
-                            onChange={(e) => updateFeatureFlag(selectedOrganization, 'enable_settings_header', e.target.checked)}
-                            disabled={saving}
-                          />
-                          <span className="toggle__slider"></span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="settings-item">
-                      <div className="settings-item__info">
-                        <label className="settings-item__label">Enable Settings Footer</label>
-                        <p className="settings-item__description">Show/hide settings page footer with system version info</p>
-                      </div>
-                      <div className="settings-item__control">
-                        <label className="toggle">
-                          <input 
-                            type="checkbox" 
-                            checked={orgFlags.enable_settings_footer}
-                            onChange={(e) => updateFeatureFlag(selectedOrganization, 'enable_settings_footer', e.target.checked)}
-                            disabled={saving}
-                          />
-                          <span className="toggle__slider"></span>
-                        </label>
-                      </div>
-                    </div>
-
-                    {/* Recipe Feature Flags */}
-                    <h4 style={{ marginBottom: '1rem', marginTop: '2rem', color: '#6b7280' }}>Recipe Features</h4>
-                    
-                    <div className="settings-item">
-                      <div className="settings-item__info">
-                        <label className="settings-item__label">Show Recipe Prep Time</label>
-                        <p className="settings-item__description">Display prep time in recipe forms</p>
-                      </div>
-                      <div className="settings-item__control">
-                        <label className="toggle">
-                          <input 
-                            type="checkbox" 
-                            checked={orgFlags.show_recipe_prep_time}
-                            onChange={(e) => updateFeatureFlag(selectedOrganization, 'show_recipe_prep_time', e.target.checked)}
-                            disabled={saving}
-                          />
-                          <span className="toggle__slider"></span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="settings-item">
-                      <div className="settings-item__info">
-                        <label className="settings-item__label">Show Recipe Cook Time</label>
-                        <p className="settings-item__description">Display cook time in recipe forms</p>
-                      </div>
-                      <div className="settings-item__control">
-                        <label className="toggle">
-                          <input 
-                            type="checkbox" 
-                            checked={orgFlags.show_recipe_cook_time}
-                            onChange={(e) => updateFeatureFlag(selectedOrganization, 'show_recipe_cook_time', e.target.checked)}
-                            disabled={saving}
-                          />
-                          <span className="toggle__slider"></span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="settings-item">
-                      <div className="settings-item__info">
-                        <label className="settings-item__label">Show Recipe Instructions</label>
-                        <p className="settings-item__description">Display instructions field in recipe forms</p>
-                      </div>
-                      <div className="settings-item__control">
-                        <label className="toggle">
-                          <input 
-                            type="checkbox" 
-                            checked={orgFlags.show_recipe_instructions}
-                            onChange={(e) => updateFeatureFlag(selectedOrganization, 'show_recipe_instructions', e.target.checked)}
-                            disabled={saving}
-                          />
-                          <span className="toggle__slider"></span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="settings-item">
-                      <div className="settings-item__info">
-                        <label className="settings-item__label">Show Recipe Notes</label>
-                        <p className="settings-item__description">Display notes field in recipe forms</p>
-                      </div>
-                      <div className="settings-item__control">
-                        <label className="toggle">
-                          <input 
-                            type="checkbox" 
-                            checked={orgFlags.show_recipe_notes}
-                            onChange={(e) => updateFeatureFlag(selectedOrganization, 'show_recipe_notes', e.target.checked)}
-                            disabled={saving}
-                          />
-                          <span className="toggle__slider"></span>
-                        </label>
-                      </div>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-          </div>
-        )}
-
-        <div className="settings-footer">
-          <div className="settings-footer__info">
-            <p><strong>Super Admin Panel</strong></p>
-            <p><strong>Organizations:</strong> {organizations.length}</p>
-            <p><strong>Feature Flag Records:</strong> {featureFlags.length}</p>
-          </div>
-        </div>
+              <span>{module.enabled ? 'Inaktivera' : 'Aktivera'}</span>
+            </>
+          )}
+        </button>
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 export function OrganizationSelector() {
   const {
     organizations,
-    currentOrganization,
+    // currentOrganization, // TODO: Will be used to display current organization in selector UI
     createOrganization,
   } = useAuth();
   
@@ -134,15 +134,5 @@ export function OrganizationSelector() {
     );
   }
 
-  return (
-    <div className="org-selector">
-      <div className="org-selector__current">
-        <label>Din organisation:</label>
-        <div className="org-selector__name">
-          {currentOrganization ? currentOrganization.name : 'Ingen organisation'}
-        </div>
-      </div>
-
-    </div>
-  );
+  return null;
 }

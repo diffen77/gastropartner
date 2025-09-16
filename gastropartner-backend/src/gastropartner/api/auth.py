@@ -1,13 +1,13 @@
 """Authentication API endpoints."""
 
-import jwt
-from datetime import datetime, timedelta, timezone
+import re
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 from supabase import Client
 
 from gastropartner.core.auth import AuthService, get_current_active_user, get_current_user
-from gastropartner.core.database import get_supabase_client
+from gastropartner.core.database import get_supabase_admin_client, get_supabase_client
 from gastropartner.core.models import (
     AuthResponse,
     MessageResponse,
@@ -19,63 +19,47 @@ from gastropartner.core.models import (
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
 
-def create_development_jwt_token(user_id: str, email: str, organization_id: str) -> str:
+def validate_password_strength(password: str) -> tuple[bool, str]:
     """
-    Create a proper JWT token for development with organization_id claim.
-    
-    This creates a JWT that mimics Supabase JWT structure with the claims
-    that our RLS policies expect to find.
-    
-    Args:
-        user_id: User UUID
-        email: User email
-        organization_id: Organization UUID
-        
+    Validate password strength according to security requirements.
+
+    Requirements:
+    - At least 8 characters
+    - Contains uppercase letter
+    - Contains lowercase letter
+    - Contains number
+    - Contains special character
+
     Returns:
-        JWT token string
+        tuple: (is_valid, error_message)
     """
-    # Use a simple secret for development (in production, use proper secrets)
-    secret = "development-secret-key"
-    
-    # Calculate expiration (1 hour from now)
-    now = datetime.now(timezone.utc)
-    exp = now + timedelta(hours=1)
-    
-    # Create JWT payload with Supabase-compatible structure
-    payload = {
-        # Standard JWT claims
-        "iss": "supabase",
-        "sub": user_id,
-        "aud": "authenticated", 
-        "exp": int(exp.timestamp()),
-        "iat": int(now.timestamp()),
-        "email": email,
-        "phone": "",
-        "app_metadata": {
-            "provider": "development",
-            "providers": ["development"]
-        },
-        "user_metadata": {
-            "email": email,
-            "full_name": f"Development User ({email})"
-        },
-        "role": "authenticated",
-        # CRITICAL: Add organization_id claim for RLS policies
-        "organization_id": organization_id,
-        # Additional custom claims that our RLS policies might use
-        "user_role": "owner"
-    }
-    
-    # Create JWT token
-    token = jwt.encode(payload, secret, algorithm="HS256")
-    return token
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters long"
+
+    if not re.search(r"[A-Z]", password):
+        return False, "Password must contain at least one uppercase letter"
+
+    if not re.search(r"[a-z]", password):
+        return False, "Password must contain at least one lowercase letter"
+
+    if not re.search(r"[0-9]", password):
+        return False, "Password must contain at least one number"
+
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+        return False, 'Password must contain at least one special character (!@#$%^&*(),.?":{}|<>)'
+
+    # Check for common weak patterns
+    if password.lower() in ["password", "12345678", "qwerty123", "admin123"]:
+        return False, "Password is too common and easily guessed"
+
+    return True, "Password strength is acceptable"
 
 
 class LoginRequest(BaseModel):
     """Login request model."""
 
-    email: EmailStr
-    password: str = Field(..., min_length=8)
+    email: str
+    password: str = Field(..., min_length=1, description="User password")
 
 
 class RefreshRequest(BaseModel):
@@ -97,7 +81,7 @@ async def register(
 ) -> MessageResponse:
     """
     Register new user.
-    
+
     - **email**: Valid email address (will be verified)
     - **password**: Password (minimum 8 characters)
     - **full_name**: User's full name
@@ -135,7 +119,7 @@ async def login(
 ) -> AuthResponse:
     """
     Login user and return tokens.
-    
+
     - **email**: Registered email address
     - **password**: User password
     """
@@ -174,21 +158,38 @@ async def login(
 
 @router.post(
     "/refresh",
-    response_model=dict,
+    response_model=AuthResponse,
     summary="Refresh access token",
     description="Refresh expired access token using refresh token",
 )
 async def refresh_token(
     refresh_data: RefreshRequest,
     supabase: Client = Depends(get_supabase_client),
-) -> dict:
+) -> AuthResponse:
     """
     Refresh access token.
-    
+
     - **refresh_token**: Valid refresh token
     """
-    auth_service = AuthService(supabase)
-    return await auth_service.refresh_token(refresh_data.refresh_token)
+    try:
+        # Use Supabase token refresh
+        auth_service = AuthService(supabase)
+        result = await auth_service.refresh_token(refresh_data.refresh_token)
+
+        # Convert to our AuthResponse format
+        return AuthResponse(
+            access_token=result["access_token"],
+            refresh_token=result["refresh_token"],
+            user=result.get("user"),  # May not have user in refresh response
+            expires_in=result["expires_in"],
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Token refresh failed: {e}"
+        ) from e
 
 
 @router.post(
@@ -202,7 +203,7 @@ async def logout(
 ) -> MessageResponse:
     """
     Logout current user.
-    
+
     Invalidates the current session.
     """
     auth_service = AuthService(supabase)
@@ -224,7 +225,7 @@ async def get_me(
 ) -> User:
     """
     Get current user information.
-    
+
     Returns the currently authenticated user's profile.
     """
     return current_user
@@ -243,7 +244,7 @@ async def update_me(
 ) -> User:
     """
     Update current user's profile.
-    
+
     - **full_name**: Updated full name (optional)
     """
     try:
@@ -294,7 +295,7 @@ async def auth_status(
 ) -> dict:
     """
     Get authentication system status.
-    
+
     Returns information about the authentication configuration.
     """
     from gastropartner.core.database import test_connection
@@ -319,7 +320,7 @@ async def auth_status(
     "/dev-login",
     response_model=AuthResponse,
     summary="Development login (bypasses email confirmation)",
-    description="⚠️ DEVELOPMENT ONLY - Login without email confirmation",
+    description="Development-only login that bypasses email confirmation requirement",
 )
 async def dev_login(
     login_data: LoginRequest,
@@ -327,86 +328,120 @@ async def dev_login(
 ) -> AuthResponse:
     """
     Development login that bypasses email confirmation.
-    Creates proper JWT tokens with organization_id claims for RLS policies.
-    
-    ⚠️ FOR DEVELOPMENT USE ONLY - DO NOT USE IN PRODUCTION
+
+    ⚠️ FOR DEVELOPMENT ONLY - bypasses email confirmation requirement
+
+    - **email**: Registered email address
+    - **password**: User password
     """
+    # 🛡️ SECURITY: Only allow in development environment
+    from gastropartner.utils.logger import is_development
+
+    if not is_development():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Development endpoint not available in production environment",
+        )
+
     try:
-        # Simple validation - just check password is not empty
-        if not login_data.password or len(login_data.password) < 1:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Password cannot be empty",
+        auth_service = AuthService(supabase)
+
+        # First try normal login to see if already confirmed
+        try:
+            result = await auth_service.login_user(
+                email=login_data.email,
+                password=login_data.password,
             )
 
-        # Look up actual user from Supabase auth.users table
-        try:
-            response = supabase.rpc('get_auth_user_by_email', {'user_email': login_data.email}).execute()
-            
-            if not response.data or len(response.data) == 0:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Development user {login_data.email} not found. User must be registered first."
-                )
-            
-            user_data = response.data[0]
-            user_id = user_data["id"]
-            
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to lookup user: {e}"
-            ) from e
+            # Convert user data to our User model
+            user = User(
+                id=result["user"].id,
+                email=result["user"].email,
+                full_name=result["user"].user_metadata.get("full_name", ""),
+                created_at=result["user"].created_at,
+                updated_at=result["user"].updated_at,
+                email_confirmed_at=result["user"].email_confirmed_at,
+                last_sign_in_at=result["user"].last_sign_in_at,
+            )
 
-        # Look up user's organization from organization_users table
-        try:
-            # Use admin client to bypass RLS for organization lookup
-            from gastropartner.core.database import get_supabase_client_with_auth
-            admin_supabase = get_supabase_client_with_auth(user_id)
-            
-            org_response = admin_supabase.table("organization_users").select(
-                "organization_id"
-            ).eq("user_id", user_id).execute()
-            
-            if not org_response.data or len(org_response.data) == 0:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"User {login_data.email} is not member of any organization"
-                )
-            
-            organization_id = org_response.data[0]["organization_id"]
-            
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to lookup user organization: {e}"
-            ) from e
+            return AuthResponse(
+                access_token=result["access_token"],
+                refresh_token=result["refresh_token"],
+                user=user,
+                expires_in=result["expires_in"],
+            )
 
-        # Create proper JWT token with organization_id claim
-        jwt_token = create_development_jwt_token(user_id, login_data.email, organization_id)
-        
-        # Create User object from database data
-        user = User(
-            id=user_id,
-            email=login_data.email,
-            full_name=user_data.get("raw_user_meta_data", {}).get("full_name", f"Development User ({login_data.email})") if user_data.get("raw_user_meta_data") else f"Development User ({login_data.email})",
-            created_at=user_data.get("created_at", "2024-01-01T00:00:00Z"),
-            updated_at=user_data.get("updated_at", "2024-01-01T00:00:00Z"),
-            email_confirmed_at=user_data.get("email_confirmed_at", "2024-01-01T00:00:00Z"),
-            last_sign_in_at=user_data.get("last_sign_in_at", "2024-01-01T00:00:00Z"),
-        )
+        except HTTPException as e:
+            # If login fails due to unconfirmed email, force confirm it
+            if "not confirmed" in str(e.detail).lower():
+                # Get admin client to confirm email
+                admin_client = get_supabase_admin_client()
 
-        return AuthResponse(
-            access_token=jwt_token,
-            refresh_token=f"{jwt_token}_refresh",
-            user=user,
-            expires_in=3600,  # 1 hour
-        )
+                # Find user by email using SQL query to avoid schema confusion
+                users_response = admin_client.rpc(
+                    "get_auth_user_by_email", {"email_param": login_data.email}
+                ).execute()
+
+                # Fallback if RPC doesn't exist - use PostgREST with proper schema specification
+                if not users_response.data:
+                    users_response = (
+                        admin_client.table("users")  # Try public.users instead
+                        .select("*")
+                        .eq("email", login_data.email)
+                        .execute()
+                    )
+
+                if users_response.data:
+                    user_id = users_response.data[0]["id"]
+
+                    # Confirm email using database function
+                    confirm_response = admin_client.rpc(
+                        "confirm_auth_user_email", {"user_id_param": user_id}
+                    ).execute()
+
+                    # Check if email confirmation was successful
+                    if not confirm_response.data:
+                        raise HTTPException(
+                            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Failed to confirm email address",
+                        ) from None
+
+                    # Now try login again
+                    result = await auth_service.login_user(
+                        email=login_data.email,
+                        password=login_data.password,
+                    )
+
+                    # Convert user data to our User model
+                    user = User(
+                        id=result["user"].id,
+                        email=result["user"].email,
+                        full_name=result["user"].user_metadata.get("full_name", ""),
+                        created_at=result["user"].created_at,
+                        updated_at=result["user"].updated_at,
+                        email_confirmed_at=result["user"].email_confirmed_at,
+                        last_sign_in_at=result["user"].last_sign_in_at,
+                    )
+
+                    return AuthResponse(
+                        access_token=result["access_token"],
+                        refresh_token=result["refresh_token"],
+                        user=user,
+                        expires_in=result["expires_in"],
+                    )
+                else:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail="User not found",
+                    ) from None
+            else:
+                # Re-raise other login errors
+                raise
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Development login failed: {e!s}",
+            detail=f"Development login failed: {e}",
         ) from e

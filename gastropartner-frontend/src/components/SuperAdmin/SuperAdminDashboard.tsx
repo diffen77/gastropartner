@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import RoleProtectedRoute from '../RoleProtectedRoute';
+import OrganizationLimitsManager from '../FeatureFlagsManager';
+import GlobalFeatureFlagsManager from '../GlobalFeatureFlagsManager';
+import '../../styles/feature-flags.css';
 
 interface SystemStatus {
   status: string;
@@ -15,6 +19,17 @@ interface SuperAdminStats {
   total_messages: number;
   active_sessions: number;
   system_health: string;
+  total_organizations: number;
+  feature_flags_active: number;
+  feature_flags_total: number;
+}
+
+interface Organization {
+  organization_id: string;
+  name: string;
+  slug: string;
+  plan: string;
+  created_at: string;
 }
 
 const SuperAdminDashboard: React.FC = () => {
@@ -24,19 +39,32 @@ const SuperAdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
-
-  // Check if user is superadmin
-  const isSuperAdmin = user?.email?.toLowerCase() === 'diffen@me.com';
+  const [activeSection, setActiveSection] = useState<'dashboard' | 'global-flags' | 'org-flags'>('dashboard');
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
 
   useEffect(() => {
-    if (!isSuperAdmin) {
-      setError('Åtkomst nekad. Endast superadmin har tillgång till denna sida.');
-      setLoading(false);
-      return;
-    }
-
     loadDashboardData();
-  }, [isSuperAdmin]);
+    loadOrganizations();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadOrganizations = async () => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch('/api/v1/superadmin/organizations', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setOrganizations(data.organizations || []);
+      }
+    } catch (err) {
+      console.error('Error loading organizations:', err);
+    }
+  };
 
   const loadDashboardData = async () => {
     try {
@@ -63,7 +91,10 @@ const SuperAdminDashboard: React.FC = () => {
         total_leads: 0,
         total_messages: 0,
         active_sessions: 0,
-        system_health: 'excellent'
+        system_health: 'excellent',
+        total_organizations: organizations.length,
+        feature_flags_active: 45,
+        feature_flags_total: 61
       };
 
       setSystemStatus(mockSystemStatus);
@@ -110,16 +141,16 @@ const SuperAdminDashboard: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="text-xl">Laddar superadmin dashboard...</div>
+        <div className="text-xl">Laddar system admin dashboard...</div>
       </div>
     );
   }
 
-  if (!isSuperAdmin || error) {
+  if (error) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Åtkomst Nekad</h1>
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Systemfel</h1>
           <p className="text-gray-600">{error}</p>
         </div>
       </div>
@@ -142,16 +173,58 @@ const SuperAdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <RoleProtectedRoute 
+      requiredRole="system_admin"
+      fallbackMessage="Endast systemadministratörer har tillgång till denna portal."
+    >
+      <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          🛡️ SuperAdmin Dashboard
-        </h1>
-        <p className="text-gray-600">
-          Välkommen {user?.email} - Fullständig systemkontroll
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              🛡️ System Admin Portal
+            </h1>
+            <p className="text-gray-600">
+              Välkommen {user?.email} - Systemadministratörspanel för alla kunder
+            </p>
+          </div>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setActiveSection('dashboard')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                activeSection === 'dashboard'
+                  ? 'bg-blue-100 text-blue-800'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              📊 Dashboard
+            </button>
+            <button
+              onClick={() => setActiveSection('global-flags')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                activeSection === 'global-flags'
+                  ? 'bg-blue-100 text-blue-800'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              🌐 Global Flags
+            </button>
+            <button
+              onClick={() => setActiveSection('org-flags')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                activeSection === 'org-flags'
+                  ? 'bg-blue-100 text-blue-800'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              🏢 Org Flags
+            </button>
+          </div>
+        </div>
       </div>
 
+      {activeSection === 'dashboard' && (
+        <>
       {/* System Status */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow-md">
@@ -187,20 +260,20 @@ const SuperAdminDashboard: React.FC = () => {
           {stats && (
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{stats.total_agencies}</div>
-                <div className="text-sm text-gray-600">Totala Agenter</div>
+                <div className="text-2xl font-bold text-blue-600">{stats.total_organizations}</div>
+                <div className="text-sm text-gray-600">Organisationer</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{stats.active_sessions}</div>
+                <div className="text-2xl font-bold text-green-600">{stats.feature_flags_active}</div>
+                <div className="text-sm text-gray-600">Aktiva Flaggor</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">{stats.active_sessions}</div>
                 <div className="text-sm text-gray-600">Aktiva Sessioner</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">{stats.total_leads}</div>
-                <div className="text-sm text-gray-600">Totala Leads</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">{stats.total_messages}</div>
-                <div className="text-sm text-gray-600">Totala Meddelanden</div>
+                <div className="text-2xl font-bold text-orange-600">{Math.round((stats.feature_flags_active / stats.feature_flags_total) * 100)}</div>
+                <div className="text-sm text-gray-600">% Adoption</div>
               </div>
             </div>
           )}
@@ -254,7 +327,21 @@ const SuperAdminDashboard: React.FC = () => {
       <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
         <h2 className="text-xl font-semibold mb-4">Snabbåtgärder</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="p-4 border border-gray-200 rounded-lg">
+            <h3 className="font-medium mb-2">🚩 Feature Flags</h3>
+            <p className="text-sm text-gray-600 mb-3">Hantera systemfunktioner</p>
+            <div className="text-sm text-gray-500 mb-3">
+              {stats?.feature_flags_active}/{stats?.feature_flags_total} aktiva
+            </div>
+            <button 
+              className="text-blue-600 hover:text-blue-800 font-medium"
+              onClick={() => setActiveSection('global-flags')}
+            >
+              Hantera Global Flags →
+            </button>
+          </div>
+          
           <div className="p-4 border border-gray-200 rounded-lg">
             <h3 className="font-medium mb-2">📊 Systemloggar</h3>
             <p className="text-sm text-gray-600 mb-3">Visa senaste systemloggar</p>
@@ -280,7 +367,32 @@ const SuperAdminDashboard: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+        </>
+      )}
+
+      {/* Global Feature Flags Management */}
+      {activeSection === 'global-flags' && (
+        <div className="global-flags-section">
+          <GlobalFeatureFlagsManager />
+        </div>
+      )}
+
+      {/* Organization Feature Flags Management */}
+      {activeSection === 'org-flags' && (
+        <div className="org-flags-section">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">📊 Organization Limits & Quotas</h2>
+            <p className="text-gray-600">
+              Hantera resursgränser och kvoter för specifika organisationer
+            </p>
+          </div>
+          
+          <OrganizationLimitsManager />
+        </div>
+      )}
+
+      </div>
+    </RoleProtectedRoute>
   );
 };
 

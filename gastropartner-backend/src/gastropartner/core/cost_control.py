@@ -38,7 +38,9 @@ class CostAlert(TenantMixin, BaseModel):
 
     alert_id: UUID = Field(default_factory=lambda: UUID())
     name: str = Field(..., min_length=1, max_length=255)
-    alert_type: str = Field(..., pattern="^(budget_exceeded|cost_spike|margin_warning|usage_limit)$")
+    alert_type: str = Field(
+        ..., pattern="^(budget_exceeded|cost_spike|margin_warning|usage_limit)$"
+    )
     threshold_type: str = Field(..., pattern="^(percentage|absolute)$")
     threshold_value: float = Field(ge=0)
     category: str | None = Field(None, max_length=100)
@@ -92,17 +94,18 @@ class CostControlService:
         self.supabase = supabase
 
     async def _calculate_recipe_cost(
-        self,
-        recipe_id: UUID,
-        organization_id: UUID,
-        servings: int = 1
+        self, recipe_id: UUID, organization_id: UUID, servings: int = 1
     ) -> float:
         """Calculate total cost for a recipe by summing ingredient costs."""
-        
+
         # Get recipe ingredients with ingredient details (SECURITY: filter by organization)
-        response = self.supabase.table("recipe_ingredients").select(
-            "*, ingredients(*)"
-        ).eq("recipe_id", str(recipe_id)).eq("organization_id", str(organization_id)).execute()
+        response = (
+            self.supabase.table("recipe_ingredients")
+            .select("*, ingredients(*)")
+            .eq("recipe_id", str(recipe_id))
+            .eq("organization_id", str(organization_id))
+            .execute()
+        )
 
         if not response.data:
             return 0.0
@@ -120,56 +123,61 @@ class CostControlService:
         return total_cost
 
     async def calculate_comprehensive_costs(
-        self,
-        organization_id: UUID,
-        start_date: datetime,
-        end_date: datetime
+        self, organization_id: UUID, start_date: datetime, end_date: datetime
     ) -> dict[str, Any]:
         """Calculate comprehensive cost breakdown for a period."""
 
         # Development mode: return mock data for development organization
         if str(organization_id) == "87654321-4321-4321-4321-210987654321":
             return {
-                "period": {
-                    "start_date": start_date.isoformat(),
-                    "end_date": end_date.isoformat()
-                },
+                "period": {"start_date": start_date.isoformat(), "end_date": end_date.isoformat()},
                 "ingredient_analysis": {
                     "total_ingredients": 15,
                     "total_cost": 450.0,
-                    "average_cost_per_ingredient": 30.0
+                    "average_cost_per_ingredient": 30.0,
                 },
                 "recipe_analysis": {
                     "total_recipes": 3,
                     "total_cost": 120.0,
-                    "average_cost_per_recipe": 40.0
+                    "average_cost_per_recipe": 40.0,
                 },
                 "menu_analysis": {
                     "total_menu_items": 2,
                     "total_potential_revenue": 500.0,
                     "total_food_cost": 150.0,
-                    "average_margin": 175.0
+                    "average_margin": 175.0,
                 },
-                "cost_efficiency": {
-                    "food_cost_percentage": 30.0,
-                    "margin_percentage": 70.0
-                }
+                "cost_efficiency": {"food_cost_percentage": 30.0, "margin_percentage": 70.0},
             }
 
         # Get all ingredients with their costs
-        ingredients_response = self.supabase.table("ingredients").select(
-            "ingredient_id, name, cost_per_unit, category, created_at, updated_at"
-        ).eq("organization_id", str(organization_id)).eq("is_active", True).execute()
+        ingredients_response = (
+            self.supabase.table("ingredients")
+            .select("ingredient_id, name, cost_per_unit, category, created_at, updated_at")
+            .eq("organization_id", str(organization_id))
+            .eq("is_active", True)
+            .execute()
+        )
 
         # Get all recipes (costs will be calculated dynamically)
-        recipes_response = self.supabase.table("recipes").select(
-            "recipe_id, name, servings, created_at, updated_at"
-        ).eq("organization_id", str(organization_id)).eq("is_active", True).execute()
+        recipes_response = (
+            self.supabase.table("recipes")
+            .select("recipe_id, name, servings, created_at, updated_at")
+            .eq("organization_id", str(organization_id))
+            .eq("is_active", True)
+            .execute()
+        )
 
         # Get all menu items (costs will be calculated from linked recipes)
-        menu_items_response = self.supabase.table("menu_items").select(
-            "menu_item_id, name, recipe_id, selling_price, target_food_cost_percentage, created_at"
-        ).eq("organization_id", str(organization_id)).eq("is_active", True).execute()
+        menu_items_response = (
+            self.supabase.table("menu_items")
+            .select(
+                "menu_item_id, name, recipe_id, selling_price, target_food_cost_percentage, created_at"
+            )
+            .eq("organization_id", str(organization_id))
+            .eq("is_active", True)
+            .execute()
+        )
 
         # Calculate totals
         total_ingredient_cost = sum(
@@ -188,38 +196,39 @@ class CostControlService:
         # Calculate menu totals dynamically
         total_menu_revenue = 0.0
         total_food_cost = 0.0
-        
+
         for item in menu_items_response.data or []:
             selling_price = float(item.get("selling_price", 0))
             total_menu_revenue += selling_price
-            
+
             # Calculate food cost from linked recipe if available
             if item.get("recipe_id"):
                 recipe_cost = await self._calculate_recipe_cost(
-                    UUID(item["recipe_id"]), organization_id, 1  # Default to 1 serving
+                    UUID(item["recipe_id"]),
+                    organization_id,
+                    1,  # Default to 1 serving
                 )
                 total_food_cost += recipe_cost
 
         return {
-            "period": {
-                "start_date": start_date.isoformat(),
-                "end_date": end_date.isoformat()
-            },
+            "period": {"start_date": start_date.isoformat(), "end_date": end_date.isoformat()},
             "ingredient_analysis": {
                 "total_ingredients": len(ingredients_response.data or []),
                 "total_cost": float(total_ingredient_cost),
                 "average_cost_per_ingredient": (
                     float(total_ingredient_cost) / len(ingredients_response.data)
-                    if ingredients_response.data else 0
-                )
+                    if ingredients_response.data
+                    else 0
+                ),
             },
             "recipe_analysis": {
                 "total_recipes": len(recipes_response.data or []),
                 "total_cost": float(total_recipe_cost),
                 "average_cost_per_recipe": (
                     float(total_recipe_cost) / len(recipes_response.data)
-                    if recipes_response.data else 0
-                )
+                    if recipes_response.data
+                    else 0
+                ),
             },
             "menu_analysis": {
                 "total_menu_items": len(menu_items_response.data or []),
@@ -227,25 +236,30 @@ class CostControlService:
                 "total_food_cost": float(total_food_cost),
                 "average_margin": (
                     float(total_menu_revenue - total_food_cost) / len(menu_items_response.data)
-                    if menu_items_response.data else 0
-                )
+                    if menu_items_response.data
+                    else 0
+                ),
             },
             "cost_efficiency": {
                 "food_cost_percentage": (
                     (float(total_food_cost) / float(total_menu_revenue)) * 100
-                    if total_menu_revenue > 0 else 0
+                    if total_menu_revenue > 0
+                    else 0
                 ),
                 "margin_percentage": (
-                    ((float(total_menu_revenue) - float(total_food_cost)) / float(total_menu_revenue)) * 100
-                    if total_menu_revenue > 0 else 0
-                )
-            }
+                    (
+                        (float(total_menu_revenue) - float(total_food_cost))
+                        / float(total_menu_revenue)
+                    )
+                    * 100
+                    if total_menu_revenue > 0
+                    else 0
+                ),
+            },
         }
 
     async def create_cost_budget(
-        self,
-        organization_id: UUID,
-        budget_data: dict[str, Any]
+        self, organization_id: UUID, budget_data: dict[str, Any]
     ) -> dict[str, Any]:
         """Create a new cost budget."""
 
@@ -263,14 +277,17 @@ class CostControlService:
             "variance_percentage": 0.0,
             "is_active": True,
             "created_at": datetime.now().isoformat(),
-            "updated_at": datetime.now().isoformat()
+            "updated_at": datetime.now().isoformat(),
         }
 
         # Note: In real implementation, this would use a cost_budgets table
         # For now, we'll store in organization settings
-        org_response = self.supabase.table("organizations").select("settings").eq(
-            "organization_id", str(organization_id)
-        ).execute()
+        org_response = (
+            self.supabase.table("organizations")
+            .select("settings")
+            .eq("organization_id", str(organization_id))
+            .execute()
+        )
 
         if org_response.data:
             settings = org_response.data[0].get("settings", {})
@@ -278,38 +295,30 @@ class CostControlService:
                 settings["cost_budgets"] = []
             settings["cost_budgets"].append(budget_record)
 
-            self.supabase.table("organizations").update(
-                {"settings": settings}
-            ).eq("organization_id", str(organization_id)).execute()
+            self.supabase.table("organizations").update({"settings": settings}).eq(
+                "organization_id", str(organization_id)
+            ).execute()
 
         return budget_record
 
     async def generate_cost_forecast(
-        self,
-        organization_id: UUID,
-        period: str = "next_month"
+        self, organization_id: UUID, period: str = "next_month"
     ) -> CostForecast:
         """Generate cost forecast based on historical data."""
 
         # Get historical cost data (simplified prediction)
         costs_analysis = await self.calculate_comprehensive_costs(
-            organization_id,
-            datetime.now() - timedelta(days=30),
-            datetime.now()
+            organization_id, datetime.now() - timedelta(days=30), datetime.now()
         )
 
         # Simple linear trend prediction (in real implementation, use ML models)
         current_monthly_cost = (
-            costs_analysis["ingredient_analysis"]["total_cost"] +
-            costs_analysis["recipe_analysis"]["total_cost"]
+            costs_analysis["ingredient_analysis"]["total_cost"]
+            + costs_analysis["recipe_analysis"]["total_cost"]
         )
 
         # Apply growth factors based on period
-        growth_factors = {
-            "next_week": 0.02,
-            "next_month": 0.10,
-            "next_quarter": 0.30
-        }
+        growth_factors = {"next_week": 0.02, "next_month": 0.10, "next_quarter": 0.30}
 
         growth_factor = growth_factors.get(period, 0.10)
         predicted_cost = Decimal(str(current_monthly_cost * (1 + growth_factor)))
@@ -319,7 +328,9 @@ class CostControlService:
         if costs_analysis["cost_efficiency"]["food_cost_percentage"] > 35:
             recommendations.append("Matkostnadsprocenten är hög - överväg ingrediensutbyten")
         if costs_analysis["ingredient_analysis"]["average_cost_per_ingredient"] > 15:
-            recommendations.append("Genomsnittlig ingredienskostnad är över optimal nivå - förhandla med leverantörer")
+            recommendations.append(
+                "Genomsnittlig ingredienskostnad är över optimal nivå - förhandla med leverantörer"
+            )
 
         return CostForecast(
             period=period,
@@ -328,9 +339,9 @@ class CostControlService:
             factors=[
                 "Historical spending trends",
                 "Seasonal variations",
-                "Current inventory levels"
+                "Current inventory levels",
             ],
-            recommendations=recommendations
+            recommendations=recommendations,
         )
 
     async def check_cost_alerts(self, organization_id: UUID) -> list[dict[str, Any]]:
@@ -345,7 +356,7 @@ class CostControlService:
                     "severity": "medium",
                     "message": "Matkostnadsprocenten är 30,0% - inom acceptabla gränser",
                     "recommendation": "Fortsätt övervaka matkostnader och prissättning",
-                    "triggered_at": datetime.now().isoformat()
+                    "triggered_at": datetime.now().isoformat(),
                 }
             ]
 
@@ -353,36 +364,40 @@ class CostControlService:
 
         # Get current cost analysis
         costs_analysis = await self.calculate_comprehensive_costs(
-            organization_id,
-            datetime.now() - timedelta(days=30),
-            datetime.now()
+            organization_id, datetime.now() - timedelta(days=30), datetime.now()
         )
 
         # Check food cost percentage alert
         food_cost_pct = costs_analysis["cost_efficiency"]["food_cost_percentage"]
         if food_cost_pct > 35:
             from uuid import uuid4
-            alerts.append({
-                "alert_id": str(uuid4()),
-                "type": "margin_warning",
-                "severity": "high" if food_cost_pct > 40 else "medium",
-                "message": f"Matkostnadsprocenten är {food_cost_pct:.1f}% - överstiger rekommenderade 35%",
-                "recommendation": "Granska ingredienskostnader och menyprissättning",
-                "triggered_at": datetime.now().isoformat()
-            })
+
+            alerts.append(
+                {
+                    "alert_id": str(uuid4()),
+                    "type": "margin_warning",
+                    "severity": "high" if food_cost_pct > 40 else "medium",
+                    "message": f"Matkostnadsprocenten är {food_cost_pct:.1f}% - överstiger rekommenderade 35%",
+                    "recommendation": "Granska ingredienskostnader och menyprissättning",
+                    "triggered_at": datetime.now().isoformat(),
+                }
+            )
 
         # Check ingredient cost spike
         avg_ingredient_cost = costs_analysis["ingredient_analysis"]["average_cost_per_ingredient"]
         if avg_ingredient_cost > 20:
             from uuid import uuid4
-            alerts.append({
-                "alert_id": str(uuid4()),
-                "type": "cost_spike",
-                "severity": "medium",
-                "message": f"Genomsnittlig ingredienskostnad är {avg_ingredient_cost:.2f} kr - över optimal nivå",
-                "recommendation": "Överväg bulkinköp eller leverantörsförhandlingar",
-                "triggered_at": datetime.now().isoformat()
-            })
+
+            alerts.append(
+                {
+                    "alert_id": str(uuid4()),
+                    "type": "cost_spike",
+                    "severity": "medium",
+                    "message": f"Genomsnittlig ingredienskostnad är {avg_ingredient_cost:.2f} kr - över optimal nivå",
+                    "recommendation": "Överväg bulkinköp eller leverantörsförhandlingar",
+                    "triggered_at": datetime.now().isoformat(),
+                }
+            )
 
         return alerts
 
@@ -391,7 +406,7 @@ class CostControlService:
         organization_id: UUID,
         report_type: str = "summary",
         start_date: datetime | None = None,
-        end_date: datetime | None = None
+        end_date: datetime | None = None,
     ) -> CostReport:
         """Generate comprehensive cost report."""
 
@@ -405,17 +420,21 @@ class CostControlService:
         )
 
         # Get top cost drivers
-        ingredients_response = self.supabase.table("ingredients").select(
-            "name, cost_per_unit, category"
-        ).eq("organization_id", str(organization_id)).eq("is_active", True).order(
-            "cost_per_unit", desc=True
-        ).limit(5).execute()
+        ingredients_response = (
+            self.supabase.table("ingredients")
+            .select("name, cost_per_unit, category")
+            .eq("organization_id", str(organization_id))
+            .eq("is_active", True)
+            .order("cost_per_unit", desc=True)
+            .limit(5)
+            .execute()
+        )
 
         top_cost_drivers = [
             {
                 "name": item["name"],
                 "cost": float(item["cost_per_unit"]),
-                "category": item["category"] or "Unknown"
+                "category": item["category"] or "Unknown",
             }
             for item in (ingredients_response.data or [])
         ]
@@ -423,13 +442,18 @@ class CostControlService:
         # Generate recommendations
         recommendations = []
         if costs_analysis["cost_efficiency"]["food_cost_percentage"] > 35:
-            recommendations.append("Minska matkostnadsprocenten genom att optimera recept eller justera priser")
+            recommendations.append(
+                "Minska matkostnadsprocenten genom att optimera recept eller justera priser"
+            )
         if len(top_cost_drivers) > 0 and top_cost_drivers[0]["cost"] > 25:
-            recommendations.append(f"Högkostnadsingrediens '{top_cost_drivers[0]['name']}' behöver uppmärksamhet")
+            recommendations.append(
+                f"Högkostnadsingrediens '{top_cost_drivers[0]['name']}' behöver uppmärksamhet"
+            )
         if costs_analysis["menu_analysis"]["total_menu_items"] < 5:
             recommendations.append("Utöka menyutbudet för att förbättra intäktspotentialen")
 
         from uuid import uuid4
+
         return CostReport(
             report_id=uuid4(),
             organization_id=organization_id,
@@ -439,12 +463,12 @@ class CostControlService:
             total_costs={
                 "ingredients": Decimal(str(costs_analysis["ingredient_analysis"]["total_cost"])),
                 "recipes": Decimal(str(costs_analysis["recipe_analysis"]["total_cost"])),
-                "food_costs": Decimal(str(costs_analysis["menu_analysis"]["total_food_cost"]))
+                "food_costs": Decimal(str(costs_analysis["menu_analysis"]["total_food_cost"])),
             },
             budget_performance={},  # Would be populated from budget tracking
             top_cost_drivers=top_cost_drivers,
             recommendations=recommendations,
-            generated_at=datetime.now()
+            generated_at=datetime.now(),
         )
 
     async def optimize_costs(self, organization_id: UUID) -> dict[str, Any]:
@@ -459,88 +483,100 @@ class CostControlService:
                         "type": "ingredient_substitution",
                         "target": "Premium Olive Oil",
                         "suggestion": "Överväg att ersätta högkostnadsingrediens (25,00 kr/enhet)",
-                        "potential_saving": 5.0
+                        "potential_saving": 5.0,
                     },
                     {
                         "type": "price_optimization",
                         "target": "Margherita Pizza",
                         "suggestion": "Överväg att höja priset med 25,00 kr",
                         "current_food_cost_pct": 32.0,
-                        "potential_saving": 2.5
-                    }
+                        "potential_saving": 2.5,
+                    },
                 ],
                 "priority_actions": [
                     {
                         "type": "price_optimization",
                         "target": "Margherita Pizza",
                         "suggestion": "Överväg att höja priset med 25,00 kr",
-                        "potential_saving": 2.5
+                        "potential_saving": 2.5,
                     }
                 ],
-                "analysis_date": datetime.now().isoformat()
+                "analysis_date": datetime.now().isoformat(),
             }
 
-        costs_analysis = await self.calculate_comprehensive_costs(
-            organization_id,
-            datetime.now() - timedelta(days=30),
-            datetime.now()
+        # TODO: Use comprehensive cost analysis for better optimization suggestions
+        _costs_analysis = await self.calculate_comprehensive_costs(
+            organization_id, datetime.now() - timedelta(days=30), datetime.now()
         )
 
         optimizations = []
         potential_savings = 0.0
 
         # Check for overpriced ingredients
-        ingredients_response = self.supabase.table("ingredients").select(
-            "ingredient_id, name, cost_per_unit, category"
-        ).eq("organization_id", str(organization_id)).eq("is_active", True).execute()
+        ingredients_response = (
+            self.supabase.table("ingredients")
+            .select("ingredient_id, name, cost_per_unit, category")
+            .eq("organization_id", str(organization_id))
+            .eq("is_active", True)
+            .execute()
+        )
 
-        for ingredient in (ingredients_response.data or []):
+        for ingredient in ingredients_response.data or []:
             cost = float(ingredient["cost_per_unit"])
             if cost > 20:  # High-cost ingredient
-                optimizations.append({
-                    "type": "ingredient_substitution",
-                    "target": ingredient["name"],
-                    "suggestion": f"Överväg att ersätta högkostnadsingrediens ({cost:.2f} kr/enhet)",
-                    "potential_saving": cost * 0.2  # 20% potential saving
-                })
+                optimizations.append(
+                    {
+                        "type": "ingredient_substitution",
+                        "target": ingredient["name"],
+                        "suggestion": f"Överväg att ersätta högkostnadsingrediens ({cost:.2f} kr/enhet)",
+                        "potential_saving": cost * 0.2,  # 20% potential saving
+                    }
+                )
                 potential_savings += cost * 0.2
 
         # Check menu pricing opportunities
-        menu_items_response = self.supabase.table("menu_items").select(
-            "menu_item_id, name, recipe_id, selling_price, target_food_cost_percentage"
-        ).eq("organization_id", str(organization_id)).eq("is_active", True).execute()
+        menu_items_response = (
+            self.supabase.table("menu_items")
+            .select("menu_item_id, name, recipe_id, selling_price, target_food_cost_percentage")
+            .eq("organization_id", str(organization_id))
+            .eq("is_active", True)
+            .execute()
+        )
 
-        for item in (menu_items_response.data or []):
+        for item in menu_items_response.data or []:
             selling_price = float(item["selling_price"])
-            
+
             # Calculate food cost percentage dynamically
             food_cost = 0.0
             if item.get("recipe_id"):
                 food_cost = await self._calculate_recipe_cost(
                     UUID(item["recipe_id"]), organization_id, 1
                 )
-            
+
             food_cost_pct = (food_cost / selling_price * 100) if selling_price > 0 else 0
-            
+
             if food_cost_pct > 35:  # High food cost percentage
                 potential_price_increase = selling_price * 0.1  # 10% increase
-                optimizations.append({
-                    "type": "price_optimization",
-                    "target": item["name"],
-                    "suggestion": f"Överväg att höja priset med {potential_price_increase:.2f} kr",
-                    "current_food_cost_pct": food_cost_pct,
-                    "potential_saving": potential_price_increase
-                })
+                optimizations.append(
+                    {
+                        "type": "price_optimization",
+                        "target": item["name"],
+                        "suggestion": f"Överväg att höja priset med {potential_price_increase:.2f} kr",
+                        "current_food_cost_pct": food_cost_pct,
+                        "potential_saving": potential_price_increase,
+                    }
+                )
                 potential_savings += potential_price_increase
 
         return {
             "total_potential_savings": potential_savings,
             "optimizations": optimizations,
             "priority_actions": [
-                opt for opt in optimizations
+                opt
+                for opt in optimizations
                 if opt.get("potential_saving", 0) > 5  # High-impact optimizations
             ],
-            "analysis_date": datetime.now().isoformat()
+            "analysis_date": datetime.now().isoformat(),
         }
 
 

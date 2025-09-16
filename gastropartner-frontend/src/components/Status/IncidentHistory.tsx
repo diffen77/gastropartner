@@ -24,20 +24,21 @@ const IncidentHistory: React.FC<IncidentHistoryProps> = ({
   showResolved = true,
   maxIncidents = 10
 }) => {
-  const getIncidentStatusColor = (status: string): string => {
-    switch (status.toLowerCase()) {
-      case 'investigating':
-        return '#f59e0b'; // amber
-      case 'identified':
-        return '#3b82f6'; // blue
-      case 'monitoring':
-        return '#8b5cf6'; // purple
-      case 'resolved':
-        return '#22c55e'; // green
-      default:
-        return '#6b7280'; // gray
-    }
-  };
+  // TODO: Color-coding function for incident status display - will be used in enhanced UI
+  // const getIncidentStatusColor = (status: string): string => {
+  //   switch (status.toLowerCase()) {
+  //     case 'investigating':
+  //       return '#f59e0b'; // amber
+  //     case 'identified':
+  //       return '#3b82f6'; // blue
+  //     case 'monitoring':
+  //       return '#8b5cf6'; // purple
+  //     case 'resolved':
+  //       return '#22c55e'; // green
+  //     default:
+  //       return '#6b7280'; // gray
+  //   }
+  // };
 
   const getSeverityColor = (severity?: string): string => {
     switch (severity?.toLowerCase()) {

@@ -1,7 +1,9 @@
 import React from 'react';
 import DualButtonModule from '../components/Modules/DualButtonModule';
 import { useFreemiumService } from '../hooks/useFreemiumService';
-import { useUsageLimits } from '../hooks/useUsageLimits';
+import { ModuleName } from '../utils/modulesApi';
+import { useModuleSettings } from '../contexts/ModuleSettingsContext';
+// import { useUsageLimits } from '../hooks/useUsageLimits';
 
 function PageHeader({ title, subtitle, children }: { 
   title: string; 
@@ -28,14 +30,32 @@ function PageHeader({ title, subtitle, children }: {
 export function Modules() {
   const {
     subscriptions,
+    availableModules,
     loading,
     error,
     activateModule,
     refreshSubscriptions,
-    getModuleStatus
+    getModuleStatus,
+    isModuleAvailable
   } = useFreemiumService();
   
-  const { usageData, isNearLimit, getUsagePercentage, refreshUsage } = useUsageLimits();
+  const { isModuleEnabled, loading: settingsLoading } = useModuleSettings();
+  
+  // const { usageData, isNearLimit, getUsagePercentage, refreshUsage } = useUsageLimits();
+
+  // Helper function to determine actual module status
+  const getActualModuleStatus = (moduleName: ModuleName) => {
+    const subscription = getModuleStatus(moduleName);
+    const settingsEnabled = isModuleEnabled(moduleName);
+    
+    return {
+      ...subscription,
+      // A module is active if it's enabled in settings, regardless of subscription status
+      // Subscription is only needed for premium features
+      active: settingsEnabled,
+      hasSubscription: subscription.active
+    };
+  };
 
   console.log('🧩 Modules component render:', { 
     subscriptionsCount: subscriptions.length, 
@@ -54,7 +74,7 @@ export function Modules() {
   };
 
   // Show loading state while fetching subscriptions
-  if (loading) {
+  if (loading || settingsLoading) {
     return (
       <div className="main-content">
         <PageHeader 
@@ -93,15 +113,27 @@ export function Modules() {
       <div className="modules-container">
         <div className="modules-status">
           <div className="modules-status__item">
-            <span className="modules-status__count">4</span>
+            <span className="modules-status__count">
+              {availableModules ? 
+                availableModules.available_modules.filter(m => 
+                  ['recipes', 'analytics'].includes(m.id) && m.available
+                ).length 
+                : 0}
+            </span>
             <span className="modules-status__label">Aktiva moduler</span>
           </div>
           <div className="modules-status__item">
-            <span className="modules-status__count">2</span>
+            <span className="modules-status__count">0</span>
             <span className="modules-status__label">Beta-moduler</span>
           </div>
           <div className="modules-status__item">
-            <span className="modules-status__count">6</span>
+            <span className="modules-status__count">
+              {availableModules ? 
+                availableModules.available_modules.filter(m => 
+                  ['sales', 'advanced_analytics', 'mobile_app', 'integrations'].includes(m.id) && m.available
+                ).length 
+                : 0}
+            </span>
             <span className="modules-status__label">Kommer snart</span>
           </div>
         </div>
@@ -109,245 +141,180 @@ export function Modules() {
         <div className="modules-section">
           <h2>Aktiva Moduler</h2>
           <div className="modules-grid">
-            <DualButtonModule
-              icon="🥕"
-              title="Ingredienshantering"
-              description="Hantera ingredienser, leverantörer och kostnader"
-              status={getModuleStatus('ingredients').active ? "active" : "available"}
-              currentTier={getModuleStatus('ingredients').tier}
-              features={[]}
-              freeFeatures={[
-                "100 ingredienser maximum",
-                "Grundläggande kategorier",
-                "Manuell kostnadsinmatning"
-              ]}
-              proFeatures={[
-                "Obegränsat antal ingredienser",
-                "Automatisk leverantörsintegration",
-                "Realtids prisuppdateringar",
-                "Avancerad kostnadsspårning"
-              ]}
-              onFreeClick={() => handleModuleActivation('ingredients', 'free')}
-              onProClick={() => handleModuleActivation('ingredients', 'pro')}
-              isLoading={loading}
-            />
+            {/* Only show Recipes module if available */}
+            {isModuleAvailable('recipes') && (
+              <DualButtonModule
+                icon="🍽️"
+                title="Recepthantering"
+                description="Komplett hantering av ingredienser, recept och menyartiklar"
+                status={getActualModuleStatus('recipes').active ? "active" : "available"}
+                currentTier={getActualModuleStatus('recipes').hasSubscription ? getActualModuleStatus('recipes').tier : 'free'}
+                features={[]}
+                freeFeatures={[
+                  "50 ingredienser maximum",
+                  "5 recept maximum", 
+                  "2 menyartiklar maximum",
+                  "Grundläggande kostnadsberäkning",
+                  "Standard portionsstorlekar"
+                ]}
+                proFeatures={[
+                  "Obegränsat antal ingredienser",
+                  "Obegränsat antal recept",
+                  "Obegränsade menyartiklar",
+                  "Avancerad näringsanalys",
+                  "Automatisk leverantörsintegration", 
+                  "Realtids prisuppdateringar",
+                  "Avancerad marginalanalys",
+                  "Export till kalkylark"
+                ]}
+                onFreeClick={() => handleModuleActivation('recipes', 'free')}
+                onProClick={() => handleModuleActivation('recipes', 'pro')}
+                isLoading={loading}
+              />
+            )}
             
-            <DualButtonModule
-              icon="📝"
-              title="Recepthantering"
-              description="Skapa och hantera recept med kostnadsberäkningar"
-              status={getModuleStatus('recipes').active ? "active" : "available"}
-              currentTier={getModuleStatus('recipes').tier}
-              features={[]}
-              freeFeatures={[
-                "5 recept maximum",
-                "Grundläggande kostnadsberäkning",
-                "Standard portionsstorlekar"
-              ]}
-              proFeatures={[
-                "Obegränsat antal recept",
-                "Avancerad näringsanalys",
-                "Batch-kostnadsberäkningar",
-                "Export till kalkylark"
-              ]}
-              onFreeClick={() => handleModuleActivation('recipes', 'free')}
-              onProClick={() => handleModuleActivation('recipes', 'pro')}
-              isLoading={loading}
-            />
-            
-            <DualButtonModule
-              icon="🍽️"
-              title="Menyhantering"
-              description="Skapa maträtter och beräkna lönsamhet"
-              status={getModuleStatus('menu').active ? "active" : "available"}
-              currentTier={getModuleStatus('menu').tier}
-              features={[]}
-              freeFeatures={[
-                "10 maträtter maximum",
-                "Grundläggande prissättning",
-                "Standard lönsamhetsanalys"
-              ]}
-              proFeatures={[
-                "Obegränsat antal maträtter",
-                "Dynamisk prissättning",
-                "Avancerad marginalanalys",
-                "Säsongsmeny och kampanjer"
-              ]}
-              onFreeClick={() => handleModuleActivation('menu', 'free')}
-              onProClick={() => handleModuleActivation('menu', 'pro')}
-              isLoading={loading}
-            />
-            
-            <DualButtonModule
-              icon="📈"
-              title="Kostnadsanalys"
-              description="Djupgående analys av kostnader och lönsamhet"
-              status={getModuleStatus('analytics').active ? "active" : "available"}
-              currentTier={getModuleStatus('analytics').tier}
-              features={[]}
-              freeFeatures={[
-                "Grundläggande rapporter",
-                "Månadsvis analys",
-                "Standard marginalanalys"
-              ]}
-              proFeatures={[
-                "Realtidskostnadsberäkning",
-                "Daglig trendspårning",
-                "Jämförelser och benchmarks",
-                "Prediktiv analys"
-              ]}
-              onFreeClick={() => handleModuleActivation('analytics', 'free')}
-              onProClick={() => handleModuleActivation('analytics', 'pro')}
-              isLoading={loading}
-            />
+            {/* Only show Analytics module if available */}
+            {isModuleAvailable('analytics') && (
+              <DualButtonModule
+                icon="📈"
+                title="Kostnadsanalys"
+                description="Djupgående analys av kostnader och lönsamhet"
+                status={getActualModuleStatus('analytics').active ? "active" : "available"}
+                currentTier={getActualModuleStatus('analytics').hasSubscription ? getActualModuleStatus('analytics').tier : 'free'}
+                features={[]}
+                freeFeatures={[
+                  "Grundläggande rapporter",
+                  "Månadsvis analys",
+                  "Standard marginalanalys"
+                ]}
+                proFeatures={[
+                  "Realtidskostnadsberäkning",
+                  "Daglig trendspårning",
+                  "Jämförelser och benchmarks",
+                  "Prediktiv analys"
+                ]}
+                onFreeClick={() => handleModuleActivation('analytics', 'free')}
+                onProClick={() => handleModuleActivation('analytics', 'pro')}
+                isLoading={loading}
+              />
+            )}
           </div>
         </div>
 
         <div className="modules-section">
           <h2>Beta-moduler</h2>
           <div className="modules-grid">
-            <DualButtonModule
-              icon="🧪"
-              title="User Testing"
-              description="Samla användarfeedback och förbättra upplevelsen"
-              status="beta"
-              features={[]}
-              freeFeatures={[
-                "5 feedbackformulär per månad",
-                "Grundläggande analytics",
-                "Manual rapportering"
-              ]}
-              proFeatures={[
-                "Obegränsade feedbackformulär",
-                "Avancerad användaranalys",
-                "A/B-testning av funktioner",
-                "Automatiserad rapportering"
-              ]}
-              proPrice="199 kr/månad"
-              onFreeClick={() => handleModuleActivation('user_testing', 'free')}
-              onProClick={() => handleModuleActivation('user_testing', 'pro')}
-              isLoading={loading}
-            />
-            
-            <DualButtonModule
-              icon="🛡️"
-              title="SuperAdmin"
-              description="Avancerade administratörsfunktioner"
-              status="beta"
-              features={[]}
-              freeFeatures={[
-                "Grundläggande användarhantering",
-                "Standard systemkonfiguration",
-                "Manuell säkerhetsövervakning"
-              ]}
-              proFeatures={[
-                "Avancerad användarhantering",
-                "Fullständig systemkonfiguration",
-                "Realtids säkerhetsövervakning",
-                "Automatisk dataexport och backup"
-              ]}
-              proPrice="399 kr/månad"
-              onFreeClick={() => handleModuleActivation('super_admin', 'free')}
-              onProClick={() => handleModuleActivation('super_admin', 'pro')}
-              isLoading={loading}
-            />
+            {/* SuperAdmin removed - not a module, it's an administrative function accessible via role permissions */}
+            {/* Quality control test comment */}
           </div>
         </div>
 
         <div className="modules-section">
           <h2>Kommer Snart</h2>
           <div className="modules-grid">
-            <DualButtonModule
-              icon="💰"
-              title="Försäljningsmodul"
-              description="Komplett försäljningshantering med CRM"
-              status="coming-soon"
-              features={[]}
-              freeFeatures={[
-                "10 kunder maximum",
-                "Grundläggande orderhantering",
-                "Standard försäljningsrapporter"
-              ]}
-              proFeatures={[
-                "Obegränsade kunder",
-                "Avancerad CRM-funktionalitet",
-                "Automatisk fakturering",
-                "Integrationer med kassasystem"
-              ]}
-              proPrice="499 kr/månad"
-              onFreeClick={() => handleModuleActivation('sales', 'free')}
-              onProClick={() => handleModuleActivation('sales', 'pro')}
-              isLoading={loading}
-            />
+            {/* Only show Sales module if available */}
+            {isModuleAvailable('sales') && (
+              <DualButtonModule
+                icon="💰"
+                title="Försäljningsmodul"
+                description="Komplett försäljningshantering med CRM"
+                status="coming-soon"
+                features={[]}
+                freeFeatures={[
+                  "10 kunder maximum",
+                  "Grundläggande orderhantering",
+                  "Standard försäljningsrapporter"
+                ]}
+                proFeatures={[
+                  "Obegränsade kunder",
+                  "Avancerad CRM-funktionalitet",
+                  "Automatisk fakturering",
+                  "Integrationer med kassasystem"
+                ]}
+                proPrice="499 kr/månad"
+                onFreeClick={() => handleModuleActivation('sales', 'free')}
+                onProClick={() => handleModuleActivation('sales', 'pro')}
+                isLoading={loading}
+              />
+            )}
             
-            <DualButtonModule
-              icon="📊"
-              title="Advanced Analytics"
-              description="Djupgående dataanalys och AI-insights"
-              status="coming-soon"
-              features={[]}
-              freeFeatures={[
-                "Grundläggande trendanalys",
-                "Månadsrapporter",
-                "Standard prognoser"
-              ]}
-              proFeatures={[
-                "Prediktiv analys och prognoser",
-                "Automatisk trend-detection",
-                "Personaliserade AI-rekommendationer",
-                "Export till Business Intelligence"
-              ]}
-              proPrice="599 kr/månad"
-              onFreeClick={() => handleModuleActivation('advanced_analytics', 'free')}
-              onProClick={() => handleModuleActivation('advanced_analytics', 'pro')}
-              isLoading={loading}
-            />
+            {/* Only show Advanced Analytics module if available */}
+            {isModuleAvailable('advanced_analytics') && (
+              <DualButtonModule
+                icon="📊"
+                title="Advanced Analytics"
+                description="Djupgående dataanalys och AI-insights"
+                status="coming-soon"
+                features={[]}
+                freeFeatures={[
+                  "Grundläggande trendanalys",
+                  "Månadsrapporter",
+                  "Standard prognoser"
+                ]}
+                proFeatures={[
+                  "Prediktiv analys och prognoser",
+                  "Automatisk trend-detection",
+                  "Personaliserade AI-rekommendationer",
+                  "Export till Business Intelligence"
+                ]}
+                proPrice="599 kr/månad"
+                onFreeClick={() => handleModuleActivation('advanced_analytics', 'free')}
+                onProClick={() => handleModuleActivation('advanced_analytics', 'pro')}
+                isLoading={loading}
+              />
+            )}
             
-            <DualButtonModule
-              icon="📱"
-              title="Mobilapp"
-              description="Hantera verksamheten från mobilen"
-              status="coming-soon"
-              features={[]}
-              freeFeatures={[
-                "Grundläggande ingrediensvisning",
-                "Enkel receptsökning",
-                "Basic notifikationer"
-              ]}
-              proFeatures={[
-                "Fullständig ingredienshantering",
-                "Avancerad receptsökning",
-                "Push-notifikationer",
-                "Offline-läge för viktiga data"
-              ]}
-              proPrice="199 kr/månad"
-              onFreeClick={() => handleModuleActivation('mobile_app', 'free')}
-              onProClick={() => handleModuleActivation('mobile_app', 'pro')}
-              isLoading={loading}
-            />
+            {/* Only show Mobile App module if available */}
+            {isModuleAvailable('mobile_app') && (
+              <DualButtonModule
+                icon="📱"
+                title="Mobilapp"
+                description="Hantera verksamheten från mobilen"
+                status="coming-soon"
+                features={[]}
+                freeFeatures={[
+                  "Grundläggande ingrediensvisning",
+                  "Enkel receptsökning",
+                  "Basic notifikationer"
+                ]}
+                proFeatures={[
+                  "Fullständig ingredienshantering",
+                  "Avancerad receptsökning",
+                  "Push-notifikationer",
+                  "Offline-läge för viktiga data"
+                ]}
+                proPrice="199 kr/månad"
+                onFreeClick={() => handleModuleActivation('mobile_app', 'free')}
+                onProClick={() => handleModuleActivation('mobile_app', 'pro')}
+                isLoading={loading}
+              />
+            )}
             
-            <DualButtonModule
-              icon="🔄"
-              title="Integrationer"
-              description="Anslut till externa system och tjänster"
-              status="coming-soon"
-              features={[]}
-              freeFeatures={[
-                "1 integration maximum",
-                "Grundläggande API-access",
-                "Manuell datasynk"
-              ]}
-              proFeatures={[
-                "Obegränsade integrationer",
-                "Fullständig API för utvecklare",
-                "Automatisk datasynkronisering",
-                "Premium partnertjänster"
-              ]}
-              proPrice="399 kr/månad"
-              onFreeClick={() => handleModuleActivation('integrations', 'free')}
-              onProClick={() => handleModuleActivation('integrations', 'pro')}
-              isLoading={loading}
-            />
+            {/* Only show Integrations module if available */}
+            {isModuleAvailable('integrations') && (
+              <DualButtonModule
+                icon="🔄"
+                title="Integrationer"
+                description="Anslut till externa system och tjänster"
+                status="coming-soon"
+                features={[]}
+                freeFeatures={[
+                  "1 integration maximum",
+                  "Grundläggande API-access",
+                  "Manuell datasynk"
+                ]}
+                proFeatures={[
+                  "Obegränsade integrationer",
+                  "Fullständig API för utvecklare",
+                  "Automatisk datasynkronisering",
+                  "Premium partnertjänster"
+                ]}
+                proPrice="399 kr/månad"
+                onFreeClick={() => handleModuleActivation('integrations', 'free')}
+                onProClick={() => handleModuleActivation('integrations', 'pro')}
+                isLoading={loading}
+              />
+            )}
           </div>
         </div>
       </div>

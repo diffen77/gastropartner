@@ -132,7 +132,7 @@ const FreemiumTest: React.FC = () => {
               
               {/* Free Plan */}
               <div className="border-2 border-gray-200 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Free Plan</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Kostnadsfri</h3>
                 <p className="text-2xl font-bold text-gray-900 mb-4">
                   {planComparison.plans.free.price} {planComparison.plans.free.currency}
                   <span className="text-sm font-normal text-gray-600">/{planComparison.plans.free.billing_period}</span>

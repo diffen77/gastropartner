@@ -16,6 +16,10 @@ export function Ingredients() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    isOpen: boolean;
+    ingredient: Ingredient | null;
+  }>({ isOpen: false, ingredient: null });
 
   const loadIngredients = async () => {
     try {
@@ -59,19 +63,25 @@ export function Ingredients() {
     setIsFormOpen(true);
   };
 
-  const handleDeleteIngredient = async (ingredient: Ingredient) => {
-    if (!window.confirm(`Är du säker på att du vill ta bort "${ingredient.name}"?`)) {
-      return;
-    }
+  const handleDeleteIngredient = (ingredient: Ingredient) => {
+    setDeleteConfirmation({ isOpen: true, ingredient });
+  };
 
+  const confirmDeleteIngredient = async () => {
+    if (!deleteConfirmation.ingredient) return;
+
+    setIsLoading(true);
     try {
-      await apiClient.deleteIngredient(ingredient.ingredient_id);
+      await apiClient.deleteIngredient(deleteConfirmation.ingredient.ingredient_id);
       await loadIngredients(); // Reload the list
       setError('');
+      setDeleteConfirmation({ isOpen: false, ingredient: null });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ett fel uppstod';
       const translatedError = translateError(errorMessage);
       setError(translatedError);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -96,7 +106,7 @@ export function Ingredients() {
         if (!ingredient) return null;
 
         return (
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="recipe-actions">
             <button
               className="btn btn--small btn--secondary"
               onClick={(e) => {
@@ -105,7 +115,7 @@ export function Ingredients() {
               }}
               title="Redigera ingrediens"
             >
-              ✏️
+              Redigera
             </button>
             <button
               className="btn btn--small btn--danger"
@@ -115,7 +125,7 @@ export function Ingredients() {
               }}
               title="Ta bort ingrediens"
             >
-              🗑️
+              Ta bort
             </button>
           </div>
         );
@@ -251,6 +261,37 @@ export function Ingredients() {
         isLoading={isLoading}
         editingIngredient={editingIngredient}
       />
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirmation.isOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h3>Bekräfta borttagning</h3>
+            </div>
+            <div className="modal-body">
+              <p>Är du säker på att du vill ta bort ingrediensen <strong>"{deleteConfirmation.ingredient?.name}"</strong>?</p>
+              <p>Denna åtgärd kan inte ångras.</p>
+            </div>
+            <div className="modal-actions">
+              <button
+                className="btn btn--secondary"
+                onClick={() => setDeleteConfirmation({ isOpen: false, ingredient: null })}
+                disabled={isLoading}
+              >
+                Avbryt
+              </button>
+              <button
+                className="btn btn--danger"
+                onClick={confirmDeleteIngredient}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Tar bort...' : 'Ta bort'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

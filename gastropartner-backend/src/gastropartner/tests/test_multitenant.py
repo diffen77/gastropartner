@@ -24,10 +24,7 @@ class TestMultitenantService:
 
     async def test_invite_user_validation(self, multitenant_service):
         """Test that invite user validates roles properly."""
-        user_id = uuid4()
-        organization_id = uuid4()
-        inviter_id = uuid4()
-
+        # TODO: Implement actual test logic when role validation is implemented
         # This would test the role validation logic
         # Actual implementation would require test database setup
         assert multitenant_service is not None

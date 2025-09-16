@@ -48,6 +48,18 @@ agents:
       Validate code follows PEP 8 standards and uses proper type hints.
       Check FastAPI routes for proper validation and error handling.
       Ensure database operations are secure and efficient.
+  
+  localization_agent:
+    model: "gpt-4o-mini"
+    temperature: 0.0    # Deterministic for localization pattern detection
+    max_tokens: 1200
+    system_prompt: |
+      You are a localization specialist focused on internationalization (i18n) best practices.
+      Detect hardcoded English strings in React components that should use translation functions.
+      Validate that user-facing text uses the t() function with proper translation keys.
+      Flag browser auto-translation indicators like 'visar fortfarande' which suggest hardcoded text.
+      Ensure translation files contain all necessary keys for proper localization.
+      Your primary goal is preventing localization issues that degrade user experience.
 
 # Response formatting
 response_format:

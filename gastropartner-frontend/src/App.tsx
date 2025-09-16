@@ -1,26 +1,28 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import './App.css';
+import './styles/mobile-enhancements.css';
+// Quality control system test - validation triggers automatically after changes
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthProvider } from './contexts/AuthContext';
+import { MobileMenuProvider, useMobileMenu } from './contexts/MobileMenuContext';
+import { ModuleSettingsProvider } from './contexts/ModuleSettingsContext';
+import { useFreemiumService } from './hooks/useFreemiumService';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 import { AuthForm } from './components/Auth/AuthForm';
 import { OrganizationSelector } from './components/Organizations/OrganizationSelector';
-import { OnboardingFlow } from './components/UserTesting/OnboardingFlow';
 import { Sidebar } from './components/Sidebar';
 import { MetricsCard } from './components/MetricsCard';
 import { SearchableTable, TableColumn } from './components/SearchableTable';
 import { EmptyState } from './components/EmptyState';
-import { FeedbackButton } from './components/UserTesting/FeedbackButton';
 import ModuleProtectedRoute from './components/ModuleProtectedRoute';
-import SuperAdminDashboard from './components/SuperAdmin/SuperAdminDashboard';
 import { SuperAdmin } from './pages/SuperAdmin';
 import FreemiumTest from './pages/FreemiumTest';
-import { Ingredients } from './pages/Ingredients';
-import { Recipes } from './pages/Recipes';
-import { MenuItems } from './pages/MenuItems';
+// Import working functional components
+import { RecipeManagement } from './pages/RecipeManagement';
 import CostControlDashboard from './components/CostControl/CostControlDashboard';
-import UserTestingDashboard from './pages/UserTestingDashboard';
 import { Sales } from './pages/Sales';
+import { Reports } from './pages/Reports';
+import { Analytics } from './pages/Analytics';
 import { Modules } from './pages/Modules';
 import { Settings } from './pages/Settings';
 import Upgrade from './pages/Upgrade';
@@ -203,130 +205,26 @@ function LoginPage() {
   );
 }
 
-function OnboardingPage() {
-  const { completeOnboarding, createOrganization, refreshOrganizations, getOrganizations } = useAuth();
-  
-  const handleOnboardingComplete = async (data: any) => {
-    try {
-      // Always refresh organizations first to get latest data
-      await refreshOrganizations();
-      
-      // Make a direct API call to get fresh organization data instead of relying on state
-      let userHasOrganization = false;
-      try {
-        const freshOrgs = await getOrganizations();
-        userHasOrganization = freshOrgs && freshOrgs.length > 0;
-        console.log('🏢 Fresh organization check:', userHasOrganization ? 'User has organizations' : 'User has no organizations');
-      } catch (orgCheckError) {
-        console.warn('Could not check organizations, assuming none exist:', orgCheckError);
-        userHasOrganization = false;
-      }
-      
-      // Only try to create organization if user doesn't have any
-      if (!userHasOrganization && data?.name) {
-        console.log('🏢 Creating organization from restaurant data:', data.name);
-        await createOrganization(data.name, `${data.type} (${data.size})`);
-      } else if (userHasOrganization) {
-        console.log('🏢 User already has organization, skipping creation');
-      }
-      
-      await completeOnboarding();
-      // Use navigate instead of direct window location
-      window.location.href = '/';
-    } catch (error) {
-      console.error('Failed to complete onboarding:', error);
-      // Always try to complete onboarding regardless of organization creation error
-      console.log('🏢 Attempting to complete onboarding regardless of error');
-      try {
-        // Final attempt: refresh organizations and complete onboarding
-        await refreshOrganizations();
-        await completeOnboarding();
-        window.location.href = '/';
-      } catch (completionError) {
-        console.error('Final attempt to complete onboarding failed:', completionError);
-        // Last resort: just mark as completed locally and redirect
-        localStorage.setItem('onboarding_completed', 'true');
-        console.log('🚨 Emergency fallback: Onboarding marked as completed locally');
-        window.location.href = '/';
-      }
-    }
-  };
-  
-  const handleOnboardingSkip = async () => {
-    try {
-      // Always refresh organizations first to get latest data
-      await refreshOrganizations();
-      
-      // Make a direct API call to get fresh organization data instead of relying on state
-      let userHasOrganization = false;
-      try {
-        const freshOrgs = await getOrganizations();
-        userHasOrganization = freshOrgs && freshOrgs.length > 0;
-        console.log('🏢 Fresh organization check (skip):', userHasOrganization ? 'User has organizations' : 'User has no organizations');
-      } catch (orgCheckError) {
-        console.warn('Could not check organizations, assuming none exist:', orgCheckError);
-        userHasOrganization = false;
-      }
-      
-      // Only try to create organization if user doesn't have any
-      if (!userHasOrganization) {
-        console.log('🏢 Creating default organization for skipped onboarding');
-        await createOrganization('My Restaurant', 'Default organization');
-      } else {
-        console.log('🏢 User already has organization, skipping creation');
-      }
-      
-      await completeOnboarding();
-      // Use navigate instead of direct window location  
-      window.location.href = '/';
-    } catch (error) {
-      console.error('Failed to complete onboarding:', error);
-      // Always try to complete onboarding regardless of error
-      console.log('🏢 Attempting to complete onboarding regardless of error (skip)');
-      try {
-        // Final attempt: refresh organizations and complete onboarding
-        await refreshOrganizations();
-        await completeOnboarding();
-        window.location.href = '/';
-      } catch (completionError) {
-        console.error('Final attempt to complete onboarding failed:', completionError);
-        // Last resort: just mark as completed locally and redirect
-        localStorage.setItem('onboarding_completed', 'true');
-        console.log('🚨 Emergency fallback: Onboarding marked as completed locally (skip)');
-        window.location.href = '/';
-      }
-    }
-  };
-  
-  return (
-    <OnboardingFlow 
-      onComplete={handleOnboardingComplete}
-      onSkip={handleOnboardingSkip}
-    />
-  );
-}
 
-// Onboarding wrapper component
-function OnboardingWrapper({ children }: { children: React.ReactNode }) {
-  const { hasCompletedOnboarding, onboardingLoading } = useAuth();
-  
-  // Show loading state while onboarding status is being determined
-  if (hasCompletedOnboarding === null || onboardingLoading) {
-    return (
-      <div className="onboarding-loading">
-        <div className="loading-spinner"></div>
-        <p>Kontrollerar onboarding status...</p>
+// Mobile header component
+function MobileHeader() {
+  const { toggle } = useMobileMenu();
+
+  return (
+    <header className="mobile-header">
+      <button
+        className="mobile-header__menu-button"
+        onClick={toggle}
+        aria-label="Öppna navigeringsmeny"
+      >
+        <span className="mobile-header__menu-icon">☰</span>
+      </button>
+      <div className="mobile-header__title">
+        <span className="mobile-header__logo">🍽️</span>
+        <span className="mobile-header__brand">GastroPartner</span>
       </div>
-    );
-  }
-  
-  // Redirect to onboarding if not completed
-  if (!hasCompletedOnboarding) {
-    return <Navigate to="/onboarding" replace />;
-  }
-  
-  // Show main app if onboarding is completed
-  return <>{children}</>;
+    </header>
+  );
 }
 
 // Main app routes with module protection
@@ -336,42 +234,27 @@ function MainAppRoutes() {
       <Route path="/" element={<Dashboard />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route 
-        path="/ingredienser" 
-        element={
-          <ModuleProtectedRoute moduleId="ingredients">
-            <Ingredients />
-          </ModuleProtectedRoute>
-        } 
+        path="/recepthantering" 
+        element={<RecipeManagement />}
       />
-      <Route 
-        path="/recept" 
-        element={
-          <ModuleProtectedRoute moduleId="recipes">
-            <Recipes />
-          </ModuleProtectedRoute>
-        } 
+      {/* Backward compatibility redirects */}
+      <Route
+        path="/ingredienser"
+        element={<Navigate to="/recepthantering?tab=ingredients" replace />}
       />
-      <Route 
-        path="/matratter" 
-        element={
-          <ModuleProtectedRoute moduleId="menu">
-            <MenuItems />
-          </ModuleProtectedRoute>
-        } 
+      <Route
+        path="/recept"
+        element={<Navigate to="/recepthantering?tab=recipes" replace />}
+      />
+      <Route
+        path="/matratter"
+        element={<Navigate to="/recepthantering?tab=menu-items" replace />}
       />
       <Route 
         path="/kostnadsanalys" 
         element={
           <ModuleProtectedRoute moduleId="analytics">
             <CostControlDashboard />
-          </ModuleProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/user-testing" 
-        element={
-          <ModuleProtectedRoute moduleId="user_testing">
-            <UserTestingDashboard />
           </ModuleProtectedRoute>
         } 
       />
@@ -383,34 +266,60 @@ function MainAppRoutes() {
           </ModuleProtectedRoute>
         } 
       />
+      <Route
+        path="/rapporter"
+        element={
+          <ModuleProtectedRoute moduleId="analytics">
+            <Reports />
+          </ModuleProtectedRoute>
+        }
+      />
+      <Route
+        path="/analys"
+        element={
+          <ModuleProtectedRoute moduleId="analytics">
+            <Analytics />
+          </ModuleProtectedRoute>
+        }
+      />
       <Route path="/moduler" element={<Modules />} />
       <Route path="/installningar" element={<Settings />} />
       <Route path="/upgrade" element={<Upgrade />} />
       <Route 
         path="/superadmin" 
-        element={
-          <ModuleProtectedRoute moduleId="super_admin">
-            <SuperAdminDashboard />
-          </ModuleProtectedRoute>
-        } 
+        element={<SuperAdmin />}
       />
       <Route 
-        path="/superadmin/feature-flags" 
-        element={
-          <ModuleProtectedRoute moduleId="super_admin">
-            <SuperAdmin />
-          </ModuleProtectedRoute>
-        } 
+        path="/superadmin/dashboard" 
+        element={<Navigate to="/superadmin" replace />}
       />
       <Route path="/freemium-test" element={<FreemiumTest />} />
     </Routes>
   );
 }
 
+// Wrapper component to handle module sync
+function ModuleSyncWrapper({ children }: { children: React.ReactNode }) {
+  const { refreshSubscriptions } = useFreemiumService();
+
+  // Callback to sync freemium data when module settings change
+  const handleModuleStatusChanged = useCallback(async (moduleId: string, enabled: boolean) => {
+    console.log(`🔄 Module ${moduleId} status changed to ${enabled}, syncing freemium data...`);
+    await refreshSubscriptions();
+  }, [refreshSubscriptions]);
+
+  return (
+    <ModuleSettingsProvider onModuleStatusChanged={handleModuleStatusChanged}>
+      {children}
+    </ModuleSettingsProvider>
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <ModuleSyncWrapper>
+        <Router>
         <Routes>
           {/* Public route for authentication */}
           <Route 
@@ -424,35 +333,27 @@ function App() {
             element={<Status />} 
           />
           
-          {/* Protected onboarding route */}
-          <Route 
-            path="/onboarding" 
-            element={
-              <ProtectedRoute>
-                <OnboardingPage />
-              </ProtectedRoute>
-            } 
-          />
           
           {/* Protected main app routes */}
-          <Route 
-            path="/*" 
+          <Route
+            path="/*"
             element={
               <ProtectedRoute>
-                <OnboardingWrapper>
+                <MobileMenuProvider>
                   <div className="app-layout">
+                    <MobileHeader />
                     <Sidebar />
                     <main className="app-main">
                       <MainAppRoutes />
-                      <FeedbackButton />
                     </main>
                   </div>
-                </OnboardingWrapper>
+                </MobileMenuProvider>
               </ProtectedRoute>
-            } 
+            }
           />
         </Routes>
-      </Router>
+        </Router>
+      </ModuleSyncWrapper>
     </AuthProvider>
   );
 }

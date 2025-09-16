@@ -33,10 +33,12 @@ export interface User {
   updated_at: string;
   email_confirmed_at: string | null;
   last_sign_in_at: string | null;
+  organization_id: string; // Multi-tenant system requires organization_id
 }
 
 export interface Organization {
-  id: string;
+  organization_id: string;
+  id?: string; // Alias for organization_id (for compatibility)
   name: string;
   description?: string;
   owner_id: string;
@@ -173,6 +175,15 @@ class ApiClient {
         // If parsing fails, keep the generic HTTP error message
       }
       
+      // Enhanced error handling for JWT issues
+      if (response.status === 401 && errorMessage.includes('invalid JWT')) {
+        // Clear invalid tokens when JWT signature validation fails
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('onboarding_completed');
+        errorMessage = `Authentication error: ${errorMessage}`;
+      }
+      
       throw new Error(errorMessage);
     }
 
@@ -261,6 +272,13 @@ class ApiClient {
     });
   }
 
+  async refreshToken(refreshToken: string): Promise<AuthResponse> {
+    return this.request<AuthResponse>('/api/v1/auth/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+  }
+
   async getCurrentUser(accessToken?: string): Promise<User> {
     if (accessToken) {
       // Use provided token directly
@@ -292,6 +310,7 @@ class ApiClient {
       if (Array.isArray(result) && result.length > 0 && result[0].organization) {
         return result.map((item: any) => ({
           ...item.organization,
+          organization_id: item.organization.organization_id, // Ensure organization_id is set
           id: item.organization.organization_id, // Add id alias for compatibility
         }));
       }
@@ -300,6 +319,7 @@ class ApiClient {
       if (Array.isArray(result)) {
         return result.map((org: any) => ({
           ...org,
+          organization_id: org.organization_id || org.id, // Ensure organization_id is set
           id: org.organization_id || org.id, // Add id alias for compatibility
         }));
       }

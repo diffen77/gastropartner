@@ -166,7 +166,7 @@ const Upgrade: React.FC = () => {
                   }}>
                     <div style={{ textAlign: 'center', marginBottom: '24px' }}>
                       <h3 style={{ fontSize: '24px', fontWeight: 'bold', color: '#374151', marginBottom: '8px' }}>
-                        Free Plan
+                        Kostnadsfri
                       </h3>
                       <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#374151', marginBottom: '8px' }}>
                         {planComparison.plans.free.price} {planComparison.plans.free.currency}
@@ -320,7 +320,7 @@ const Upgrade: React.FC = () => {
                 Vad händer med mina data om jag säger upp?
               </h4>
               <p style={{ fontSize: '14px', color: '#6b7280' }}>
-                All din data förblir säker. Du får åtkomst till Free-nivån igen men behåller all din information.
+                All din data förblir säker. Du får åtkomst till den kostnadsfria nivån igen men behåller all din information.
               </p>
             </div>
             

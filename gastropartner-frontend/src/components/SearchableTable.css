@@ -224,13 +224,76 @@
   .searchable-table__search {
     padding: var(--spacing-md);
   }
-  
+
+  .search-input__field {
+    font-size: var(--font-size-base); /* Larger font size for mobile */
+    padding: var(--spacing-lg) var(--spacing-md) var(--spacing-lg) 44px;
+    min-height: 44px; /* Touch-friendly input height */
+  }
+
+  .search-input__icon {
+    left: var(--spacing-lg);
+    font-size: var(--font-size-lg);
+  }
+
   .data-table__header-cell,
   .data-table__cell {
-    padding: var(--spacing-sm) var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-sm);
+    font-size: var(--font-size-sm);
   }
-  
+
+  .data-table__header-cell--sortable {
+    min-height: 48px; /* Larger touch target for sorting */
+    -webkit-tap-highlight-color: rgba(66, 133, 244, 0.1);
+  }
+
+  /* Improved action buttons for mobile */
+  .recipe-actions {
+    gap: var(--spacing-sm);
+  }
+
+  .recipe-actions .btn {
+    min-height: 44px; /* Touch-friendly button size */
+    min-width: 44px;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-sm);
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+    touch-action: manipulation;
+  }
+
   .search-input {
     max-width: none;
+  }
+
+  /* Better scrolling experience on mobile */
+  .table-container {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+}
+
+/* Touch device specific optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .data-table__header-cell--sortable:hover {
+    background-color: transparent;
+  }
+
+  .data-table__row:hover {
+    background-color: transparent;
+  }
+
+  .recipe-actions .btn:hover {
+    transform: none; /* Remove hover transforms on touch devices */
+    box-shadow: none;
+  }
+
+  /* Active states for touch feedback */
+  .data-table__header-cell--sortable:active {
+    background-color: rgba(66, 133, 244, 0.1);
+  }
+
+  .recipe-actions .btn:active {
+    transform: scale(0.98);
+    opacity: 0.8;
   }
 }

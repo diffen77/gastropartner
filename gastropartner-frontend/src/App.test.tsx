@@ -1,6 +1,6 @@
 // Basic smoke test to verify test environment works
 describe('App Environment', () => {
-  test('test environment is working', () => {
+  test('environment is working', () => {
     expect(1 + 1).toBe(2);
   });
   

@@ -21,18 +21,17 @@ class FreemiumService:
 
     async def get_organization_limits(self, organization_id: UUID) -> dict[str, int]:
         """Get organization's freemium limits based on subscription tier."""
-        response = self.supabase.table("organizations").select(
-            "plan, max_ingredients, max_recipes, max_menu_items"
-        ).eq("organization_id", str(organization_id)).execute()
+        response = (
+            self.supabase.table("organizations")
+            .select("plan, max_ingredients, max_recipes, max_menu_items")
+            .eq("organization_id", str(organization_id))
+            .execute()
+        )
 
         if not response.data:
             # Return default freemium limits for missing organizations
             # This handles development/testing scenarios gracefully
-            return {
-                "max_ingredients": 50,
-                "max_recipes": 5,
-                "max_menu_items": 2
-            }
+            return {"max_ingredients": 50, "max_recipes": 5, "max_menu_items": 2}
 
         org_data = response.data[0]
         plan = org_data.get("plan", "free")
@@ -41,36 +40,40 @@ class FreemiumService:
         # Recipe Module: Only two plans - free (generous) and premium (unlimited)
         if plan == "premium":
             # Premium gets unlimited (high limits) - PAID PLAN
-            return {
-                "max_ingredients": 10000,
-                "max_recipes": 1000,
-                "max_menu_items": 1000
-            }
+            return {"max_ingredients": 1000, "max_recipes": 1000, "max_menu_items": 1000}
         else:
             # Free tier gets generous limits - 50/5/2 for recipe module
             # This includes all non-premium plans (free, starter, professional)
-            return {
-                "max_ingredients": 50,
-                "max_recipes": 5,
-                "max_menu_items": 2
-            }
+            return {"max_ingredients": 50, "max_recipes": 5, "max_menu_items": 2}
 
     async def get_current_usage(self, organization_id: UUID) -> dict[str, int]:
         """Get organization's current usage counts."""
         # Count active ingredients
-        ingredients_count = self.supabase.table("ingredients").select(
-            "ingredient_id", count="exact"
-        ).eq("organization_id", str(organization_id)).eq("is_active", True).execute()
+        ingredients_count = (
+            self.supabase.table("ingredients")
+            .select("ingredient_id", count="exact")
+            .eq("organization_id", str(organization_id))
+            .eq("is_active", True)
+            .execute()
+        )
 
         # Count active recipes
-        recipes_count = self.supabase.table("recipes").select(
-            "recipe_id", count="exact"
-        ).eq("organization_id", str(organization_id)).eq("is_active", True).execute()
+        recipes_count = (
+            self.supabase.table("recipes")
+            .select("recipe_id", count="exact")
+            .eq("organization_id", str(organization_id))
+            .eq("is_active", True)
+            .execute()
+        )
 
         # Count active menu items
-        menu_items_count = self.supabase.table("menu_items").select(
-            "menu_item_id", count="exact"
-        ).eq("organization_id", str(organization_id)).eq("is_active", True).execute()
+        menu_items_count = (
+            self.supabase.table("menu_items")
+            .select("menu_item_id", count="exact")
+            .eq("organization_id", str(organization_id))
+            .eq("is_active", True)
+            .execute()
+        )
 
         return {
             "current_ingredients": ingredients_count.count or 0,
@@ -87,7 +90,7 @@ class FreemiumService:
     ) -> UsageLimitsCheck:
         """
         Check all freemium limits for organization.
-        
+
         Args:
             organization_id: Organization to check limits for
             check_ingredient_add: Check if adding 1 more ingredient is allowed
@@ -102,9 +105,9 @@ class FreemiumService:
             usage["current_ingredients"] + (1 if check_ingredient_add else 0)
         ) <= limits["max_ingredients"]
 
-        can_add_recipe = (
-            usage["current_recipes"] + (1 if check_recipe_add else 0)
-        ) <= limits["max_recipes"]
+        can_add_recipe = (usage["current_recipes"] + (1 if check_recipe_add else 0)) <= limits[
+            "max_recipes"
+        ]
 
         can_add_menu_item = (
             usage["current_menu_items"] + (1 if check_menu_item_add else 0)
@@ -126,7 +129,9 @@ class FreemiumService:
             upgrade_needed=upgrade_needed,
         )
 
-    async def enforce_ingredient_limit(self, organization_id: UUID, user_id: UUID | None = None) -> None:
+    async def enforce_ingredient_limit(
+        self, organization_id: UUID, user_id: UUID | None = None
+    ) -> None:
         """Enforce ingredient limit and raise exception if exceeded."""
         limits_check = await self.check_all_limits(organization_id, check_ingredient_add=True)
 
@@ -150,10 +155,12 @@ class FreemiumService:
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
                 detail=f"Recipe module limit reached: {limits_check.current_ingredients}/{limits_check.max_ingredients} ingredients used. Upgrade to premium for unlimited ingredients.",
-                headers={"X-Upgrade-Required": "true", "X-Feature": "ingredients"}
+                headers={"X-Upgrade-Required": "true", "X-Feature": "ingredients"},
             )
 
-    async def enforce_recipe_limit(self, organization_id: UUID, user_id: UUID | None = None) -> None:
+    async def enforce_recipe_limit(
+        self, organization_id: UUID, user_id: UUID | None = None
+    ) -> None:
         """Enforce recipe limit and raise exception if exceeded."""
         limits_check = await self.check_all_limits(organization_id, check_recipe_add=True)
 
@@ -177,10 +184,12 @@ class FreemiumService:
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
                 detail=f"Recipe module limit reached: {limits_check.current_recipes}/{limits_check.max_recipes} recipes used. Upgrade to premium for unlimited recipes.",
-                headers={"X-Upgrade-Required": "true", "X-Feature": "recipes"}
+                headers={"X-Upgrade-Required": "true", "X-Feature": "recipes"},
             )
 
-    async def enforce_menu_item_limit(self, organization_id: UUID, user_id: UUID | None = None) -> None:
+    async def enforce_menu_item_limit(
+        self, organization_id: UUID, user_id: UUID | None = None
+    ) -> None:
         """Enforce menu item limit and raise exception if exceeded."""
         limits_check = await self.check_all_limits(organization_id, check_menu_item_add=True)
 
@@ -204,7 +213,7 @@ class FreemiumService:
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
                 detail=f"Recipe module limit reached: {limits_check.current_menu_items}/{limits_check.max_menu_items} menu items used. Upgrade to premium for unlimited menu items.",
-                headers={"X-Upgrade-Required": "true", "X-Feature": "menu_items"}
+                headers={"X-Upgrade-Required": "true", "X-Feature": "menu_items"},
             )
 
     async def get_usage_summary(self, organization_id: UUID) -> dict[str, Any]:
@@ -212,9 +221,12 @@ class FreemiumService:
         limits_check = await self.check_all_limits(organization_id)
 
         # Get the actual plan from database
-        response = self.supabase.table("organizations").select(
-            "plan"
-        ).eq("organization_id", str(organization_id)).execute()
+        response = (
+            self.supabase.table("organizations")
+            .select("plan")
+            .eq("organization_id", str(organization_id))
+            .execute()
+        )
 
         plan = "free"  # default
         if response.data:
@@ -229,15 +241,17 @@ class FreemiumService:
                     "limit": limits_check.max_ingredients,
                     "percentage": (
                         limits_check.current_ingredients / limits_check.max_ingredients * 100
-                    ) if limits_check.max_ingredients > 0 else 0,
+                    )
+                    if limits_check.max_ingredients > 0
+                    else 0,
                     "at_limit": limits_check.current_ingredients >= limits_check.max_ingredients,
                 },
                 "recipes": {
                     "current": limits_check.current_recipes,
                     "limit": limits_check.max_recipes,
-                    "percentage": (
-                        limits_check.current_recipes / limits_check.max_recipes * 100
-                    ) if limits_check.max_recipes > 0 else 0,
+                    "percentage": (limits_check.current_recipes / limits_check.max_recipes * 100)
+                    if limits_check.max_recipes > 0
+                    else 0,
                     "at_limit": limits_check.current_recipes >= limits_check.max_recipes,
                 },
                 "menu_items": {
@@ -245,7 +259,9 @@ class FreemiumService:
                     "limit": limits_check.max_menu_items,
                     "percentage": (
                         limits_check.current_menu_items / limits_check.max_menu_items * 100
-                    ) if limits_check.max_menu_items > 0 else 0,
+                    )
+                    if limits_check.max_menu_items > 0
+                    else 0,
                     "at_limit": limits_check.current_menu_items >= limits_check.max_menu_items,
                 },
             },

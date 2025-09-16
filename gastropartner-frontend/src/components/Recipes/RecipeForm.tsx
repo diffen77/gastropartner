@@ -4,6 +4,7 @@ import { useFreemium } from '../../hooks/useFreemium';
 import { calculateIngredientCost, getCompatibleUnits } from '../../utils/unitConversion';
 import { UNITS, renderUnitOptions } from '../../utils/units';
 import './RecipeForm.css';
+import { InstructionsEditor } from './InstructionsEditor';
 
 interface RecipeFormProps {
   isOpen: boolean;
@@ -68,14 +69,57 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false, editi
       console.error('Failed to load feature flags:', err);
       // Set default flags if loading fails
       setFeatureFlags({
-        flags_id: '',
-        agency_id: '',
         show_recipe_prep_time: false,
         show_recipe_cook_time: false,
         show_recipe_instructions: false,
         show_recipe_notes: false,
-        created_at: '',
-        updated_at: '',
+        // Add all required FeatureFlags properties with defaults
+        show_ingredients: true,
+        show_recipes: true,
+        show_menu_items: true,
+        show_sales: false,
+        show_inventory: false,
+        show_reports: true,
+        show_analytics: false,
+        show_suppliers: false,
+        enable_dark_mode: false,
+        enable_mobile_app_banner: false,
+        enable_quick_actions: true,
+        enable_dashboard_widgets: true,
+        enable_advanced_search: false,
+        enable_data_export: false,
+        enable_bulk_operations: false,
+        enable_notifications_section: true,
+        enable_advanced_settings_section: false,
+        enable_account_management_section: true,
+        enable_company_profile_section: true,
+        enable_business_settings_section: true,
+        enable_settings_header: true,
+        enable_settings_footer: true,
+        enable_api_access: false,
+        enable_webhooks: false,
+        enable_email_notifications: true,
+        enable_sms_notifications: false,
+        enable_push_notifications: false,
+        enable_multi_language: false,
+        enable_offline_mode: false,
+        max_ingredients_limit: 50,
+        max_recipes_limit: 25,
+        max_menu_items_limit: 50,
+        max_users_per_org: 5,
+        api_rate_limit: 100,
+        storage_quota_mb: 100,
+        enable_ai_suggestions: false,
+        enable_predictive_analytics: false,
+        enable_voice_commands: false,
+        enable_automated_ordering: false,
+        enable_advanced_pricing: false,
+        enable_customer_portal: false,
+        enable_pos_integration: false,
+        enable_accounting_sync: false,
+        enable_delivery_platforms: false,
+        enable_payment_processing: false,
+        enable_loyalty_programs: false,
       });
     }
   };
@@ -403,6 +447,7 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false, editi
                             value={ri.quantity}
                             onChange={(e) => updateIngredient(ri.id, 'quantity', parseFloat(e.target.value) || 0)}
                             placeholder="Mängd"
+                            aria-label="Ingrediensens mängd"
                             required
                           />
                         </div>
@@ -457,16 +502,11 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false, editi
               <div className="form-section">
                 <h3>Instruktioner & Anteckningar</h3>
                 {featureFlags?.show_recipe_instructions && (
-                  <div className="form-group">
-                    <label htmlFor="instructions">Tillagningssteg</label>
-                    <textarea
-                      id="instructions"
-                      value={formData.instructions || ''}
-                      onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
-                      placeholder="1. Värm ugnen till 180°C&#10;2. Blanda ingredienserna...&#10;3. Grädda i 25 minuter"
-                      rows={6}
-                    />
-                  </div>
+                  <InstructionsEditor
+                    value={formData.instructions || ''}
+                    onChange={(value) => setFormData({ ...formData, instructions: value })}
+                    placeholder="Skriv varje steg på en ny rad:\n\nKoka upp vatten i en kastrull\nLägg i pastan och koka enligt förpackningen\nHacka vitlök och lök fint\nStek vitlök och lök i olivolja tills mjuka\nTillsätt krossade tomater och kryddor\nLåt såsen sjuda i 15 minuter\nBlanda den färdiga pastan med såsen\nServera med riven parmesan"
+                  />
                 )}
 
                 {featureFlags?.show_recipe_notes && (

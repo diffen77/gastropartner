@@ -8,8 +8,6 @@ interface UsageLimits {
   recipes: { free: number; pro: number; unit: string };
   menu: { free: number; pro: number; unit: string };
   analytics: { free: number; pro: number; unit: string };
-  user_testing: { free: number; pro: number; unit: string };
-  super_admin: { free: number; pro: number; unit: string };
   sales: { free: number; pro: number; unit: string };
   advanced_analytics: { free: number; pro: number; unit: string };
   mobile_app: { free: number; pro: number; unit: string };
@@ -32,8 +30,6 @@ const USAGE_LIMITS: UsageLimits = {
   recipes: { free: 5, pro: -1, unit: 'recept' },
   menu: { free: 10, pro: -1, unit: 'maträtter' },
   analytics: { free: 1, pro: -1, unit: 'rapporter/månad' },
-  user_testing: { free: 5, pro: -1, unit: 'feedback/månad' },
-  super_admin: { free: 1, pro: -1, unit: 'admin användare' },
   sales: { free: 10, pro: -1, unit: 'kunder' },
   advanced_analytics: { free: 1, pro: -1, unit: 'AI-rapporter/månad' },
   mobile_app: { free: 1, pro: -1, unit: 'enheter' },
@@ -61,7 +57,7 @@ export function useUsageLimits() {
         const { data: subscription } = await supabase
           .from('module_subscriptions')
           .select('tier')
-          .eq('organization_id', currentOrganization.id)
+          .eq('organization_id', currentOrganization.organization_id)
           .eq('module_name', module)
           .eq('active', true)
           .single();
@@ -78,7 +74,7 @@ export function useUsageLimits() {
             const { data: ingredients, error: ingredientsError } = await supabase
               .from('ingredients')
               .select('id', { count: 'exact' })
-              .eq('organization_id', currentOrganization.id);
+              .eq('organization_id', currentOrganization.organization_id);
             
             if (!ingredientsError && ingredients) {
               used = ingredients.length;
@@ -89,7 +85,7 @@ export function useUsageLimits() {
             const { data: recipes, error: recipesError } = await supabase
               .from('recipes')
               .select('id', { count: 'exact' })
-              .eq('organization_id', currentOrganization.id);
+              .eq('organization_id', currentOrganization.organization_id);
             
             if (!recipesError && recipes) {
               used = recipes.length;
@@ -100,29 +96,13 @@ export function useUsageLimits() {
             const { data: menuItems, error: menuError } = await supabase
               .from('menu_items')
               .select('id', { count: 'exact' })
-              .eq('organization_id', currentOrganization.id);
+              .eq('organization_id', currentOrganization.organization_id);
             
             if (!menuError && menuItems) {
               used = menuItems.length;
             }
             break;
 
-          case 'user_testing':
-            // Count feedback submissions this month
-            const startOfMonth = new Date();
-            startOfMonth.setDate(1);
-            startOfMonth.setHours(0, 0, 0, 0);
-
-            const { data: feedback, error: feedbackError } = await supabase
-              .from('user_feedback')
-              .select('id', { count: 'exact' })
-              .eq('organization_id', currentOrganization.id)
-              .gte('created_at', startOfMonth.toISOString());
-            
-            if (!feedbackError && feedback) {
-              used = feedback.length;
-            }
-            break;
 
           case 'analytics':
             // Count report generations this month  
@@ -133,7 +113,7 @@ export function useUsageLimits() {
             const { data: reports, error: reportsError } = await supabase
               .from('analytics_reports')
               .select('id', { count: 'exact' })
-              .eq('organization_id', currentOrganization.id)
+              .eq('organization_id', currentOrganization.organization_id)
               .gte('created_at', startOfMonthAnalytics.toISOString());
             
             if (!reportsError && reports) {
@@ -141,18 +121,6 @@ export function useUsageLimits() {
             }
             break;
 
-          case 'super_admin':
-            // Count admin users
-            const { data: adminUsers, error: adminError } = await supabase
-              .from('organization_users')
-              .select('id', { count: 'exact' })
-              .eq('organization_id', currentOrganization.id)
-              .eq('role', 'admin');
-            
-            if (!adminError && adminUsers) {
-              used = adminUsers.length;
-            }
-            break;
 
           // Coming soon modules - default to 0 usage
           case 'sales':

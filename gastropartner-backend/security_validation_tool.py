@@ -25,16 +25,18 @@ from pathlib import Path
 
 class SeverityLevel(Enum):
     """Security issue severity levels."""
+
     CRITICAL = "🚨 CRITICAL"
     HIGH = "🔴 HIGH"
     MEDIUM = "🟡 MEDIUM"
     LOW = "🟢 LOW"
-    INFO = "ℹ️ INFO"
+    INFO = "i INFO"
 
 
 @dataclass
 class SecurityIssue:
     """Represents a security issue found during validation."""
+
     severity: SeverityLevel
     title: str
     description: str
@@ -48,7 +50,7 @@ class SecurityIssue:
 class MultiTenantSecurityValidator:
     """
     Validates multi-tenant security compliance in GastroPartner codebase.
-    
+
     MANDATORY SECURITY RULES:
     1. ALL database queries MUST filter by organization_id
     2. ALL API endpoints MUST require authentication
@@ -82,50 +84,37 @@ class MultiTenantSecurityValidator:
     def validate_database_queries(self) -> None:
         """
         CRITICAL: Validate all database queries filter by organization_id.
-        
+
         RULE: Alla SELECT, UPDATE, DELETE queries MÅSTE filtrera på organization_id
         """
         print("\n🔍 Validating database query organization filtering...")
 
-        # Find all table queries
-        query_pattern = re.compile(
-            r'\.table\("([^"]+)"\)\.select\([^)]*\)(?:\.eq\([^)]*\))*'
-        )
-
         # Tables that MUST be organization-filtered
-        org_filtered_tables = {
-            "recipes", "ingredients", "menu_items", "recipe_ingredients"
-        }
-
-        # Tables that are exempt from organization filtering
-        exempt_tables = {
-            "organizations", "organization_users", "auth.users", "feature_flags"
-        }
+        org_filtered_tables = {"recipes", "ingredients", "menu_items", "recipe_ingredients"}
 
         for py_file in self.src_path.rglob("*.py"):
             content = py_file.read_text()
-            lines = content.split('\n')
+            lines = content.split("\n")
 
             for line_num, line in enumerate(lines, 1):
                 # Check for table queries
-                if '.table(' in line and '.select(' in line:
+                if ".table(" in line and ".select(" in line:
                     # Extract table name
                     table_match = re.search(r'\.table\("([^"]+)"\)', line)
                     if table_match:
                         table_name = table_match.group(1)
 
-                        if table_name in org_filtered_tables:
-                            # Check if organization_id filter exists
-                            if 'organization_id' not in line:
-                                # Look ahead for organization_id filter
-                                has_org_filter = False
-                                for next_line_num in range(line_num, min(line_num + 5, len(lines))):
-                                    if 'organization_id' in lines[next_line_num]:
-                                        has_org_filter = True
-                                        break
+                        if table_name in org_filtered_tables and "organization_id" not in line:
+                            # Look ahead for organization_id filter
+                            has_org_filter = False
+                            for next_line_num in range(line_num, min(line_num + 5, len(lines))):
+                                if "organization_id" in lines[next_line_num]:
+                                    has_org_filter = True
+                                    break
 
-                                if not has_org_filter:
-                                    self.issues.append(SecurityIssue(
+                            if not has_org_filter:
+                                self.issues.append(
+                                    SecurityIssue(
                                         severity=SeverityLevel.CRITICAL,
                                         title=f"Missing organization_id filter on {table_name} table",
                                         description=f"Query on {table_name} table does not filter by organization_id, allowing cross-organization data access",
@@ -133,26 +122,29 @@ class MultiTenantSecurityValidator:
                                         line_number=line_num,
                                         code_snippet=line.strip(),
                                         recommendation="Add .eq('organization_id', str(organization_id)) to the query",
-                                        compliance_rule="REGEL 3: Alla queries MÅSTE filtrera på organization_id"
-                                    ))
+                                        compliance_rule="REGEL 3: Alla queries MÅSTE filtrera på organization_id",
+                                    )
+                                )
 
     def validate_api_authentication(self) -> None:
         """
         CRITICAL: Validate all API endpoints require authentication.
-        
+
         RULE: Alla API endpoints MÅSTE kräva autentisering
         """
         print("🔐 Validating API endpoint authentication...")
 
-        router_pattern = re.compile(r'@router\.(get|post|put|delete|patch)\(')
-        auth_dependency_pattern = re.compile(r'Depends\(get_current_active_user\)|Depends\(get_user_organization\)')
+        router_pattern = re.compile(r"@router\.(get|post|put|delete|patch)\(")
+        auth_dependency_pattern = re.compile(
+            r"Depends\(get_current_active_user\)|Depends\(get_user_organization\)"
+        )
 
         for py_file in (self.src_path / "gastropartner" / "api").rglob("*.py"):
             if py_file.name == "__init__.py":
                 continue
 
             content = py_file.read_text()
-            lines = content.split('\n')
+            lines = content.split("\n")
 
             for line_num, line in enumerate(lines, 1):
                 if router_pattern.search(line):
@@ -160,52 +152,50 @@ class MultiTenantSecurityValidator:
                     endpoint_func_lines = []
                     for next_line_num in range(line_num, min(line_num + 10, len(lines))):
                         endpoint_func_lines.append(lines[next_line_num])
-                        if lines[next_line_num].strip().startswith('def '):
+                        if lines[next_line_num].strip().startswith("def "):
                             break
 
-                    endpoint_func = '\n'.join(endpoint_func_lines)
+                    endpoint_func = "\n".join(endpoint_func_lines)
 
                     # Check for development endpoints (allowed to skip auth)
-                    if '/dev/' in line or 'setup' in line.lower():
+                    if "/dev/" in line or "setup" in line.lower():
                         continue
 
                     # Check for health/monitoring endpoints (may skip auth)
-                    if any(keyword in line.lower() for keyword in ['health', 'ping', 'status']):
+                    if any(keyword in line.lower() for keyword in ["health", "ping", "status"]):
                         continue
 
                     if not auth_dependency_pattern.search(endpoint_func):
-                        self.issues.append(SecurityIssue(
-                            severity=SeverityLevel.HIGH,
-                            title="API endpoint missing authentication",
-                            description="API endpoint does not require user authentication",
-                            file_path=str(py_file.relative_to(self.project_root)),
-                            line_number=line_num,
-                            code_snippet=line.strip(),
-                            recommendation="Add 'current_user: User = Depends(get_current_active_user)' parameter",
-                            compliance_rule="REGEL 2: Alla API endpoints MÅSTE kräva autentisering"
-                        ))
+                        self.issues.append(
+                            SecurityIssue(
+                                severity=SeverityLevel.HIGH,
+                                title="API endpoint missing authentication",
+                                description="API endpoint does not require user authentication",
+                                file_path=str(py_file.relative_to(self.project_root)),
+                                line_number=line_num,
+                                code_snippet=line.strip(),
+                                recommendation="Add 'current_user: User = Depends(get_current_active_user)' parameter",
+                                compliance_rule="REGEL 2: Alla API endpoints MÅSTE kräva autentisering",
+                            )
+                        )
 
     def validate_insert_operations(self) -> None:
         """
         CRITICAL: Validate INSERT operations set organization_id and creator_id.
-        
+
         RULE: Alla INSERT queries MÅSTE sätta organization_id och creator_id
         """
         print("💾 Validating INSERT operations organization tracking...")
 
-        insert_pattern = re.compile(r'\.insert\(\{')
-
         # Tables that MUST have organization_id
-        org_tracked_tables = {
-            "recipes", "ingredients", "menu_items"
-        }
+        org_tracked_tables = {"recipes", "ingredients", "menu_items"}
 
         for py_file in self.src_path.rglob("*.py"):
             content = py_file.read_text()
-            lines = content.split('\n')
+            lines = content.split("\n")
 
             for line_num, line in enumerate(lines, 1):
-                if '.insert({' in line:
+                if ".insert({" in line:
                     # Find the table name
                     table_match = re.search(r'\.table\("([^"]+)"\)\.insert', line)
                     if not table_match:
@@ -221,30 +211,34 @@ class MultiTenantSecurityValidator:
                         if table_name in org_tracked_tables:
                             # Collect the insert statement (may span multiple lines)
                             insert_block = []
-                            for next_line_num in range(line_num - 1, min(line_num + 10, len(lines))):
+                            for next_line_num in range(
+                                line_num - 1, min(line_num + 10, len(lines))
+                            ):
                                 insert_block.append(lines[next_line_num])
-                                if '}).execute()' in lines[next_line_num]:
+                                if "}).execute()" in lines[next_line_num]:
                                     break
 
-                            insert_text = '\n'.join(insert_block)
+                            insert_text = "\n".join(insert_block)
 
                             # Check for organization_id
                             if '"organization_id"' not in insert_text:
-                                self.issues.append(SecurityIssue(
-                                    severity=SeverityLevel.CRITICAL,
-                                    title="INSERT operation missing organization_id",
-                                    description=f"INSERT into {table_name} does not set organization_id",
-                                    file_path=str(py_file.relative_to(self.project_root)),
-                                    line_number=line_num,
-                                    code_snippet=line.strip(),
-                                    recommendation="Add '\"organization_id\": str(organization_id)' to insert data",
-                                    compliance_rule="REGEL 5: Alla INSERT queries MÅSTE sätta organization_id"
-                                ))
+                                self.issues.append(
+                                    SecurityIssue(
+                                        severity=SeverityLevel.CRITICAL,
+                                        title="INSERT operation missing organization_id",
+                                        description=f"INSERT into {table_name} does not set organization_id",
+                                        file_path=str(py_file.relative_to(self.project_root)),
+                                        line_number=line_num,
+                                        code_snippet=line.strip(),
+                                        recommendation="Add '\"organization_id\": str(organization_id)' to insert data",
+                                        compliance_rule="REGEL 5: Alla INSERT queries MÅSTE sätta organization_id",
+                                    )
+                                )
 
     def validate_development_bypasses(self) -> None:
         """
         CRITICAL: Ensure no development bypasses exist in production code.
-        
+
         RULE: Inga development bypasses får finnas i produktionskod
         """
         print("🚧 Validating development bypasses removal...")
@@ -252,43 +246,45 @@ class MultiTenantSecurityValidator:
         dev_patterns = [
             (self.DEV_USER_ID, "Development user ID found"),
             (self.DEV_ORG_ID, "Development organization ID found"),
-            (r'dev_token_', "Development token pattern found"),
-            (r'if.*development', "Development mode check found"),
-            (r'Development.*mode', "Development mode reference found"),
+            (r"dev_token_", "Development token pattern found"),
+            (r"if.*development", "Development mode check found"),
+            (r"Development.*mode", "Development mode reference found"),
         ]
 
         for py_file in self.src_path.rglob("*.py"):
             # Skip test files and conftest
-            if 'test' in py_file.name or 'conftest' in py_file.name:
+            if "test" in py_file.name or "conftest" in py_file.name:
                 continue
 
             content = py_file.read_text()
-            lines = content.split('\n')
+            lines = content.split("\n")
 
             for line_num, line in enumerate(lines, 1):
                 for pattern, description in dev_patterns:
                     if re.search(pattern, line, re.IGNORECASE):
                         # Check if it's in a comment - might be acceptable
-                        if line.strip().startswith('#'):
+                        if line.strip().startswith("#"):
                             severity = SeverityLevel.MEDIUM
                         else:
                             severity = SeverityLevel.CRITICAL
 
-                        self.issues.append(SecurityIssue(
-                            severity=severity,
-                            title="Development bypass detected",
-                            description=description,
-                            file_path=str(py_file.relative_to(self.project_root)),
-                            line_number=line_num,
-                            code_snippet=line.strip(),
-                            recommendation="Remove development bypass code before production deployment",
-                            compliance_rule="REGEL 4: Inga development bypasses i produktionskod"
-                        ))
+                        self.issues.append(
+                            SecurityIssue(
+                                severity=severity,
+                                title="Development bypass detected",
+                                description=description,
+                                file_path=str(py_file.relative_to(self.project_root)),
+                                line_number=line_num,
+                                code_snippet=line.strip(),
+                                recommendation="Remove development bypass code before production deployment",
+                                compliance_rule="REGEL 4: Inga development bypasses i produktionskod",
+                            )
+                        )
 
     def validate_organization_filtering(self) -> None:
         """
         CRITICAL: Validate all data access is organization-filtered.
-        
+
         RULE: All user data access MUST be organization-isolated
         """
         print("🏢 Validating organization isolation...")
@@ -297,7 +293,7 @@ class MultiTenantSecurityValidator:
         auth_functions = [
             "get_user_organization",
             "get_current_active_user",
-            "get_organization_context"
+            "get_organization_context",
         ]
 
         for py_file in (self.src_path / "gastropartner" / "api").rglob("*.py"):
@@ -307,19 +303,21 @@ class MultiTenantSecurityValidator:
             content = py_file.read_text()
 
             # Check if file defines API endpoints but doesn't use auth
-            if '@router.' in content:
+            if "@router." in content:
                 has_auth_import = any(func in content for func in auth_functions)
                 if not has_auth_import:
-                    self.issues.append(SecurityIssue(
-                        severity=SeverityLevel.HIGH,
-                        title="API module missing authentication imports",
-                        description="API module defines endpoints but doesn't import authentication functions",
-                        file_path=str(py_file.relative_to(self.project_root)),
-                        line_number=1,
-                        code_snippet="",
-                        recommendation="Import and use get_current_active_user and get_user_organization",
-                        compliance_rule="REGEL 1: Alla API moduler MÅSTE använda autentisering"
-                    ))
+                    self.issues.append(
+                        SecurityIssue(
+                            severity=SeverityLevel.HIGH,
+                            title="API module missing authentication imports",
+                            description="API module defines endpoints but doesn't import authentication functions",
+                            file_path=str(py_file.relative_to(self.project_root)),
+                            line_number=1,
+                            code_snippet="",
+                            recommendation="Import and use get_current_active_user and get_user_organization",
+                            compliance_rule="REGEL 1: Alla API moduler MÅSTE använda autentisering",
+                        )
+                    )
 
     def report_results(self) -> bool:
         """Generate comprehensive security validation report."""
@@ -351,7 +349,12 @@ class MultiTenantSecurityValidator:
         print(f"🟢 LOW: {len(issues_by_severity.get(SeverityLevel.LOW, []))}")
 
         # Report each issue
-        for severity in [SeverityLevel.CRITICAL, SeverityLevel.HIGH, SeverityLevel.MEDIUM, SeverityLevel.LOW]:
+        for severity in [
+            SeverityLevel.CRITICAL,
+            SeverityLevel.HIGH,
+            SeverityLevel.MEDIUM,
+            SeverityLevel.LOW,
+        ]:
             if severity in issues_by_severity:
                 print(f"\n{severity.value} ISSUES:")
                 print("-" * 50)
@@ -368,7 +371,9 @@ class MultiTenantSecurityValidator:
         # Deployment recommendation
         print("\n" + "=" * 70)
         if critical_count > 0:
-            print("🚨 DEPLOYMENT BLOCKED! Critical security issues must be fixed before production deployment.")
+            print(
+                "🚨 DEPLOYMENT BLOCKED! Critical security issues must be fixed before production deployment."
+            )
             print("❌ DO NOT DEPLOY TO PRODUCTION until all CRITICAL issues are resolved.")
         elif high_count > 0:
             print("⚠️ DEPLOYMENT NOT RECOMMENDED! High-priority security issues should be fixed.")
@@ -395,38 +400,32 @@ Exempel på användning:
   python security_validation_tool.py --check-auth
 
 🚨 VIKTIGT: Kör detta verktyg innan VARJE deployment till produktion!
-        """
+        """,
     )
 
     parser.add_argument(
-        "--check-all",
-        action="store_true",
-        help="Kör alla säkerhetskontroller (rekommenderat)"
+        "--check-all", action="store_true", help="Kör alla säkerhetskontroller (rekommenderat)"
     )
 
     parser.add_argument(
         "--check-queries",
         action="store_true",
-        help="Kontrollera databas queries för organization_id filtering"
+        help="Kontrollera databas queries för organization_id filtering",
     )
 
     parser.add_argument(
-        "--check-auth",
-        action="store_true",
-        help="Kontrollera API endpoint autentisering"
+        "--check-auth", action="store_true", help="Kontrollera API endpoint autentisering"
     )
 
     parser.add_argument(
-        "--check-dev-bypasses",
-        action="store_true",
-        help="Kontrollera development bypasses"
+        "--check-dev-bypasses", action="store_true", help="Kontrollera development bypasses"
     )
 
     parser.add_argument(
         "--project-root",
         type=Path,
         default=Path.cwd(),
-        help="Projekt root directory (default: current directory)"
+        help="Projekt root directory (default: current directory)",
     )
 
     args = parser.parse_args()

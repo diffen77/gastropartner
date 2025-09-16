@@ -107,14 +107,14 @@ const UpgradePrompt: React.FC<UpgradePromptProps> = ({ usage, onUpgrade, compact
           <Zap className="w-6 h-6 text-white" />
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Recepthantering - FREE Plan
+          Recepthantering
         </h2>
         <p className="text-gray-600">
           Du använder för närvarande den kostnadsfria planen för recepthantering. Spåra din användning och uppgradera när du behöver mer kapacitet.
         </p>
         <div className="mt-3 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
           <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-          Nuvarande plan: FREE
+          Aktiv plan
         </div>
       </div>
 
@@ -191,7 +191,7 @@ const UpgradePrompt: React.FC<UpgradePromptProps> = ({ usage, onUpgrade, compact
         <div className="inline-flex items-center justify-center space-x-2 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
           <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
           <span className="text-sm font-medium text-blue-900">
-            Nuvarande plan: <span className="font-bold">FREE (Kostnadsfri)</span>
+            Nuvarande plan: <span className="font-bold">Kostnadsfri</span>
           </span>
         </div>
         <p className="mt-2 text-sm text-gray-600">

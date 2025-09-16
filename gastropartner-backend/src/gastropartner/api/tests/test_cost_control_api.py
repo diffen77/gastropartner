@@ -21,26 +21,24 @@ class TestCostControlAPI:
     @pytest.fixture
     def mock_user(self):
         """Mock authenticated user."""
-        return Mock(
-            id=uuid4(),
-            email="test@example.com",
-            full_name="Test User"
-        )
+        return Mock(id=uuid4(), email="test@example.com", full_name="Test User")
 
     @pytest.fixture
     def mock_organization_context(self):
         """Mock organization context."""
-        return {
-            "organization_id": str(uuid4()),
-            "role": "admin"
-        }
+        return {"organization_id": str(uuid4()), "role": "admin"}
 
-    @patch('gastropartner.api.cost_control.get_current_user')
-    @patch('gastropartner.api.cost_control.get_organization_context')
-    @patch('gastropartner.api.cost_control.get_cost_control_service')
+    @patch("gastropartner.api.cost_control.get_current_user")
+    @patch("gastropartner.api.cost_control.get_organization_context")
+    @patch("gastropartner.api.cost_control.get_cost_control_service")
     async def test_get_cost_analysis(
-        self, mock_service, mock_org_context, mock_user_dep, client,
-        mock_user, mock_organization_context
+        self,
+        mock_service,
+        mock_org_context,
+        mock_user_dep,
+        client,
+        mock_user,
+        mock_organization_context,
     ):
         """Test cost analysis endpoint."""
         # Setup mocks
@@ -53,23 +51,20 @@ class TestCostControlAPI:
             "ingredient_analysis": {
                 "total_ingredients": 10,
                 "total_cost": 500.0,
-                "average_cost_per_ingredient": 50.0
+                "average_cost_per_ingredient": 50.0,
             },
             "recipe_analysis": {
                 "total_recipes": 5,
                 "total_cost": 250.0,
-                "average_cost_per_recipe": 50.0
+                "average_cost_per_recipe": 50.0,
             },
             "menu_analysis": {
                 "total_menu_items": 3,
                 "total_potential_revenue": 900.0,
                 "total_food_cost": 300.0,
-                "average_margin": 200.0
+                "average_margin": 200.0,
             },
-            "cost_efficiency": {
-                "food_cost_percentage": 33.3,
-                "margin_percentage": 66.7
-            }
+            "cost_efficiency": {"food_cost_percentage": 33.3, "margin_percentage": 66.7},
         }
         mock_service.return_value = mock_cost_service
 
@@ -89,12 +84,17 @@ class TestCostControlAPI:
         assert data["ingredient_analysis"]["total_ingredients"] == 10
         assert data["cost_efficiency"]["food_cost_percentage"] == 33.3
 
-    @patch('gastropartner.api.cost_control.get_current_user')
-    @patch('gastropartner.api.cost_control.get_organization_context')
-    @patch('gastropartner.api.cost_control.get_cost_control_service')
+    @patch("gastropartner.api.cost_control.get_current_user")
+    @patch("gastropartner.api.cost_control.get_organization_context")
+    @patch("gastropartner.api.cost_control.get_cost_control_service")
     async def test_create_budget(
-        self, mock_service, mock_org_context, mock_user_dep, client,
-        mock_user, mock_organization_context
+        self,
+        mock_service,
+        mock_org_context,
+        mock_user_dep,
+        client,
+        mock_user,
+        mock_organization_context,
     ):
         """Test budget creation endpoint."""
         # Setup mocks
@@ -108,7 +108,7 @@ class TestCostControlAPI:
             "name": "Monthly Food Budget",
             "category": "ingredients",
             "budget_amount": 5000.0,
-            "period": "monthly"
+            "period": "monthly",
         }
         mock_service.return_value = mock_cost_service
 
@@ -119,7 +119,7 @@ class TestCostControlAPI:
             "budget_amount": 5000.0,
             "period": "monthly",
             "start_date": "2023-01-01T00:00:00",
-            "end_date": "2023-01-31T23:59:59"
+            "end_date": "2023-01-31T23:59:59",
         }
 
         # Make request
@@ -133,12 +133,17 @@ class TestCostControlAPI:
         assert data["category"] == "ingredients"
         assert data["budget_amount"] == 5000.0
 
-    @patch('gastropartner.api.cost_control.get_current_user')
-    @patch('gastropartner.api.cost_control.get_organization_context')
-    @patch('gastropartner.api.cost_control.get_cost_control_service')
+    @patch("gastropartner.api.cost_control.get_current_user")
+    @patch("gastropartner.api.cost_control.get_organization_context")
+    @patch("gastropartner.api.cost_control.get_cost_control_service")
     async def test_get_cost_forecast(
-        self, mock_service, mock_org_context, mock_user_dep, client,
-        mock_user, mock_organization_context
+        self,
+        mock_service,
+        mock_org_context,
+        mock_user_dep,
+        client,
+        mock_user,
+        mock_organization_context,
     ):
         """Test cost forecast endpoint."""
         from decimal import Decimal
@@ -155,7 +160,7 @@ class TestCostControlAPI:
             predicted_total_cost=Decimal("1200.00"),
             confidence_level=85.0,
             factors=["Historical trends", "Seasonal patterns"],
-            recommendations=["Negotiate with suppliers", "Optimize portions"]
+            recommendations=["Negotiate with suppliers", "Optimize portions"],
         )
         mock_service.return_value = mock_cost_service
 
@@ -172,12 +177,17 @@ class TestCostControlAPI:
         assert len(data["factors"]) == 2
         assert len(data["recommendations"]) == 2
 
-    @patch('gastropartner.api.cost_control.get_current_user')
-    @patch('gastropartner.api.cost_control.get_organization_context')
-    @patch('gastropartner.api.cost_control.get_cost_control_service')
+    @patch("gastropartner.api.cost_control.get_current_user")
+    @patch("gastropartner.api.cost_control.get_organization_context")
+    @patch("gastropartner.api.cost_control.get_cost_control_service")
     async def test_get_cost_alerts(
-        self, mock_service, mock_org_context, mock_user_dep, client,
-        mock_user, mock_organization_context
+        self,
+        mock_service,
+        mock_org_context,
+        mock_user_dep,
+        client,
+        mock_user,
+        mock_organization_context,
     ):
         """Test cost alerts endpoint."""
         # Setup mocks
@@ -192,7 +202,7 @@ class TestCostControlAPI:
                 "severity": "high",
                 "message": "Food cost percentage is 42.0% - exceeds recommended 35%",
                 "recommendation": "Review ingredient costs and menu pricing",
-                "triggered_at": datetime.now().isoformat()
+                "triggered_at": datetime.now().isoformat(),
             }
         ]
         mock_service.return_value = mock_cost_service
@@ -210,12 +220,17 @@ class TestCostControlAPI:
         assert alert["severity"] == "high"
         assert "42.0%" in alert["message"]
 
-    @patch('gastropartner.api.cost_control.get_current_user')
-    @patch('gastropartner.api.cost_control.get_organization_context')
-    @patch('gastropartner.api.cost_control.get_cost_control_service')
+    @patch("gastropartner.api.cost_control.get_current_user")
+    @patch("gastropartner.api.cost_control.get_organization_context")
+    @patch("gastropartner.api.cost_control.get_cost_control_service")
     async def test_get_cost_optimization(
-        self, mock_service, mock_org_context, mock_user_dep, client,
-        mock_user, mock_organization_context
+        self,
+        mock_service,
+        mock_org_context,
+        mock_user_dep,
+        client,
+        mock_user,
+        mock_organization_context,
     ):
         """Test cost optimization endpoint."""
         # Setup mocks
@@ -230,25 +245,25 @@ class TestCostControlAPI:
                     "type": "ingredient_substitution",
                     "target": "Premium Beef",
                     "suggestion": "Consider substituting high-cost ingredient ($45.00/unit)",
-                    "potential_saving": 200.0
+                    "potential_saving": 200.0,
                 },
                 {
                     "type": "price_optimization",
                     "target": "Gourmet Burger",
                     "suggestion": "Consider increasing price by $12.00",
                     "current_food_cost_pct": 38.0,
-                    "potential_saving": 120.0
-                }
+                    "potential_saving": 120.0,
+                },
             ],
             "priority_actions": [
                 {
                     "type": "ingredient_substitution",
                     "target": "Premium Beef",
                     "suggestion": "Consider substituting high-cost ingredient ($45.00/unit)",
-                    "potential_saving": 200.0
+                    "potential_saving": 200.0,
                 }
             ],
-            "analysis_date": datetime.now().isoformat()
+            "analysis_date": datetime.now().isoformat(),
         }
         mock_service.return_value = mock_cost_service
 
@@ -264,16 +279,23 @@ class TestCostControlAPI:
         assert len(data["priority_actions"]) == 1
 
         # Check optimization details
-        ingredient_opt = next(o for o in data["optimizations"] if o["type"] == "ingredient_substitution")
+        ingredient_opt = next(
+            o for o in data["optimizations"] if o["type"] == "ingredient_substitution"
+        )
         assert ingredient_opt["target"] == "Premium Beef"
         assert ingredient_opt["potential_saving"] == 200.0
 
-    @patch('gastropartner.api.cost_control.get_current_user')
-    @patch('gastropartner.api.cost_control.get_organization_context')
-    @patch('gastropartner.api.cost_control.get_cost_control_service')
+    @patch("gastropartner.api.cost_control.get_current_user")
+    @patch("gastropartner.api.cost_control.get_organization_context")
+    @patch("gastropartner.api.cost_control.get_cost_control_service")
     async def test_get_cost_dashboard(
-        self, mock_service, mock_org_context, mock_user_dep, client,
-        mock_user, mock_organization_context
+        self,
+        mock_service,
+        mock_org_context,
+        mock_user_dep,
+        client,
+        mock_user,
+        mock_organization_context,
     ):
         """Test cost dashboard endpoint."""
         from decimal import Decimal
@@ -288,15 +310,23 @@ class TestCostControlAPI:
 
         # Mock all required service methods
         mock_cost_service.calculate_comprehensive_costs.return_value = {
-            "ingredient_analysis": {"total_ingredients": 15, "total_cost": 750.0, "average_cost_per_ingredient": 50.0},
-            "recipe_analysis": {"total_recipes": 8, "total_cost": 400.0, "average_cost_per_recipe": 50.0},
+            "ingredient_analysis": {
+                "total_ingredients": 15,
+                "total_cost": 750.0,
+                "average_cost_per_ingredient": 50.0,
+            },
+            "recipe_analysis": {
+                "total_recipes": 8,
+                "total_cost": 400.0,
+                "average_cost_per_recipe": 50.0,
+            },
             "menu_analysis": {
                 "total_menu_items": 5,
                 "total_potential_revenue": 1500.0,
                 "total_food_cost": 450.0,
-                "average_margin": 210.0
+                "average_margin": 210.0,
             },
-            "cost_efficiency": {"food_cost_percentage": 30.0, "margin_percentage": 70.0}
+            "cost_efficiency": {"food_cost_percentage": 30.0, "margin_percentage": 70.0},
         }
 
         mock_cost_service.generate_cost_forecast.return_value = CostForecast(
@@ -304,7 +334,7 @@ class TestCostControlAPI:
             predicted_total_cost=Decimal("1300.00"),
             confidence_level=80.0,
             factors=["Seasonal trends", "Historical data"],
-            recommendations=["Monitor supplier prices", "Consider menu adjustments"]
+            recommendations=["Monitor supplier prices", "Consider menu adjustments"],
         )
 
         mock_cost_service.check_cost_alerts.return_value = [
@@ -314,18 +344,28 @@ class TestCostControlAPI:
                 "severity": "medium",
                 "message": "Ingredient costs increased 15% this week",
                 "recommendation": "Review supplier contracts",
-                "triggered_at": datetime.now().isoformat()
+                "triggered_at": datetime.now().isoformat(),
             }
         ]
 
         mock_cost_service.optimize_costs.return_value = {
             "total_potential_savings": 320.0,
             "optimizations": [
-                {"type": "price_optimization", "target": "Signature Dish", "suggestion": "Increase price by $8", "potential_saving": 80.0}
+                {
+                    "type": "price_optimization",
+                    "target": "Signature Dish",
+                    "suggestion": "Increase price by $8",
+                    "potential_saving": 80.0,
+                }
             ],
             "priority_actions": [
-                {"type": "price_optimization", "target": "Signature Dish", "suggestion": "Increase price by $8", "potential_saving": 80.0}
-            ]
+                {
+                    "type": "price_optimization",
+                    "target": "Signature Dish",
+                    "suggestion": "Increase price by $8",
+                    "potential_saving": 80.0,
+                }
+            ],
         }
 
         mock_service.return_value = mock_cost_service
@@ -355,12 +395,17 @@ class TestCostControlAPI:
         assert summary["food_cost_percentage"] == 30.0
         assert summary["margin_percentage"] == 70.0
 
-    @patch('gastropartner.api.cost_control.get_current_user')
-    @patch('gastropartner.api.cost_control.get_organization_context')
-    @patch('gastropartner.api.cost_control.get_cost_control_service')
+    @patch("gastropartner.api.cost_control.get_current_user")
+    @patch("gastropartner.api.cost_control.get_organization_context")
+    @patch("gastropartner.api.cost_control.get_cost_control_service")
     async def test_get_cost_metrics(
-        self, mock_service, mock_org_context, mock_user_dep, client,
-        mock_user, mock_organization_context
+        self,
+        mock_service,
+        mock_org_context,
+        mock_user_dep,
+        client,
+        mock_user,
+        mock_organization_context,
     ):
         """Test cost metrics endpoint."""
         # Setup mocks
@@ -373,16 +418,19 @@ class TestCostControlAPI:
         current_analysis = {
             "cost_efficiency": {"food_cost_percentage": 32.0, "margin_percentage": 68.0},
             "ingredient_analysis": {"average_cost_per_ingredient": 18.5},
-            "menu_analysis": {"total_food_cost": 850.0, "total_potential_revenue": 2500.0}
+            "menu_analysis": {"total_food_cost": 850.0, "total_potential_revenue": 2500.0},
         }
 
         previous_analysis = {
             "cost_efficiency": {"food_cost_percentage": 35.0, "margin_percentage": 65.0},
             "ingredient_analysis": {"average_cost_per_ingredient": 20.0},
-            "menu_analysis": {"total_food_cost": 900.0, "total_potential_revenue": 2400.0}
+            "menu_analysis": {"total_food_cost": 900.0, "total_potential_revenue": 2400.0},
         }
 
-        mock_cost_service.calculate_comprehensive_costs.side_effect = [current_analysis, previous_analysis]
+        mock_cost_service.calculate_comprehensive_costs.side_effect = [
+            current_analysis,
+            previous_analysis,
+        ]
         mock_service.return_value = mock_cost_service
 
         # Make request
@@ -410,9 +458,10 @@ class TestCostControlAPI:
 
     async def test_invalid_budget_creation(self, client, mock_user, mock_organization_context):
         """Test budget creation with missing fields."""
-        with patch('gastropartner.api.cost_control.get_current_user') as mock_user_dep, \
-             patch('gastropartner.api.cost_control.get_organization_context') as mock_org_context:
-
+        with (
+            patch("gastropartner.api.cost_control.get_current_user") as mock_user_dep,
+            patch("gastropartner.api.cost_control.get_organization_context") as mock_org_context,
+        ):
             mock_user_dep.return_value = mock_user
             mock_org_context.return_value = mock_organization_context
 
@@ -429,9 +478,10 @@ class TestCostControlAPI:
 
     async def test_invalid_forecast_period(self, client, mock_user, mock_organization_context):
         """Test forecast with invalid period."""
-        with patch('gastropartner.api.cost_control.get_current_user') as mock_user_dep, \
-             patch('gastropartner.api.cost_control.get_organization_context') as mock_org_context:
-
+        with (
+            patch("gastropartner.api.cost_control.get_current_user") as mock_user_dep,
+            patch("gastropartner.api.cost_control.get_organization_context") as mock_org_context,
+        ):
             mock_user_dep.return_value = mock_user
             mock_org_context.return_value = mock_organization_context
 

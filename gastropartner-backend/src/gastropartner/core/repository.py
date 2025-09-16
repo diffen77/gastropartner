@@ -52,7 +52,7 @@ class BaseRepository(ABC, Generic[ModelType, CreateType, UpdateType]):
             if not response.data:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Failed to create {self.table_name[:-1]}"
+                    detail=f"Failed to create {self.table_name[:-1]}",
                 )
 
             return self._to_model(response.data[0])
@@ -61,8 +61,7 @@ class BaseRepository(ABC, Generic[ModelType, CreateType, UpdateType]):
             raise
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Database error: {e!s}"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {e!s}"
             ) from e
 
     async def get_by_id(
@@ -72,14 +71,18 @@ class BaseRepository(ABC, Generic[ModelType, CreateType, UpdateType]):
     ) -> ModelType:
         """Get record by ID with tenant isolation."""
         try:
-            response = self.supabase.table(self.table_name).select("*").eq(
-                self.primary_key, str(record_id)
-            ).eq("organization_id", str(organization_id)).execute()
+            response = (
+                self.supabase.table(self.table_name)
+                .select("*")
+                .eq(self.primary_key, str(record_id))
+                .eq("organization_id", str(organization_id))
+                .execute()
+            )
 
             if not response.data:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"{self.table_name[:-1].title()} not found"
+                    detail=f"{self.table_name[:-1].title()} not found",
                 )
 
             return self._to_model(response.data[0])
@@ -88,8 +91,7 @@ class BaseRepository(ABC, Generic[ModelType, CreateType, UpdateType]):
             raise
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Database error: {e!s}"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {e!s}"
             ) from e
 
     async def list(
@@ -102,8 +104,10 @@ class BaseRepository(ABC, Generic[ModelType, CreateType, UpdateType]):
     ) -> list[ModelType]:
         """List records with tenant isolation."""
         try:
-            query = self.supabase.table(self.table_name).select("*").eq(
-                "organization_id", str(organization_id)
+            query = (
+                self.supabase.table(self.table_name)
+                .select("*")
+                .eq("organization_id", str(organization_id))
             )
 
             if filters:
@@ -121,8 +125,7 @@ class BaseRepository(ABC, Generic[ModelType, CreateType, UpdateType]):
 
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Database error: {e!s}"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {e!s}"
             ) from e
 
     async def update(
@@ -143,14 +146,18 @@ class BaseRepository(ABC, Generic[ModelType, CreateType, UpdateType]):
         update_data["updated_at"] = "now()"
 
         try:
-            response = self.supabase.table(self.table_name).update(update_data).eq(
-                self.primary_key, str(record_id)
-            ).eq("organization_id", str(organization_id)).execute()
+            response = (
+                self.supabase.table(self.table_name)
+                .update(update_data)
+                .eq(self.primary_key, str(record_id))
+                .eq("organization_id", str(organization_id))
+                .execute()
+            )
 
             if not response.data:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Failed to update {self.table_name[:-1]}"
+                    detail=f"Failed to update {self.table_name[:-1]}",
                 )
 
             return self._to_model(response.data[0])
@@ -159,8 +166,7 @@ class BaseRepository(ABC, Generic[ModelType, CreateType, UpdateType]):
             raise
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Database error: {e!s}"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {e!s}"
             ) from e
 
     async def delete(
@@ -176,24 +182,28 @@ class BaseRepository(ABC, Generic[ModelType, CreateType, UpdateType]):
         try:
             if soft_delete:
                 # Soft delete by setting is_active = false
-                response = self.supabase.table(self.table_name).update({
-                    "is_active": False,
-                    "updated_at": "now()"
-                }).eq(self.primary_key, str(record_id)).eq(
-                    "organization_id", str(organization_id)
-                ).execute()
+                response = (
+                    self.supabase.table(self.table_name)
+                    .update({"is_active": False, "updated_at": "now()"})
+                    .eq(self.primary_key, str(record_id))
+                    .eq("organization_id", str(organization_id))
+                    .execute()
+                )
             else:
                 # Hard delete
-                response = self.supabase.table(self.table_name).delete().eq(
-                    self.primary_key, str(record_id)
-                ).eq("organization_id", str(organization_id)).execute()
+                response = (
+                    self.supabase.table(self.table_name)
+                    .delete()
+                    .eq(self.primary_key, str(record_id))
+                    .eq("organization_id", str(organization_id))
+                    .execute()
+                )
 
             return response.data is not None
 
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Database error: {e!s}"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {e!s}"
             ) from e
 
     async def count(
@@ -203,9 +213,11 @@ class BaseRepository(ABC, Generic[ModelType, CreateType, UpdateType]):
     ) -> int:
         """Count records with tenant isolation."""
         try:
-            query = self.supabase.table(self.table_name).select(
-                self.primary_key, count="exact"
-            ).eq("organization_id", str(organization_id))
+            query = (
+                self.supabase.table(self.table_name)
+                .select(self.primary_key, count="exact")
+                .eq("organization_id", str(organization_id))
+            )
 
             if filters:
                 for key, value in filters.items():
@@ -217,8 +229,7 @@ class BaseRepository(ABC, Generic[ModelType, CreateType, UpdateType]):
 
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Database error: {e!s}"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {e!s}"
             ) from e
 
 
@@ -227,6 +238,7 @@ class IngredientRepository(BaseRepository[Any, Any, Any]):
 
     def __init__(self, supabase: Client):
         from gastropartner.core.models import Ingredient
+
         super().__init__(
             supabase=supabase,
             table_name="ingredients",
@@ -237,22 +249,24 @@ class IngredientRepository(BaseRepository[Any, Any, Any]):
     async def get_categories(self, organization_id: UUID) -> list[str]:
         """Get all ingredient categories for organization."""
         try:
-            response = self.supabase.table("ingredients").select("category").eq(
-                "organization_id", str(organization_id)
-            ).eq("is_active", True).execute()
+            response = (
+                self.supabase.table("ingredients")
+                .select("category")
+                .eq("organization_id", str(organization_id))
+                .eq("is_active", True)
+                .execute()
+            )
 
             # Extract unique categories, filter out nulls
-            categories = list(set(
-                item["category"] for item in response.data
-                if item["category"] is not None
-            ))
+            categories = list(
+                {item["category"] for item in response.data if item["category"] is not None}
+            )
 
             return sorted(categories)
 
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Database error: {e!s}"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {e!s}"
             ) from e
 
 
@@ -261,6 +275,7 @@ class RecipeRepository(BaseRepository[Any, Any, Any]):
 
     def __init__(self, supabase: Client):
         from gastropartner.core.models import Recipe
+
         super().__init__(
             supabase=supabase,
             table_name="recipes",
@@ -276,20 +291,23 @@ class RecipeRepository(BaseRepository[Any, Any, Any]):
         """Get recipe with its ingredients."""
         try:
             # Get recipe with ingredients via join
-            response = self.supabase.table("recipes").select("""
+            response = (
+                self.supabase.table("recipes")
+                .select("""
                 *,
                 recipe_ingredients (
                     *,
                     ingredients (*)
                 )
-            """).eq("recipe_id", str(recipe_id)).eq(
-                "organization_id", str(organization_id)
-            ).execute()
+            """)
+                .eq("recipe_id", str(recipe_id))
+                .eq("organization_id", str(organization_id))
+                .execute()
+            )
 
             if not response.data:
                 raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Recipe not found"
+                    status_code=status.HTTP_404_NOT_FOUND, detail="Recipe not found"
                 )
 
             return response.data[0]
@@ -298,8 +316,7 @@ class RecipeRepository(BaseRepository[Any, Any, Any]):
             raise
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Database error: {e!s}"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {e!s}"
             ) from e
 
 
@@ -308,6 +325,7 @@ class MenuItemRepository(BaseRepository[Any, Any, Any]):
 
     def __init__(self, supabase: Client):
         from gastropartner.core.models import MenuItem
+
         super().__init__(
             supabase=supabase,
             table_name="menu_items",
@@ -322,7 +340,9 @@ class MenuItemRepository(BaseRepository[Any, Any, Any]):
     ) -> Any:
         """Get menu item with its recipe."""
         try:
-            response = self.supabase.table("menu_items").select("""
+            response = (
+                self.supabase.table("menu_items")
+                .select("""
                 *,
                 recipes (
                     *,
@@ -331,14 +351,15 @@ class MenuItemRepository(BaseRepository[Any, Any, Any]):
                         ingredients (*)
                     )
                 )
-            """).eq("menu_item_id", str(menu_item_id)).eq(
-                "organization_id", str(organization_id)
-            ).execute()
+            """)
+                .eq("menu_item_id", str(menu_item_id))
+                .eq("organization_id", str(organization_id))
+                .execute()
+            )
 
             if not response.data:
                 raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Menu item not found"
+                    status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found"
                 )
 
             return response.data[0]
@@ -347,8 +368,7 @@ class MenuItemRepository(BaseRepository[Any, Any, Any]):
             raise
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Database error: {e!s}"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {e!s}"
             ) from e
 
 
@@ -361,27 +381,30 @@ class OrganizationRepository:
     async def get_by_id(self, organization_id: UUID, user_id: UUID) -> Any:
         """Get organization by ID if user has access."""
         try:
-            response = self.supabase.table("organizations").select("*").eq(
-                "organization_id", str(organization_id)
-            ).execute()
+            response = (
+                self.supabase.table("organizations")
+                .select("*")
+                .eq("organization_id", str(organization_id))
+                .execute()
+            )
 
             if not response.data:
                 raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Organization not found"
+                    status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found"
                 )
 
             # Verify user has access to this organization
-            access_response = self.supabase.table("organization_users").select(
-                "role"
-            ).eq("organization_id", str(organization_id)).eq(
-                "user_id", str(user_id)
-            ).execute()
+            access_response = (
+                self.supabase.table("organization_users")
+                .select("role")
+                .eq("organization_id", str(organization_id))
+                .eq("user_id", str(user_id))
+                .execute()
+            )
 
             if not access_response.data:
                 raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Access denied to organization"
+                    status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to organization"
                 )
 
             return response.data[0]
@@ -390,25 +413,28 @@ class OrganizationRepository:
             raise
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Database error: {e!s}"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {e!s}"
             ) from e
 
     async def get_user_organizations(self, user_id: UUID) -> list[dict[str, Any]]:
         """Get all organizations for a user."""
         try:
-            response = self.supabase.table("organization_users").select("""
+            response = (
+                self.supabase.table("organization_users")
+                .select("""
                 role,
                 joined_at,
                 organizations (*)
-            """).eq("user_id", str(user_id)).execute()
+            """)
+                .eq("user_id", str(user_id))
+                .execute()
+            )
 
             return response.data
 
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Database error: {e!s}"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {e!s}"
             ) from e
 
 
@@ -417,6 +443,7 @@ class FeatureFlagsRepository(BaseRepository[Any, Any, Any]):
 
     def __init__(self, supabase: Client):
         from gastropartner.core.models import FeatureFlags
+
         super().__init__(
             supabase=supabase,
             table_name="feature_flags",
@@ -428,9 +455,12 @@ class FeatureFlagsRepository(BaseRepository[Any, Any, Any]):
         """Get feature flags for agency, creating default if not exists."""
         try:
             # Try to get existing feature flags first
-            response = self.supabase.table("feature_flags").select("*").eq(
-                "organization_id", agency_id
-            ).execute()
+            response = (
+                self.supabase.table("feature_flags")
+                .select("*")
+                .eq("organization_id", agency_id)
+                .execute()
+            )
 
             if response.data and len(response.data) > 0:
                 return response.data[0]
@@ -447,13 +477,10 @@ class FeatureFlagsRepository(BaseRepository[Any, Any, Any]):
                 "enable_advanced_settings_section": False,
                 "enable_account_management_section": False,
                 "show_ingredients": True,  # Enabled by default for existing organizations
-                "show_user_testing": False,
                 "show_sales": False,
             }
 
-            create_response = self.supabase.table("feature_flags").insert(
-                default_flags
-            ).execute()
+            create_response = self.supabase.table("feature_flags").insert(default_flags).execute()
 
             return create_response.data[0]
 
@@ -464,18 +491,22 @@ class FeatureFlagsRepository(BaseRepository[Any, Any, Any]):
                 # RLS policy violation - likely trying to INSERT when record already exists
                 # Try one more time to SELECT the existing record
                 try:
-                    retry_response = self.supabase.table("feature_flags").select("*").eq(
-                        "organization_id", agency_id
-                    ).execute()
-                    
+                    retry_response = (
+                        self.supabase.table("feature_flags")
+                        .select("*")
+                        .eq("organization_id", agency_id)
+                        .execute()
+                    )
+
                     if retry_response.data and len(retry_response.data) > 0:
                         return retry_response.data[0]
-                except:
+                except Exception:
                     pass
-                
+
                 # If still no data, return sensible defaults to prevent service interruption
                 # Create a fake model object that behaves like database result
                 from types import SimpleNamespace
+
                 return SimpleNamespace(
                     organization_id=agency_id,
                     creator_id=creator_id,
@@ -487,28 +518,29 @@ class FeatureFlagsRepository(BaseRepository[Any, Any, Any]):
                     enable_advanced_settings_section=False,
                     enable_account_management_section=False,
                 )
-            
+
             # Re-raise other exceptions
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Database error: {e!s}"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {e!s}"
             ) from e
 
     async def update_for_agency(self, agency_id: str, updates: dict[str, Any]) -> Any:
         """Update feature flags for agency."""
         try:
             # Ensure feature flags exist first
-            await self.get_or_create_for_agency(agency_id)
+            await self.get_or_create_for_agency(agency_id, "superadmin")
 
             # Update the flags
-            response = self.supabase.table("feature_flags").update(
-                updates
-            ).eq("organization_id", agency_id).execute()
+            response = (
+                self.supabase.table("feature_flags")
+                .update(updates)
+                .eq("organization_id", agency_id)
+                .execute()
+            )
 
             if not response.data:
                 raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Feature flags not found"
+                    status_code=status.HTTP_404_NOT_FOUND, detail="Feature flags not found"
                 )
 
             return response.data[0]
@@ -517,6 +549,357 @@ class FeatureFlagsRepository(BaseRepository[Any, Any, Any]):
             raise
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Database error: {e!s}"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {e!s}"
             ) from e
+
+
+class SaleRepository(BaseRepository[Any, Any, Any]):
+    """Repository for sales with multi-tenant security."""
+
+    def __init__(self, supabase: Client):
+        from gastropartner.core.models import Sale
+
+        super().__init__(
+            supabase=supabase,
+            table_name="sales",
+            model_class=Sale,
+            primary_key="sale_id",
+        )
+
+    async def get_with_items(
+        self,
+        sale_id: UUID,
+        organization_id: UUID,
+    ) -> Any:
+        """Get sale with its sale items."""
+        try:
+            response = (
+                self.supabase.table("sales")
+                .select("""
+                *,
+                sale_items (*)
+            """)
+                .eq("sale_id", str(sale_id))
+                .eq("organization_id", str(organization_id))
+                .execute()
+            )
+
+            if not response.data:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sale not found")
+
+            return response.data[0]
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {e!s}"
+            ) from e
+
+    async def get_sales_by_date_range(
+        self,
+        organization_id: UUID,
+        start_date: str,
+        end_date: str,
+    ) -> list[Any]:
+        """Get sales within a date range for reporting."""
+        try:
+            response = (
+                self.supabase.table("sales")
+                .select("""
+                *,
+                sale_items (*)
+            """)
+                .eq("organization_id", str(organization_id))
+                .gte("sale_date", start_date)
+                .lte("sale_date", end_date)
+                .order("sale_date", desc=True)
+                .execute()
+            )
+
+            return [self._to_model(item) for item in response.data]
+
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {e!s}"
+            ) from e
+
+    async def get_sales_summary(
+        self,
+        organization_id: UUID,
+        start_date: str | None = None,
+        end_date: str | None = None,
+    ) -> dict[str, Any]:
+        """Get sales summary statistics for organization."""
+        try:
+            query = (
+                self.supabase.table("sales")
+                .select("total_amount, sale_date")
+                .eq("organization_id", str(organization_id))
+            )
+
+            if start_date:
+                query = query.gte("sale_date", start_date)
+            if end_date:
+                query = query.lte("sale_date", end_date)
+
+            response = query.execute()
+
+            if not response.data:
+                return {
+                    "total_sales": 0,
+                    "total_amount": 0.0,
+                    "average_sale": 0.0,
+                }
+
+            sales = response.data
+            total_sales = len(sales)
+            total_amount = sum(float(sale["total_amount"]) for sale in sales)
+            average_sale = total_amount / total_sales if total_sales > 0 else 0.0
+
+            return {
+                "total_sales": total_sales,
+                "total_amount": total_amount,
+                "average_sale": average_sale,
+            }
+
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {e!s}"
+            ) from e
+
+
+class SaleItemRepository:
+    """Repository for sale items (secured through parent sale)."""
+
+    def __init__(self, supabase: Client):
+        self.supabase = supabase
+
+    async def create_for_sale(
+        self,
+        sale_id: UUID,
+        item_data: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Create sale item for a sale."""
+        try:
+            create_data = {
+                "sale_id": str(sale_id),
+                **item_data,
+            }
+
+            response = self.supabase.table("sale_items").insert(create_data).execute()
+
+            if not response.data:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to create sale item",
+                )
+
+            return response.data[0]
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {e!s}"
+            ) from e
+
+    async def list_for_sale(self, sale_id: UUID) -> list[dict[str, Any]]:
+        """List all sale items for a specific sale."""
+        try:
+            response = (
+                self.supabase.table("sale_items")
+                .select("*")
+                .eq("sale_id", str(sale_id))
+                .order("created_at")
+                .execute()
+            )
+
+            return response.data or []
+
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {e!s}"
+            ) from e
+
+    async def update_item(
+        self,
+        sale_item_id: UUID,
+        update_data: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Update a sale item."""
+        try:
+            response = (
+                self.supabase.table("sale_items")
+                .update(update_data)
+                .eq("sale_item_id", str(sale_item_id))
+                .execute()
+            )
+
+            if not response.data:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Sale item not found",
+                )
+
+            return response.data[0]
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {e!s}"
+            ) from e
+
+    async def delete_item(self, sale_item_id: UUID) -> bool:
+        """Delete a sale item."""
+        try:
+            response = (
+                self.supabase.table("sale_items")
+                .delete()
+                .eq("sale_item_id", str(sale_item_id))
+                .execute()
+            )
+
+            return response.data is not None
+
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {e!s}"
+            ) from e
+
+
+class TaskRepository:
+    """Repository for task management operations."""
+
+    def __init__(self, db: Client):
+        self.db = db
+
+    async def list_tasks(self, organization_id: UUID, **filters) -> list[dict[str, Any]]:
+        """List tasks with optional filters."""
+        query = self.db.table("tasks").select("*").eq("organization_id", str(organization_id))
+
+        # Apply filters
+        if "status" in filters:
+            query = query.eq("status", filters["status"])
+        if "status_not_in" in filters:
+            query = query.not_.in_("status", filters["status_not_in"])
+        if "priority" in filters:
+            query = query.eq("priority", filters["priority"])
+        if "category" in filters:
+            query = query.eq("category", filters["category"])
+        if "assigned_to" in filters:
+            query = query.eq("assigned_to", str(filters["assigned_to"]))
+        if "due_before" in filters:
+            query = query.lt("due_date", filters["due_before"].isoformat())
+
+        # Order by created_at descending (newest first)
+        query = query.order("created_at", desc=True)
+
+        response = query.execute()
+        return response.data or []
+
+    async def get_task(self, task_id: UUID, organization_id: UUID) -> dict[str, Any] | None:
+        """Get a single task by ID and organization."""
+        response = (
+            self.db.table("tasks")
+            .select("*")
+            .eq("task_id", str(task_id))
+            .eq("organization_id", str(organization_id))
+            .execute()
+        )
+
+        return response.data[0] if response.data else None
+
+    async def create_task(
+        self, organization_id: UUID, created_by: UUID, task_data: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Create a new task."""
+        data = {
+            "organization_id": str(organization_id),
+            "created_by": str(created_by),
+            **task_data.model_dump(exclude_unset=True),
+        }
+
+        response = self.db.table("tasks").insert(data).execute()
+        return response.data[0]
+
+    async def update_task(
+        self, task_id: UUID, organization_id: UUID, update_data: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Update an existing task."""
+        response = (
+            self.db.table("tasks")
+            .update(update_data)
+            .eq("task_id", str(task_id))
+            .eq("organization_id", str(organization_id))
+            .execute()
+        )
+
+        if not response.data:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+
+        return response.data[0]
+
+    async def delete_task(self, task_id: UUID, organization_id: UUID) -> None:
+        """Delete a task."""
+        response = (
+            self.db.table("tasks")
+            .delete()
+            .eq("task_id", str(task_id))
+            .eq("organization_id", str(organization_id))
+            .execute()
+        )
+
+        if not response.data:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+
+    async def get_task_stats(self, organization_id: UUID) -> dict[str, Any]:
+        """Get task statistics for an organization."""
+        from datetime import datetime
+
+        # Get all tasks for organization
+        response = (
+            self.db.table("tasks")
+            .select("status,priority,due_date")
+            .eq("organization_id", str(organization_id))
+            .execute()
+        )
+
+        tasks = response.data or []
+        now = datetime.utcnow()
+
+        # Calculate stats
+        total = len(tasks)
+        completed = len([t for t in tasks if t["status"] == "completed"])
+        incomplete = total - completed
+        overdue = len(
+            [
+                t
+                for t in tasks
+                if t.get("due_date")
+                and datetime.fromisoformat(t["due_date"].replace("Z", "+00:00")) < now
+                and t["status"] not in ["completed", "cancelled"]
+            ]
+        )
+
+        # Count by status
+        by_status = {}
+        for task in tasks:
+            status = task["status"]
+            by_status[status] = by_status.get(status, 0) + 1
+
+        # Count by priority
+        by_priority = {}
+        for task in tasks:
+            priority = task["priority"]
+            by_priority[priority] = by_priority.get(priority, 0) + 1
+
+        return {
+            "total": total,
+            "completed": completed,
+            "incomplete": incomplete,
+            "overdue": overdue,
+            "by_status": by_status,
+            "by_priority": by_priority,
+        }

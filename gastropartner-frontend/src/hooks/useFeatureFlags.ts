@@ -10,7 +10,6 @@ export interface FeatureFlags {
   enable_advanced_settings_section: boolean;
   enable_account_management_section: boolean;
   show_ingredients: boolean;
-  show_user_testing: boolean;
   show_sales: boolean;
 }
 
@@ -19,13 +18,12 @@ export const useFeatureFlags = () => {
   const [featureFlags, setFeatureFlags] = useState<FeatureFlags>({
     show_recipe_prep_time: false,
     show_recipe_cook_time: false,
-    show_recipe_instructions: false,
+    show_recipe_instructions: true,  // Enable by default for better UX
     show_recipe_notes: false,
     enable_notifications_section: false,
     enable_advanced_settings_section: false,
     enable_account_management_section: false,
     show_ingredients: true,  // Default to true for backwards compatibility
-    show_user_testing: false,
     show_sales: false,
   });
   const [loading, setLoading] = useState(true);

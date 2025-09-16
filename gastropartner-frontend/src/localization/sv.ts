@@ -9,18 +9,15 @@ export const sv = {
   recipes: 'Recept',
   menuItems: 'Maträtter',
   costControl: 'Kostnadsanalys',
-  userTesting: 'Användartestning',
   sales: 'Försäljning',
   modules: 'Moduler',
   settings: 'Inställningar',
-  superAdmin: 'SuperAdmin',
+  systemAdmin: 'System Admin',
 
   // Planer
-  freePlan: 'GRATIS',
+  freePlan: '',
   premiumPlan: 'PREMIUM',
-  freePlanDescription: 'Kostnadsfri plan för recepthantering',
   premiumPlanDescription: 'Obegränsade funktioner och prioriterat stöd',
-  freePlanNote: 'Kostnadsfri plan - Begränsade funktioner',
   upgrade: 'Uppgradera',
 
   // Allmänna knappar och åtgärder
@@ -51,6 +48,9 @@ export const sv = {
   warning: 'Varning',
   info: 'Information',
   noResults: 'Inga resultat hittades',
+  comingSoon: 'Kommer snart...',
+  globalDefaults: 'Globala standardvärden',
+  globalDefaultsComingSoon: 'Globala standardvärden kommer snart...',
   noData: 'Ingen data tillgänglig',
 
   // Formulär
@@ -122,12 +122,6 @@ export const sv = {
   costPerServing: 'Kostnad per portion',
   servings: 'Portioner',
 
-  // Användartestning
-  userTestingDashboard: 'Översikt Användartestning',
-  successRate: 'Framgångsgrad',
-  conversionRate: 'Konverteringsgrad',
-  sessionDuration: 'Sessionslängd',
-  onboardingCompletion: 'Introduktions-fullföljande',
 
   // Kostnadsanalys
   costAnalysis: 'Kostnadsanalys',
@@ -218,6 +212,41 @@ export const sv = {
   ingredientLimitReached: 'Ingrediensgräns nådd: {current}/{limit} ingredienser använda. Uppgradera till premium för obegränsade ingredienser.',
   menuItemLimitReached: 'Maträttsgräns nådd: {current}/{limit} maträtter använda. Uppgradera till premium för obegränsade maträtter.',
   upgradeForUnlimited: 'Uppgradera till premium för obegränsade {type}.',
+
+  // Ärenden/Uppgifter (Tasks)
+  tasks: 'Ärenden',
+  newTask: 'Nytt Ärende',
+  editTask: 'Redigera Ärende',
+  deleteTask: 'Ta bort Ärende',
+  task: 'Ärende',
+  taskTitle: 'Ärendetitel',
+  taskDescription: 'Beskrivning',
+  taskStatus: 'Status',
+  taskPriority: 'Prioritet',
+  taskCategory: 'Kategori', 
+  taskTags: 'Taggar',
+  taskAssignedTo: 'Tilldelad till',
+  taskCreatedBy: 'Skapad av',
+  taskDueDate: 'Förfallodatum',
+  taskCompletedAt: 'Slutförd',
+  incompleteItems: 'Ärenden som inte är klara',
+  completedItems: 'Slutförda ärenden',
+  allTasks: 'Alla ärenden',
+  overdueTasks: 'Försenade ärenden',
+  taskStats: 'Ärendestatistik',
+
+  // Status
+  pending: 'Väntande',
+  inProgress: 'Pågående',
+  completed: 'Slutförd',
+  cancelled: 'Avbruten',
+  onHold: 'Pausad',
+
+  // Prioritet
+  low: 'Låg',
+  medium: 'Medium',
+  high: 'Hög',
+  urgent: 'Brådskande',
 } as const;
 
 // Typ för säker access till översättningar

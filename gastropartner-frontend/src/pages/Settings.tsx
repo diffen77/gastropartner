@@ -154,7 +154,7 @@ export function Settings() {
 
       try {
         setError(null);
-        const orgSettings = await api.getOrganizationSettings(currentOrganization.id);
+        const orgSettings = await api.getOrganizationSettings(currentOrganization.organization_id);
         
         // Map backend settings to frontend format
         setSettings(prev => ({
@@ -228,7 +228,7 @@ export function Settings() {
       console.log('Saving settings to backend:', backendSettings);
       
       // Save settings via API
-      await api.updateOrganizationSettings(currentOrganization.id, backendSettings);
+      await api.updateOrganizationSettings(currentOrganization.organization_id, backendSettings);
       console.log('Settings saved successfully to database!');
       
       setSuccessMessage('✅ Inställningar sparade framgångsrikt!');

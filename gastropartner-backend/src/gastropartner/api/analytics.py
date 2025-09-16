@@ -63,7 +63,7 @@ async def track_event(
 ) -> AnalyticsResponse:
     """
     Track a user analytics event.
-    
+
     This endpoint allows tracking of user interactions, feature usage,
     and conversion events for analytics purposes.
     """
@@ -84,20 +84,16 @@ async def track_event(
 
         if not success:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to track event"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to track event"
             )
 
-        return AnalyticsResponse(
-            message="Event tracked successfully",
-            data={"tracked": True}
-        )
+        return AnalyticsResponse(message="Event tracked successfully", data={"tracked": True})
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to track event: {e!s}"
-        )
+            detail=f"Failed to track event: {e!s}",
+        ) from e
 
 
 @router.post("/track/feature-usage", response_model=AnalyticsResponse)
@@ -108,7 +104,7 @@ async def track_feature_usage(
 ) -> AnalyticsResponse:
     """
     Track feature usage events.
-    
+
     This is a convenience endpoint for tracking specific feature usage.
     """
     organization_id = UUID("87654321-4321-4321-4321-210987654321")
@@ -124,12 +120,12 @@ async def track_feature_usage(
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to track feature usage"
+            detail="Failed to track feature usage",
         )
 
     return AnalyticsResponse(
         message="Feature usage tracked successfully",
-        data={"feature": request.feature, "action": request.action, "tracked": True}
+        data={"feature": request.feature, "action": request.action, "tracked": True},
     )
 
 
@@ -141,7 +137,7 @@ async def track_limit_hit(
 ) -> AnalyticsResponse:
     """
     Track when a user hits a freemium limit.
-    
+
     This helps measure conversion opportunities and optimize limits.
     """
     organization_id = UUID("87654321-4321-4321-4321-210987654321")
@@ -157,13 +153,12 @@ async def track_limit_hit(
 
     if not success:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to track limit hit"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to track limit hit"
         )
 
     return AnalyticsResponse(
         message="Limit hit tracked successfully",
-        data={"feature": request.feature, "limit_hit": True, "tracked": True}
+        data={"feature": request.feature, "limit_hit": True, "tracked": True},
     )
 
 
@@ -175,7 +170,7 @@ async def track_upgrade_prompt(
 ) -> AnalyticsResponse:
     """
     Track when upgrade prompts are shown to users.
-    
+
     This helps measure prompt effectiveness and conversion funnels.
     """
     organization_id = UUID("87654321-4321-4321-4321-210987654321")
@@ -191,12 +186,12 @@ async def track_upgrade_prompt(
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to track upgrade prompt"
+            detail="Failed to track upgrade prompt",
         )
 
     return AnalyticsResponse(
         message="Upgrade prompt tracked successfully",
-        data={"feature": request.feature, "prompt_type": request.prompt_type, "tracked": True}
+        data={"feature": request.feature, "prompt_type": request.prompt_type, "tracked": True},
     )
 
 
@@ -208,7 +203,7 @@ async def get_usage_stats(
 ) -> AnalyticsResponse:
     """
     Get feature usage statistics.
-    
+
     Returns aggregated usage data for the specified time period.
     """
     try:
@@ -216,20 +211,18 @@ async def get_usage_stats(
         organization_id = UUID("87654321-4321-4321-4321-210987654321")
 
         stats = await analytics_service.get_feature_usage_stats(
-            organization_id=organization_id,
-            days=days
+            organization_id=organization_id, days=days
         )
 
         return AnalyticsResponse(
-            message=f"Usage statistics for {days} days retrieved successfully",
-            data=stats
+            message=f"Usage statistics for {days} days retrieved successfully", data=stats
         )
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get usage stats: {e!s}"
-        )
+            detail=f"Failed to get usage stats: {e!s}",
+        ) from e
 
 
 @router.get("/conversion-metrics", response_model=AnalyticsResponse)
@@ -240,27 +233,25 @@ async def get_conversion_metrics(
 ) -> AnalyticsResponse:
     """
     Get conversion rate metrics.
-    
+
     Returns conversion rates from freemium to premium and related metrics.
     """
     try:
         organization_id = UUID("87654321-4321-4321-4321-210987654321")
 
         metrics = await analytics_service.get_conversion_metrics(
-            organization_id=organization_id,
-            days=days
+            organization_id=organization_id, days=days
         )
 
         return AnalyticsResponse(
-            message=f"Conversion metrics for {days} days retrieved successfully",
-            data=metrics
+            message=f"Conversion metrics for {days} days retrieved successfully", data=metrics
         )
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get conversion metrics: {e!s}"
-        )
+            detail=f"Failed to get conversion metrics: {e!s}",
+        ) from e
 
 
 @router.get("/optimization-data", response_model=AnalyticsResponse)
@@ -271,27 +262,25 @@ async def get_optimization_data(
 ) -> AnalyticsResponse:
     """
     Get data for optimizing freemium limits.
-    
+
     Returns suggestions for adjusting limits based on usage patterns.
     """
     try:
         organization_id = UUID("87654321-4321-4321-4321-210987654321")
 
         data = await analytics_service.get_limit_optimization_data(
-            organization_id=organization_id,
-            days=days
+            organization_id=organization_id, days=days
         )
 
         return AnalyticsResponse(
-            message=f"Optimization data for {days} days retrieved successfully",
-            data=data
+            message=f"Optimization data for {days} days retrieved successfully", data=data
         )
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get optimization data: {e!s}"
-        )
+            detail=f"Failed to get optimization data: {e!s}",
+        ) from e
 
 
 @router.get("/dashboard", response_model=AnalyticsResponse)
@@ -302,7 +291,7 @@ async def get_analytics_dashboard(
 ) -> AnalyticsResponse:
     """
     Get comprehensive analytics dashboard data.
-    
+
     Returns all analytics data needed for dashboard display including
     usage stats, conversion metrics, and optimization recommendations.
     """
@@ -310,20 +299,18 @@ async def get_analytics_dashboard(
         organization_id = UUID("87654321-4321-4321-4321-210987654321")
 
         dashboard_data = await analytics_service.get_analytics_dashboard_data(
-            organization_id=organization_id,
-            days=days
+            organization_id=organization_id, days=days
         )
 
         return AnalyticsResponse(
-            message=f"Dashboard data for {days} days retrieved successfully",
-            data=dashboard_data
+            message=f"Dashboard data for {days} days retrieved successfully", data=dashboard_data
         )
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get dashboard data: {e!s}"
-        )
+            detail=f"Failed to get dashboard data: {e!s}",
+        ) from e
 
 
 # Admin-only endpoints for system-wide analytics
@@ -335,27 +322,23 @@ async def get_system_wide_stats(
 ) -> AnalyticsResponse:
     """
     Get system-wide analytics (admin only).
-    
+
     Returns analytics across all organizations for admin users.
     Note: In production, this should have proper admin authorization.
     """
     try:
         # Get system-wide stats (no organization filter)
-        stats = await analytics_service.get_feature_usage_stats(
-            organization_id=None,
-            days=days
-        )
+        stats = await analytics_service.get_feature_usage_stats(organization_id=None, days=days)
 
         return AnalyticsResponse(
-            message=f"System-wide statistics for {days} days retrieved successfully",
-            data=stats
+            message=f"System-wide statistics for {days} days retrieved successfully", data=stats
         )
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get system-wide stats: {e!s}"
-        )
+            detail=f"Failed to get system-wide stats: {e!s}",
+        ) from e
 
 
 @router.get("/admin/system-conversion-metrics", response_model=AnalyticsResponse)
@@ -366,22 +349,19 @@ async def get_system_conversion_metrics(
 ) -> AnalyticsResponse:
     """
     Get system-wide conversion metrics (admin only).
-    
+
     Returns conversion metrics across all organizations.
     """
     try:
-        metrics = await analytics_service.get_conversion_metrics(
-            organization_id=None,
-            days=days
-        )
+        metrics = await analytics_service.get_conversion_metrics(organization_id=None, days=days)
 
         return AnalyticsResponse(
             message=f"System-wide conversion metrics for {days} days retrieved successfully",
-            data=metrics
+            data=metrics,
         )
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get system conversion metrics: {e!s}"
-        )
+            detail=f"Failed to get system conversion metrics: {e!s}",
+        ) from e

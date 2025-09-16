@@ -1,7 +1,7 @@
 import { apiClient } from './api';
 
 export type ModuleTier = 'free' | 'pro';
-export type ModuleName = 'ingredients' | 'recipes' | 'menu' | 'analytics' | 'user_testing' | 'super_admin' | 'sales' | 'advanced_analytics' | 'mobile_app' | 'integrations';
+export type ModuleName = 'ingredients' | 'recipes' | 'menu' | 'analytics' | 'sales' | 'advanced_analytics' | 'mobile_app' | 'integrations';
 
 export interface ModuleSubscription {
   id: string;
@@ -66,5 +66,42 @@ export async function deactivateModule(moduleName: ModuleName): Promise<{ succes
  */
 export async function getModuleStatus(moduleName: ModuleName): Promise<ModuleStatus> {
   const response = await apiClient.get<ModuleStatus>(`/api/v1/modules/subscriptions/${moduleName}/status`);
+  return response;
+}
+
+// NEW: Module availability interfaces and functions
+export interface ModuleAvailability {
+  organization_id: string;
+  available_modules: {
+    id: ModuleName;
+    name: string;
+    available: boolean;
+  }[];
+  total_available: number;
+  message: string;
+}
+
+export interface ModuleAvailabilityCheck {
+  module_id: ModuleName;
+  module_name: string;
+  organization_id: string;
+  available: boolean;
+  message: string;
+}
+
+/**
+ * 🔒 SECURE API: Get modules available for the current organization.
+ * Only shows modules that SuperAdmin has made available.
+ */
+export async function getAvailableModules(): Promise<ModuleAvailability> {
+  const response = await apiClient.get<ModuleAvailability>('/api/v1/modules/availability');
+  return response;
+}
+
+/**
+ * 🔒 SECURE API: Check if a specific module is available for the current organization.
+ */
+export async function checkModuleAvailability(moduleId: ModuleName): Promise<ModuleAvailabilityCheck> {
+  const response = await apiClient.get<ModuleAvailabilityCheck>(`/api/v1/modules/availability/${moduleId}`);
   return response;
 }

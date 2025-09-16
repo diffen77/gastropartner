@@ -18,7 +18,7 @@ export function useOrganizationSettings() {
 
       try {
         setError(null);
-        const orgSettings = await api.getOrganizationSettings(currentOrganization.id);
+        const orgSettings = await api.getOrganizationSettings(currentOrganization.organization_id);
         setSettings(orgSettings);
       } catch (err) {
         console.warn('Could not load organization settings:', err);

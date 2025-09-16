@@ -68,7 +68,7 @@ def test_both_patterns_return_same_status() -> None:
         "/api/v1/menu-items",
         "/api/v1/ingredients",
         "/api/v1/recipes",
-        "/api/v1/organizations"
+        "/api/v1/organizations",
     ]
 
     for endpoint in endpoints_to_test:
@@ -76,8 +76,9 @@ def test_both_patterns_return_same_status() -> None:
         response_with_slash = client.get(f"{endpoint}/", follow_redirects=False)
 
         # Both should return the same status code
-        assert response_no_slash.status_code == response_with_slash.status_code, \
+        assert response_no_slash.status_code == response_with_slash.status_code, (
             f"Mismatch for {endpoint}: {response_no_slash.status_code} vs {response_with_slash.status_code}"
+        )
 
         # Neither should redirect
         assert "redirect" not in response_no_slash.headers

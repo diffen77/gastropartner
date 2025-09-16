@@ -52,36 +52,35 @@ class MonitoringService:
             client = get_supabase_client()
 
             # Simple health check query
-            response = client.table('organizations').select('count', count='exact').limit(1).execute()
+            response = (
+                client.table("organizations").select("count", count="exact").limit(1).execute()
+            )
 
             response_time = (time.time() - start_time) * 1000
 
             # Check if we got a valid response
-            if hasattr(response, 'count') or hasattr(response, 'data'):
+            if hasattr(response, "count") or hasattr(response, "data"):
                 return HealthStatus(
                     service="database",
                     status="healthy" if response_time < 500 else "degraded",
                     response_time_ms=response_time,
                     details={
                         "connection_pool": "active",
-                        "query_performance": "normal" if response_time < 200 else "slow"
-                    }
+                        "query_performance": "normal" if response_time < 200 else "slow",
+                    },
                 )
             else:
                 return HealthStatus(
                     service="database",
                     status="unhealthy",
                     response_time_ms=response_time,
-                    error="Invalid response from database"
+                    error="Invalid response from database",
                 )
 
         except Exception as e:
             response_time = (time.time() - start_time) * 1000
             return HealthStatus(
-                service="database",
-                status="unhealthy",
-                response_time_ms=response_time,
-                error=str(e)
+                service="database", status="unhealthy", response_time_ms=response_time, error=str(e)
             )
 
     async def check_api_health(self) -> HealthStatus:
@@ -97,11 +96,7 @@ class MonitoringService:
                 service="api",
                 status="healthy",
                 response_time_ms=response_time,
-                details={
-                    "modules_loaded": True,
-                    "auth_service": "available",
-                    "models": "loaded"
-                }
+                details={"modules_loaded": True, "auth_service": "available", "models": "loaded"},
             )
 
         except Exception as e:
@@ -110,7 +105,7 @@ class MonitoringService:
                 service="api",
                 status="unhealthy",
                 response_time_ms=response_time,
-                error=f"Module loading error: {e!s}"
+                error=f"Module loading error: {e!s}",
             )
 
     async def check_external_dependencies(self) -> list[HealthStatus]:
@@ -122,23 +117,25 @@ class MonitoringService:
             start_time = time.time()
             async with httpx.AsyncClient(timeout=10.0) as client:
                 # Check if Supabase is responding
-                response = await client.get(f"{settings.supabase_url}/rest/v1/",
-                                          headers={"apikey": settings.supabase_anon_key})
+                response = await client.get(
+                    f"{settings.supabase_url}/rest/v1/",
+                    headers={"apikey": settings.supabase_anon_key},
+                )
                 response_time = (time.time() - start_time) * 1000
 
-                dependencies.append(HealthStatus(
-                    service="supabase_api",
-                    status="healthy" if response.status_code < 500 else "degraded",
-                    response_time_ms=response_time,
-                    details={"status_code": response.status_code}
-                ))
+                dependencies.append(
+                    HealthStatus(
+                        service="supabase_api",
+                        status="healthy" if response.status_code < 500 else "degraded",
+                        response_time_ms=response_time,
+                        details={"status_code": response.status_code},
+                    )
+                )
 
         except Exception as e:
-            dependencies.append(HealthStatus(
-                service="supabase_api",
-                status="unhealthy",
-                error=str(e)
-            ))
+            dependencies.append(
+                HealthStatus(service="supabase_api", status="unhealthy", error=str(e))
+            )
 
         return dependencies
 
@@ -155,14 +152,12 @@ class MonitoringService:
             return {
                 "memory": {
                     "used_mb": round(process.memory_info().rss / 1024 / 1024, 2),
-                    "percent": round(process.memory_percent(), 2)
+                    "percent": round(process.memory_percent(), 2),
                 },
-                "cpu": {
-                    "percent": round(process.cpu_percent(), 2)
-                },
+                "cpu": {"percent": round(process.cpu_percent(), 2)},
                 "uptime_seconds": round(time.time() - self.start_time, 2),
                 "process_id": os.getpid(),
-                "threads": process.num_threads()
+                "threads": process.num_threads(),
             }
         except Exception as e:
             return {"error": f"Could not get system metrics: {e!s}"}
@@ -175,12 +170,8 @@ class MonitoringService:
             status="healthy",
             uptime_seconds=uptime,
             services=[
-                HealthStatus(
-                    service="api",
-                    status="healthy",
-                    details={"uptime_seconds": uptime}
-                )
-            ]
+                HealthStatus(service="api", status="healthy", details={"uptime_seconds": uptime})
+            ],
         )
 
     async def get_detailed_health(self) -> SystemHealth:
@@ -189,22 +180,25 @@ class MonitoringService:
         tasks = [
             self.check_database_health(),
             self.check_api_health(),
-            self.check_external_dependencies()
+            self.check_external_dependencies(),
         ]
 
         try:
             # Wait for all checks with timeout
             results = await asyncio.wait_for(
-                asyncio.gather(*tasks, return_exceptions=True),
-                timeout=15.0
+                asyncio.gather(*tasks, return_exceptions=True), timeout=15.0
             )
 
-            database_health = results[0] if not isinstance(results[0], Exception) else HealthStatus(
-                service="database", status="unhealthy", error=str(results[0])
+            database_health = (
+                results[0]
+                if not isinstance(results[0], Exception)
+                else HealthStatus(service="database", status="unhealthy", error=str(results[0]))
             )
 
-            api_health = results[1] if not isinstance(results[1], Exception) else HealthStatus(
-                service="api", status="unhealthy", error=str(results[1])
+            api_health = (
+                results[1]
+                if not isinstance(results[1], Exception)
+                else HealthStatus(service="api", status="unhealthy", error=str(results[1]))
             )
 
             external_deps = results[2] if not isinstance(results[2], Exception) else []
@@ -225,7 +219,7 @@ class MonitoringService:
             return SystemHealth(
                 status=overall_status,
                 uptime_seconds=time.time() - self.start_time,
-                services=all_services
+                services=all_services,
             )
 
         except TimeoutError:
@@ -234,11 +228,9 @@ class MonitoringService:
                 uptime_seconds=time.time() - self.start_time,
                 services=[
                     HealthStatus(
-                        service="health_check",
-                        status="unhealthy",
-                        error="Health check timeout"
+                        service="health_check", status="unhealthy", error="Health check timeout"
                     )
-                ]
+                ],
             )
 
     async def get_readiness_check(self) -> SystemHealth:
@@ -249,9 +241,7 @@ class MonitoringService:
         status = "healthy" if database_health.status != "unhealthy" else "unhealthy"
 
         return SystemHealth(
-            status=status,
-            uptime_seconds=time.time() - self.start_time,
-            services=[database_health]
+            status=status, uptime_seconds=time.time() - self.start_time, services=[database_health]
         )
 
     async def get_liveness_check(self) -> SystemHealth:

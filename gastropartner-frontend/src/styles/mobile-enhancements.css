@@ -1,0 +1,610 @@
+/**
+ * Mobile-First Responsive Enhancements
+ * Optimized for users with limited computer experience ("enkel UI/UX")
+ * Target: touch-friendly, intuitive, accessible mobile interface
+ */
+
+/* =====================================================
+   ENHANCED TOUCH TARGETS & ACCESSIBILITY
+   ===================================================== */
+
+/* Ensure all interactive elements meet 44px minimum touch target */
+.btn,
+button,
+[role="button"],
+input[type="submit"],
+input[type="button"],
+.clickable,
+.data-table__header-cell--sortable {
+  min-height: 44px;
+  min-width: 44px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(66, 133, 244, 0.2);
+}
+
+/* Enhanced focus states for keyboard navigation */
+.btn:focus,
+button:focus,
+input:focus,
+select:focus,
+[tabindex]:focus {
+  outline: 3px solid #4285F4;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 1px white, 0 0 0 4px #4285F4;
+}
+
+/* =====================================================
+   IMPROVED FORM CONTROLS
+   ===================================================== */
+
+/* Enhanced input styling for mobile */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+select,
+textarea {
+  min-height: 44px;
+  font-size: 16px; /* Prevent zoom on iOS */
+  border-radius: 8px;
+  border: 2px solid var(--color-neutral-300);
+  padding: 12px 16px;
+  transition: all 0.2s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #4285F4;
+  box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.2);
+  transform: none; /* Prevent layout shift */
+}
+
+/* Enhanced select styling */
+select {
+  appearance: none;
+  background: white url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0xIDFMNiA2TDExIDEiIHN0cm9rZT0iIzZCNzI4MCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==") no-repeat right 16px center;
+  padding-right: 44px;
+}
+
+/* =====================================================
+   ENHANCED MOBILE NAVIGATION
+   ===================================================== */
+
+@media (max-width: 768px) {
+  /* Enhanced mobile header */
+  .mobile-header {
+    height: 64px; /* Slightly taller for better touch targets */
+    padding: 0 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .mobile-header__menu-button {
+    min-height: 48px;
+    min-width: 48px;
+    padding: 12px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-header__menu-icon {
+    font-size: 24px;
+    line-height: 1;
+  }
+
+  .mobile-header__brand {
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  /* Adjust main content for taller header */
+  .app-main {
+    padding-top: 64px;
+  }
+
+  /* Enhanced sidebar for mobile */
+  .sidebar {
+    width: 320px; /* Wider for better touch targets */
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+  }
+
+  .sidebar__nav-link {
+    min-height: 56px; /* Larger touch targets */
+    padding: 16px 24px;
+    font-size: 16px;
+    border-radius: 12px;
+    margin: 4px 16px;
+  }
+
+  .sidebar__nav-icon {
+    font-size: 24px;
+    width: 32px;
+  }
+
+  /* Enhanced mobile overlay */
+  .sidebar__mobile-overlay {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(2px);
+  }
+}
+
+/* =====================================================
+   ENHANCED TABLE RESPONSIVENESS
+   ===================================================== */
+
+@media (max-width: 768px) {
+  /* Card-based table layout for mobile */
+  .data-table-mobile {
+    display: block;
+  }
+
+  .data-table-mobile thead {
+    display: none;
+  }
+
+  .data-table-mobile tbody {
+    display: block;
+  }
+
+  .data-table-mobile tr {
+    display: block;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  .data-table-mobile td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 15px;
+  }
+
+  .data-table-mobile td:last-child {
+    border-bottom: none;
+  }
+
+  .data-table-mobile td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #374151;
+    flex: 0 0 40%;
+  }
+
+  /* Enhanced action buttons in mobile table */
+  .data-table-mobile .recipe-actions {
+    justify-content: flex-end;
+    gap: 12px;
+  }
+
+  .data-table-mobile .recipe-actions .btn {
+    min-height: 44px;
+    min-width: 88px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+  }
+}
+
+/* =====================================================
+   ENHANCED SPACING & TYPOGRAPHY
+   ===================================================== */
+
+@media (max-width: 768px) {
+  /* Better content spacing */
+  .main-content {
+    padding: 20px 16px;
+  }
+
+  .page-header {
+    margin-bottom: 24px;
+  }
+
+  .page-header__title {
+    font-size: 24px;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+
+  .page-header__subtitle {
+    font-size: 16px;
+    line-height: 1.4;
+  }
+
+  /* Enhanced metrics grid */
+  .metrics-grid {
+    gap: 16px;
+    grid-template-columns: 1fr;
+  }
+
+  /* Card enhancements */
+  .searchable-table,
+  .table-section {
+    border-radius: 12px;
+    margin-bottom: 20px;
+  }
+
+  /* Better button spacing */
+  .page-header__actions {
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .page-header__actions .btn {
+    min-height: 44px;
+    padding: 12px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 8px;
+  }
+}
+
+/* =====================================================
+   ENHANCED COST ANALYSIS COMPONENTS
+   ===================================================== */
+
+@media (max-width: 768px) {
+  /* Enhanced portion cost analysis */
+  .portion-cost-analysis {
+    margin: 0 -16px; /* Full width on mobile */
+    border-radius: 0;
+  }
+
+  .analysis-controls {
+    padding: 20px;
+    background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+  }
+
+  .controls-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .control-group {
+    background: white;
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .control-group label {
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .servings-input {
+    width: 80px;
+    height: 44px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: 2px solid #d1d5db;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  /* Enhanced cost cards */
+  .cost-card {
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .cost-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+  }
+
+  .cost-value {
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .cost-detail {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  /* Enhanced ingredient items */
+  .ingredient-item {
+    padding: 20px;
+    margin-bottom: 16px;
+    border-radius: 12px;
+    background: #fafbfc;
+    border: 1px solid #e1e5e9;
+  }
+
+  .ingredient-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .ingredient-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  .ingredient-cost {
+    font-size: 20px;
+    font-weight: 700;
+    color: #059669;
+    text-align: left;
+  }
+
+  .ingredient-details {
+    display: block;
+  }
+
+  .ingredient-details > * {
+    margin-bottom: 8px;
+  }
+}
+
+/* =====================================================
+   ENHANCED INTERACTIVE ELEMENTS
+   ===================================================== */
+
+@media (max-width: 768px) {
+  /* Enhanced collapsible sections */
+  .section-header {
+    padding: 20px;
+    border-radius: 12px 12px 0 0;
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+  }
+
+  .section-header h3 {
+    font-size: 18px;
+    font-weight: 700;
+    flex: 1;
+  }
+
+  .toggle-icon {
+    font-size: 20px;
+    color: #6b7280;
+    min-width: 32px;
+    text-align: center;
+  }
+
+  /* Enhanced loading states */
+  .loading-spinner {
+    padding: 40px;
+  }
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border-width: 4px;
+  }
+
+  /* Enhanced empty states */
+  .table-empty {
+    padding: 48px 20px;
+    text-align: center;
+  }
+
+  .table-empty .empty-state-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  .table-empty .empty-state-message {
+    font-size: 16px;
+    color: #6b7280;
+    line-height: 1.5;
+  }
+}
+
+/* =====================================================
+   ACCESSIBILITY ENHANCEMENTS
+   ===================================================== */
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .btn,
+  input,
+  select,
+  textarea {
+    border-width: 3px;
+  }
+
+  .section-header:focus,
+  .data-table__header-cell--sortable:focus {
+    outline: 4px solid #000;
+    outline-offset: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .toggle-icon {
+    transition: none;
+  }
+
+  .sidebar {
+    transition: none;
+  }
+}
+
+/* Enhanced dark mode support */
+@media (prefers-color-scheme: dark) {
+  .mobile-header {
+    background: #1f2937;
+    border-bottom-color: #374151;
+  }
+
+  .mobile-header__brand,
+  .mobile-header__menu-icon {
+    color: #f9fafb;
+  }
+
+  .mobile-header__menu-button:hover {
+    background: #374151;
+  }
+
+  input,
+  select,
+  textarea {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+  }
+
+  .control-group {
+    background: #374151;
+    color: #f9fafb;
+  }
+}
+
+/* =====================================================
+   PERFORMANCE OPTIMIZATIONS
+   ===================================================== */
+
+/* GPU acceleration for smooth animations */
+.sidebar,
+.mobile-header,
+.toggle-icon,
+.btn {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Optimize for touch scrolling */
+.table-container,
+.sidebar__nav,
+.main-content {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* =====================================================
+   MOBILE SPECIFIC UTILITIES
+   ===================================================== */
+
+/* Safe area insets for devices with notches */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .mobile-header {
+    padding-top: env(safe-area-inset-top);
+    height: calc(64px + env(safe-area-inset-top));
+  }
+
+  .app-main {
+    padding-top: calc(64px + env(safe-area-inset-top));
+  }
+}
+
+/* Touch callout prevention for UI elements */
+.btn,
+.mobile-header__menu-button,
+.section-header,
+.data-table__header-cell--sortable {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Prevent text selection in interactive elements */
+.recipe-actions,
+.controls-row,
+.section-header {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* =====================================================
+   PROGRESSIVE ENHANCEMENT
+   ===================================================== */
+
+/* Base styles assume no JavaScript */
+.section-content {
+  display: block;
+}
+
+/* Enhanced when JavaScript is available */
+.js .section-content.collapsed {
+  display: none;
+}
+
+.js .section-content.expanded {
+  display: block;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Print styles for mobile-sized printing */
+@media print {
+  .mobile-header,
+  .sidebar,
+  .sidebar__mobile-overlay {
+    display: none !important;
+  }
+
+  .app-main {
+    margin-left: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  .main-content {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+}

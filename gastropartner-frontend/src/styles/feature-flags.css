@@ -1,0 +1,59 @@
+/* Feature flags styling */
+.feature-flags-container {
+  padding: 20px;
+  background: var(--color-neutral-0);
+  border-radius: 8px;
+  border: 1px solid var(--color-neutral-200);
+}
+
+.feature-flag-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: var(--color-neutral-25);
+  border-radius: 6px;
+  border: 1px solid var(--color-neutral-200);
+}
+
+.feature-flag-info h4 {
+  margin: 0 0 4px 0;
+  color: var(--color-neutral-900);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.feature-flag-info p {
+  margin: 0;
+  color: var(--color-neutral-600);
+  font-size: 0.8rem;
+}
+
+.feature-flag-toggle {
+  background: none;
+  border: 2px solid var(--color-neutral-300);
+  border-radius: 20px;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 60px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.feature-flag-toggle.enabled {
+  background: var(--color-primary-blue);
+  border-color: var(--color-primary-blue);
+  color: white;
+}
+
+.feature-flag-toggle.disabled {
+  background: var(--color-neutral-100);
+  border-color: var(--color-neutral-300);
+  color: var(--color-neutral-600);
+}
+
+.feature-flag-toggle:hover {
+  opacity: 0.8;
+}

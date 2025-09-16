@@ -70,6 +70,65 @@ backend:
     validate_migrations: true
     check_indexes: true
 
+# Localization/Internationalization validation
+localization:
+  hardcoded_strings:
+    detect_english_text: true
+    severity: "error"  # Hardcoded strings are errors
+    minimum_length: 3  # Only flag strings 3+ characters
+    ignore_patterns:
+      - "test"
+      - "Test"
+      - "id"
+      - "ID"
+      - "API"
+      - "URL"
+  
+  translation_patterns:
+    require_use_translation_hook: true
+    validate_translation_keys: true
+    check_missing_keys: true
+  
+  auto_translation_detection:
+    swedish_indicators:
+      - "visar fortfarande"  # Browser auto-translation indicator
+      - "global standard"    # Mixed language indicator
+    severity: "error"  # Auto-translation is critical error
+  
+  common_english_keywords:
+    - "coming soon"
+    - "global defaults"  
+    - "loading"
+    - "error"
+    - "success"
+    - "warning"
+    - "save"
+    - "cancel" 
+    - "delete"
+    - "edit"
+    - "create"
+    - "update"
+    - "search"
+    - "filter"
+    - "organization"
+    - "template"
+    - "activity timeline"
+    - "bulk operations"
+  
+  translation_completeness:
+    required_keys:
+      - "comingSoon"
+      - "globalDefaults"
+      - "globalDefaultsComingSoon"
+      - "loading"
+      - "error"
+      - "success"
+      - "warning"
+      - "save"
+      - "cancel"
+    check_missing_translations: true
+    severity_missing_keys: "info"
+
 # Performance budgets
 performance:
   frontend:

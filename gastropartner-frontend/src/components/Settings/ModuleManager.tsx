@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useModuleSettings } from '../../hooks/useModuleSettings';
+import { useModuleSettings } from '../../contexts/ModuleSettingsContext';
+import { useGlobalFeatureFlags } from '../../hooks/useGlobalFeatureFlags';
 import './ModuleManager.css';
 
 interface ModuleManagerProps {
@@ -14,6 +15,7 @@ export const ModuleManager: React.FC<ModuleManagerProps> = ({ className }) => {
     updateModuleStatus,
     refreshSettings 
   } = useModuleSettings();
+  const { isModuleGloballyAvailable, loading: globalFlagsLoading } = useGlobalFeatureFlags();
   
   const [updating, setUpdating] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
@@ -37,8 +39,7 @@ export const ModuleManager: React.FC<ModuleManagerProps> = ({ className }) => {
           setSuccessMessage(null);
         }, 3000);
         
-        // Refresh settings to ensure UI is in sync
-        await refreshSettings();
+        // Note: No need to refresh - context update automatically triggers re-renders
       } else {
         throw new Error('Failed to update module status');
       }
@@ -56,9 +57,7 @@ export const ModuleManager: React.FC<ModuleManagerProps> = ({ className }) => {
       'recipes': '📝', 
       'menu': '🍽️',
       'analytics': '📈',
-      'user_testing': '🧪',
       'sales': '💰',
-      'super_admin': '🛡️',
     };
     return iconMap[moduleId] || '🧩';
   };
@@ -69,7 +68,12 @@ export const ModuleManager: React.FC<ModuleManagerProps> = ({ className }) => {
       : { text: 'Inaktiverad', color: 'danger' };
   };
 
-  if (loading) {
+  // Filter modules to only show globally available ones
+  const availableModules = modules.filter(module => 
+    isModuleGloballyAvailable(module.id as any)
+  );
+
+  if (loading || globalFlagsLoading) {
     return (
       <div className={`module-manager ${className || ''}`}>
         <div className="module-manager__loading">
@@ -104,6 +108,10 @@ export const ModuleManager: React.FC<ModuleManagerProps> = ({ className }) => {
           Aktivera eller inaktivera funktionsmoduler för din organisation. 
           Inaktiverade moduler kommer inte att visas i navigeringen.
         </p>
+        <div className="alert alert--info" style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
+          ℹ️ <strong>Observera:</strong> Endast moduler som är globalt aktiverade av SuperAdmin visas här. 
+          Kontakta support om en modul du behöver inte syns i listan.
+        </div>
       </div>
 
       {/* Success/Error Messages */}
@@ -120,7 +128,7 @@ export const ModuleManager: React.FC<ModuleManagerProps> = ({ className }) => {
       )}
 
       <div className="module-manager__grid">
-        {modules.map((module) => {
+        {availableModules.map((module) => {
           const isUpdating = updating === module.id;
           const status = getModuleStatus(module.enabled);
           
@@ -168,10 +176,10 @@ export const ModuleManager: React.FC<ModuleManagerProps> = ({ className }) => {
       <div className="module-manager__footer">
         <div className="module-manager__info">
           <p>
-            <strong>📋 Totalt:</strong> {modules.length} moduler tillgängliga
+            <strong>📋 Totalt:</strong> {availableModules.length} moduler tillgängliga
           </p>
           <p>
-            <strong>✅ Aktiverade:</strong> {modules.filter(m => m.enabled).length} moduler
+            <strong>✅ Aktiverade:</strong> {availableModules.filter(m => m.enabled).length} moduler
           </p>
           <p>
             <strong>⚠️ Observera:</strong> Ändringar träder i kraft omedelbart. 

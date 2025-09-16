@@ -180,7 +180,7 @@ async def test_alert_manager():
         title="Test Alert",
         description="This is a test alert",
         severity="medium",
-        source="test"
+        source="test",
     )
 
     assert alert.id == "test_alert_123"

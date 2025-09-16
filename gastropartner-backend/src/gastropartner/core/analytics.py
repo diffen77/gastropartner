@@ -31,7 +31,7 @@ class AnalyticsService:
     ) -> bool:
         """
         Track a user analytics event.
-        
+
         Args:
             organization_id: The organization ID
             user_id: User ID (can be None for anonymous events)
@@ -41,7 +41,7 @@ class AnalyticsService:
             page_url: URL where event occurred
             session_id: Session identifier
             user_agent: User agent string
-        
+
         Returns:
             True if event was tracked successfully
         """
@@ -59,6 +59,12 @@ class AnalyticsService:
             }
 
             response = self.supabase.table("user_analytics_events").insert(event_data).execute()
+
+            # Check if the insert was successful
+            if not response.data:
+                logger.warning(f"Failed to insert analytics event: {event_type}")
+                return False
+
             return True
 
         except Exception as e:
@@ -70,7 +76,7 @@ class AnalyticsService:
                         "Analytics table 'user_analytics_events' is missing. "
                         "Please run database migration to create the table. "
                         "Further analytics errors will be suppressed until table is created.",
-                        extra={"error_code": "ANALYTICS_TABLE_MISSING"}
+                        extra={"error_code": "ANALYTICS_TABLE_MISSING"},
                     )
                     self._table_missing_logged = True
                 # Return False silently to avoid log spam
@@ -83,8 +89,8 @@ class AnalyticsService:
                         "error": error_str,
                         "event_type": event_data.get("event_type"),
                         "event_name": event_data.get("event_name"),
-                        "organization_id": event_data.get("organization_id")
-                    }
+                        "organization_id": event_data.get("organization_id"),
+                    },
                 )
                 return False
 
@@ -184,20 +190,23 @@ class AnalyticsService:
     ) -> dict[str, Any]:
         """
         Get feature usage statistics.
-        
+
         Args:
             organization_id: Specific organization (None for all organizations)
             days: Number of days to look back
-            
+
         Returns:
             Dictionary with usage statistics
         """
         try:
             start_date = (datetime.now(UTC) - timedelta(days=days)).isoformat()
 
-            query = self.supabase.table("user_analytics_events").select(
-                "event_name, properties, created_at, organization_id"
-            ).eq("event_type", "feature_usage").gte("created_at", start_date)
+            query = (
+                self.supabase.table("user_analytics_events")
+                .select("event_name, properties, created_at, organization_id")
+                .eq("event_type", "feature_usage")
+                .gte("created_at", start_date)
+            )
 
             if organization_id:
                 query = query.eq("organization_id", str(organization_id))
@@ -244,7 +253,7 @@ class AnalyticsService:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to get feature usage stats: {e!s}",
-            )
+            ) from e
 
     async def get_conversion_metrics(
         self,
@@ -253,11 +262,11 @@ class AnalyticsService:
     ) -> dict[str, Any]:
         """
         Calculate conversion rates and metrics.
-        
+
         Args:
             organization_id: Specific organization (None for all)
             days: Number of days to analyze
-            
+
         Returns:
             Conversion metrics including rates and funnel data
         """
@@ -265,9 +274,12 @@ class AnalyticsService:
             start_date = (datetime.now(UTC) - timedelta(days=days)).isoformat()
 
             # Get all organizations that had limit hits (potential conversions)
-            limit_hits_query = self.supabase.table("user_analytics_events").select(
-                "organization_id, user_id, event_name, properties, created_at"
-            ).eq("event_type", "limit_hit").gte("created_at", start_date)
+            limit_hits_query = (
+                self.supabase.table("user_analytics_events")
+                .select("organization_id, user_id, event_name, properties, created_at")
+                .eq("event_type", "limit_hit")
+                .gte("created_at", start_date)
+            )
 
             if organization_id:
                 limit_hits_query = limit_hits_query.eq("organization_id", str(organization_id))
@@ -276,9 +288,12 @@ class AnalyticsService:
             limit_hits = limit_hits_response.data
 
             # Get actual conversions
-            conversions_query = self.supabase.table("user_analytics_events").select(
-                "organization_id, user_id, event_name, properties, created_at"
-            ).eq("event_type", "conversion").gte("created_at", start_date)
+            conversions_query = (
+                self.supabase.table("user_analytics_events")
+                .select("organization_id, user_id, event_name, properties, created_at")
+                .eq("event_type", "conversion")
+                .gte("created_at", start_date)
+            )
 
             if organization_id:
                 conversions_query = conversions_query.eq("organization_id", str(organization_id))
@@ -341,7 +356,7 @@ class AnalyticsService:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to get conversion metrics: {e!s}",
-            )
+            ) from e
 
     async def get_limit_optimization_data(
         self,
@@ -350,11 +365,11 @@ class AnalyticsService:
     ) -> dict[str, Any]:
         """
         Get data to optimize freemium limits based on usage patterns.
-        
+
         Args:
             organization_id: Specific organization (None for all)
             days: Number of days to analyze
-            
+
         Returns:
             Data for optimizing freemium limits
         """
@@ -362,9 +377,12 @@ class AnalyticsService:
             start_date = (datetime.now(UTC) - timedelta(days=days)).isoformat()
 
             # Get all limit hit events
-            query = self.supabase.table("user_analytics_events").select(
-                "organization_id, properties, created_at"
-            ).eq("event_type", "limit_hit").gte("created_at", start_date)
+            query = (
+                self.supabase.table("user_analytics_events")
+                .select("organization_id, properties, created_at")
+                .eq("event_type", "limit_hit")
+                .gte("created_at", start_date)
+            )
 
             if organization_id:
                 query = query.eq("organization_id", str(organization_id))
@@ -425,8 +443,10 @@ class AnalyticsService:
                     "total_hits": len(hit_counts),
                     "suggestion": suggestion,
                     "suggested_new_limit": (
-                        int(avg_hit_count * 1.2) if suggestion == "increase"
-                        else int(avg_hit_count * 0.8) if suggestion == "decrease"
+                        int(avg_hit_count * 1.2)
+                        if suggestion == "increase"
+                        else int(avg_hit_count * 0.8)
+                        if suggestion == "decrease"
                         else current_limit
                     ),
                 }
@@ -442,7 +462,7 @@ class AnalyticsService:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to get optimization data: {e!s}",
-            )
+            ) from e
 
     async def get_analytics_dashboard_data(
         self,
@@ -451,11 +471,11 @@ class AnalyticsService:
     ) -> dict[str, Any]:
         """
         Get comprehensive analytics data for dashboard display.
-        
+
         Args:
             organization_id: Specific organization (None for system-wide)
             days: Number of days to analyze
-            
+
         Returns:
             Complete analytics dashboard data
         """
@@ -487,11 +507,12 @@ class AnalyticsService:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to get dashboard data: {e!s}",
-            )
+            ) from e
 
 
 def get_analytics_service() -> AnalyticsService:
     """Get analytics service instance."""
     from gastropartner.core.database import get_supabase_client
+
     supabase = get_supabase_client()
     return AnalyticsService(supabase)

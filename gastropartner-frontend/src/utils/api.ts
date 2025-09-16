@@ -1,5 +1,18 @@
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1';
 
+// Swedish VAT rates as per Skatteverket
+export enum SwedishVATRate {
+  STANDARD = '25',      // 25% - Standard rate (dine-in, alcohol, etc.)
+  FOOD_REDUCED = '12',  // 12% - Food takeaway, groceries
+  CULTURAL = '6',       // 6% - Books, newspapers, cultural activities
+  ZERO = '0'            // 0% - Exports, some medical services
+}
+
+export enum VATCalculationType {
+  INCLUSIVE = 'inclusive',  // Price includes VAT (Swedish default for B2C)
+  EXCLUSIVE = 'exclusive'   // Price excludes VAT (B2B transactions)
+}
+
 interface MenuItem {
   menu_item_id: string;
   name: string;
@@ -15,6 +28,11 @@ interface MenuItem {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  vat_rate: SwedishVATRate;
+  vat_calculation_type: VATCalculationType;
+  vat_amount?: number;
+  price_excluding_vat?: number;
+  price_including_vat?: number;
 }
 
 interface MenuItemCreate {
@@ -24,6 +42,93 @@ interface MenuItemCreate {
   selling_price: number;
   target_food_cost_percentage: number;
   recipe_id?: string;
+  vat_rate?: SwedishVATRate;
+  vat_calculation_type?: VATCalculationType;
+}
+
+// Sales interfaces
+interface Sale {
+  sale_id: string;
+  organization_id: string;
+  creator_id: string;
+  sale_date: string;
+  total_amount: number;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface SaleCreate {
+  sale_date: string;
+  total_amount: number;
+  notes?: string;
+}
+
+interface SaleUpdate {
+  sale_date?: string;
+  total_amount?: number;
+  notes?: string;
+}
+
+interface SaleItem {
+  sale_item_id: string;
+  sale_id: string;
+  product_type: 'recipe' | 'menu_item';
+  product_id: string;
+  product_name: string;
+  quantity_sold: number;
+  unit_price: number;
+  total_price: number;
+  vat_rate: SwedishVATRate;
+  vat_amount: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface SaleItemCreate {
+  product_type: 'recipe' | 'menu_item';
+  product_id: string;
+  quantity_sold: number;
+  unit_price: number;
+  total_price: number;
+  vat_rate: SwedishVATRate;
+  vat_amount: number;
+}
+
+// Reports interfaces
+interface ProfitabilityReport {
+  period_start: string;
+  period_end: string;
+  total_revenue: number;
+  total_cost: number;
+  profit: number;
+  profit_margin_percentage: number;
+  total_sales_count: number;
+  average_sale_value: number;
+}
+
+interface ProductProfitability {
+  product_id: string;
+  product_name: string;
+  product_type: 'recipe' | 'menu_item';
+  units_sold: number;
+  revenue: number;
+  estimated_cost: number;
+  profit: number;
+  profit_margin_percentage: number;
+}
+
+interface SalesReport {
+  period_start: string;
+  period_end: string;
+  total_sales: number;
+  total_revenue: number;
+  daily_breakdown: {
+    date: string;
+    sales: number;
+    revenue: number;
+  }[];
+  product_breakdown: ProductProfitability[];
 }
 
 interface Ingredient {
@@ -93,14 +198,71 @@ interface Recipe {
 }
 
 interface FeatureFlags {
-  flags_id: string;
-  agency_id: string;
+  // ===== MODULES & PAGES =====
+  show_ingredients: boolean;
+  show_recipes: boolean;
+  show_menu_items: boolean;
+  show_sales: boolean;
+  show_inventory: boolean;
+  show_reports: boolean;
+  show_analytics: boolean;
+  show_suppliers: boolean;
+  
+  // Recipe-specific features
   show_recipe_prep_time: boolean;
   show_recipe_cook_time: boolean;
   show_recipe_instructions: boolean;
   show_recipe_notes: boolean;
-  created_at: string;
-  updated_at: string;
+  
+  // ===== UI COMPONENTS =====
+  enable_dark_mode: boolean;
+  enable_mobile_app_banner: boolean;
+  enable_quick_actions: boolean;
+  enable_dashboard_widgets: boolean;
+  enable_advanced_search: boolean;
+  enable_data_export: boolean;
+  enable_bulk_operations: boolean;
+  
+  // Settings page sections
+  enable_notifications_section: boolean;
+  enable_advanced_settings_section: boolean;
+  enable_account_management_section: boolean;
+  enable_company_profile_section: boolean;
+  enable_business_settings_section: boolean;
+  enable_settings_header: boolean;
+  enable_settings_footer: boolean;
+  
+  // ===== SYSTEM FEATURES =====
+  enable_api_access: boolean;
+  enable_webhooks: boolean;
+  enable_email_notifications: boolean;
+  enable_sms_notifications: boolean;
+  enable_push_notifications: boolean;
+  enable_multi_language: boolean;
+  enable_offline_mode: boolean;
+  
+  // ===== LIMITS & QUOTAS =====
+  max_ingredients_limit: number;
+  max_recipes_limit: number;
+  max_menu_items_limit: number;
+  max_users_per_org: number;
+  api_rate_limit: number;
+  storage_quota_mb: number;
+  
+  // ===== BETA FEATURES =====
+  enable_ai_suggestions: boolean;
+  enable_predictive_analytics: boolean;
+  enable_voice_commands: boolean;
+  enable_automated_ordering: boolean;
+  enable_advanced_pricing: boolean;
+  enable_customer_portal: boolean;
+  
+  // ===== INTEGRATIONS =====
+  enable_pos_integration: boolean;
+  enable_accounting_sync: boolean;
+  enable_delivery_platforms: boolean;
+  enable_payment_processing: boolean;
+  enable_loyalty_programs: boolean;
 }
 
 interface RecipeCreate {
@@ -112,58 +274,6 @@ interface RecipeCreate {
   instructions?: string;
   notes?: string;
   ingredients?: RecipeIngredientCreate[];
-}
-
-// User Testing interfaces
-interface UserFeedback {
-  feedback_id: string;
-  user_id: string;
-  organization_id: string;
-  feedback_type: 'bug' | 'feature_request' | 'general' | 'usability' | 'satisfaction';
-  title: string;
-  description: string;
-  rating?: number;
-  page_url?: string;
-  user_agent?: string;
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  status: 'open' | 'in_progress' | 'resolved' | 'closed';
-  admin_notes?: string;
-  created_at: string;
-  updated_at: string;
-  resolved_at?: string;
-}
-
-interface UserFeedbackCreate {
-  feedback_type: 'bug' | 'feature_request' | 'general' | 'usability' | 'satisfaction';
-  title: string;
-  description: string;
-  rating?: number;
-  page_url?: string;
-  priority: 'low' | 'medium' | 'high' | 'critical';
-}
-
-interface UserTestingMetrics {
-  total_users: number;
-  active_users_today: number;
-  active_users_week: number;
-  active_users_month: number;
-  avg_session_duration_minutes: number;
-  total_feedback_items: number;
-  unresolved_feedback: number;
-  onboarding_completion_rate: number;
-  avg_onboarding_time_minutes: number;
-  most_used_features: Array<{ feature: string; count: number }>;
-  conversion_rate: number;
-}
-
-interface UserAnalyticsEvent {
-  event_type: string;
-  event_name: string;
-  page_url?: string;
-  element_id?: string;
-  element_text?: string;
-  session_id?: string;
-  properties?: Record<string, any>;
 }
 
 export interface User {
@@ -191,6 +301,56 @@ export interface Organization {
   current_ingredients: number;
   current_recipes: number;
   current_menu_items: number;
+}
+
+// Task Management Types
+export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'on_hold';
+
+export interface Task {
+  task_id: string;
+  title: string;
+  description?: string;
+  status: TaskStatus;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  category?: string;
+  tags?: string[];
+  assigned_to?: string;
+  created_by: string;
+  due_date?: string;
+  completed_at?: string;
+  created_at: string;
+  updated_at: string;
+  organization_id: string;
+}
+
+export interface TaskCreate {
+  title: string;
+  description?: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  category?: string;
+  tags?: string[];
+  assigned_to?: string;
+  due_date?: string;
+}
+
+export interface TaskUpdate {
+  title?: string;
+  description?: string;
+  status?: TaskStatus;
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  category?: string;
+  tags?: string[];
+  assigned_to?: string;
+  due_date?: string;
+}
+
+export interface TaskStats {
+  total_tasks: number;
+  incomplete_tasks: number;
+  completed_tasks: number;
+  overdue_tasks: number;
+  by_status: Record<string, number>;
+  by_priority: Record<string, number>;
 }
 
 export interface OrganizationCreate {
@@ -252,7 +412,6 @@ export interface OrganizationSettingsUpdate {
   restaurant_profile?: RestaurantProfile;
   business_settings?: BusinessSettingsUpdate;
   notification_preferences?: NotificationPreferences;
-  has_completed_onboarding?: boolean;
 }
 
 // Module Settings interfaces
@@ -287,12 +446,7 @@ class ApiClient {
   private async getAuthHeaders(): Promise<HeadersInit> {
     // For now, we'll implement a simple token-based auth
     // In the future, this should get the token from AuthContext
-    let token = localStorage.getItem('auth_token');
-    
-    // Development fallback: use development token if no auth token exists
-    if (!token && process.env.NODE_ENV === 'development') {
-      token = 'dev_token_lediff_gmail_com';
-    }
+    const token = localStorage.getItem('auth_token');
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -366,6 +520,20 @@ class ApiClient {
     return response.json();
   }
 
+  async patch<T>(endpoint: string, data: any): Promise<T> {
+    const headers = await this.getAuthHeaders();
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify(data),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status}`);
+    }
+    return response.json();
+  }
+
   // Menu Items API
   async getMenuItems(): Promise<MenuItem[]> {
     return this.get<MenuItem[]>('/api/v1/menu-items');
@@ -385,6 +553,64 @@ class ApiClient {
 
   async deleteMenuItem(id: string): Promise<{ message: string; success: boolean }> {
     return this.delete(`/api/v1/menu-items/${id}`);
+  }
+
+  // Sales API
+  async getSales(): Promise<Sale[]> {
+    return this.get<Sale[]>('/api/v1/sales/');
+  }
+
+  async createSale(saleData: SaleCreate, saleItems: SaleItemCreate[]): Promise<Sale> {
+    // Backend API expects sale_data and sale_items as combined payload
+    const payload = {
+      ...saleData,
+      sale_items: saleItems
+    };
+    return this.post<Sale>('/api/v1/sales/', payload);
+  }
+
+  async getSale(id: string): Promise<Sale> {
+    return this.get<Sale>(`/api/v1/sales/${id}`);
+  }
+
+  async updateSale(id: string, data: SaleUpdate): Promise<Sale> {
+    return this.put<Sale>(`/api/v1/sales/${id}`, data);
+  }
+
+  async deleteSale(id: string): Promise<{ message: string; success: boolean }> {
+    return this.delete(`/api/v1/sales/${id}`);
+  }
+
+  async getSaleItems(saleId: string): Promise<SaleItem[]> {
+    return this.get<SaleItem[]>(`/api/v1/sales/${saleId}/items`);
+  }
+
+  // Reports API
+  async getProfitabilityReport(startDate: string, endDate: string): Promise<ProfitabilityReport> {
+    const params = new URLSearchParams({
+      start_date: startDate,
+      end_date: endDate,
+    });
+    return this.get<ProfitabilityReport>(`/api/v1/reports/profitability?${params}`);
+  }
+
+  async getSalesReport(startDate: string, endDate: string): Promise<SalesReport> {
+    const params = new URLSearchParams({
+      start_date: startDate,
+      end_date: endDate,
+    });
+    return this.get<SalesReport>(`/api/v1/reports/sales?${params}`);
+  }
+
+  async getProductProfitability(startDate: string, endDate: string, limit?: number): Promise<ProductProfitability[]> {
+    const params = new URLSearchParams({
+      start_date: startDate,
+      end_date: endDate,
+    });
+    if (limit) {
+      params.append('limit', limit.toString());
+    }
+    return this.get<ProductProfitability[]>(`/api/v1/reports/product-profitability?${params}`);
   }
 
   // Ingredients API
@@ -438,32 +664,6 @@ class ApiClient {
     return this.get(`/api/v1/recipes/${id}/cost-analysis${params}`);
   }
 
-  // User Testing API
-  async createFeedback(data: UserFeedbackCreate): Promise<UserFeedback> {
-    return this.post<UserFeedback>('/api/v1/user-testing/feedback', data);
-  }
-
-  async getFeedback(statusFilter?: string, feedbackType?: string): Promise<UserFeedback[]> {
-    let endpoint = '/api/v1/user-testing/feedback';
-    const params = new URLSearchParams();
-    
-    if (statusFilter) params.append('status_filter', statusFilter);
-    if (feedbackType) params.append('feedback_type', feedbackType);
-    
-    if (params.toString()) {
-      endpoint += `?${params.toString()}`;
-    }
-    
-    return this.get<UserFeedback[]>(endpoint);
-  }
-
-  async getUserTestingMetrics(days: number = 30): Promise<UserTestingMetrics> {
-    return this.get<UserTestingMetrics>(`/api/v1/user-testing/analytics/metrics?days=${days}`);
-  }
-
-  async trackAnalyticsEvent(data: UserAnalyticsEvent): Promise<{ status: string }> {
-    return this.post<{ status: string }>('/api/v1/user-testing/analytics/event', data);
-  }
 
   // Feature Flags
   async getFeatureFlags(): Promise<FeatureFlags> {
@@ -512,17 +712,70 @@ class ApiClient {
     return this.put<OrganizationSettings>(`/api/v1/organizations/${id}/settings`, settings);
   }
 
-  /**
-   * Mark organization onboarding as completed.
-   * 🛡️ SECURITY: Multi-tenant secure - user must belong to organization.
-   */
-  async completeOrganizationOnboarding(id: string): Promise<{ message: string; success: boolean }> {
-    return this.post<{ message: string; success: boolean }>(`/api/v1/organizations/${id}/settings/complete-onboarding`, {});
-  }
 
   // User Auth API
   async getCurrentUser(token?: string): Promise<User> {
     return this.get<User>('/api/v1/auth/me');
+  }
+
+  // Authentication API methods
+  async login(email: string, password: string): Promise<{
+    access_token: string;
+    refresh_token: string; 
+    user: User;
+    expires_in: number;
+  }> {
+    return this.post<{
+      access_token: string;
+      refresh_token: string;
+      user: User;
+      expires_in: number;
+    }>('/api/v1/auth/login', { email, password });
+  }
+
+  async register(email: string, password: string, full_name: string): Promise<{
+    message: string;
+    success: boolean;
+  }> {
+    return this.post<{
+      message: string;
+      success: boolean;
+    }>('/api/v1/auth/register', { email, password, full_name });
+  }
+
+  async refreshToken(refresh_token: string): Promise<{
+    access_token: string;
+    refresh_token: string;
+    user?: User;
+    expires_in: number;
+  }> {
+    return this.post<{
+      access_token: string;
+      refresh_token: string;
+      user?: User;
+      expires_in: number;
+    }>('/api/v1/auth/refresh', { refresh_token });
+  }
+
+  async logout(): Promise<{
+    message: string;
+    success: boolean;
+  }> {
+    return this.post<{
+      message: string;
+      success: boolean;
+    }>('/api/v1/auth/logout', {});
+  }
+
+  // Legacy development login method for backward compatibility
+  async devLogin(email: string, password?: string): Promise<{
+    access_token: string;
+    refresh_token: string;
+    user: User;
+    expires_in: number;
+  }> {
+    // Use standard login endpoint for dev login
+    return this.login(email, password || 'devpassword123');
   }
 
   // Module Settings API
@@ -537,13 +790,71 @@ class ApiClient {
   async getModuleEnabledStatus(moduleId: string): Promise<{ enabled: boolean }> {
     return this.get<{ enabled: boolean }>(`/api/v1/modules/settings/${moduleId}/enabled`);
   }
+
+  // Task Management API
+  async getTasks(params?: { status?: string; priority?: string; category?: string; assigned_to?: string; due_before?: string; incomplete_only?: boolean }): Promise<Task[]> {
+    let endpoint = '/api/v1/tasks/';
+    const searchParams = new URLSearchParams();
+    
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.set(key, String(value));
+        }
+      });
+    }
+    
+    const queryString = searchParams.toString();
+    if (queryString) {
+      endpoint += '?' + queryString;
+    }
+    
+    return this.get<Task[]>(endpoint);
+  }
+
+  async getIncompleteTasks(): Promise<Task[]> {
+    return this.get<Task[]>('/api/v1/tasks/incomplete');
+  }
+
+  async getTask(id: string): Promise<Task> {
+    return this.get<Task>(`/api/v1/tasks/${id}`);
+  }
+
+  async createTask(data: TaskCreate): Promise<Task> {
+    return this.post<Task>('/api/v1/tasks/', data);
+  }
+
+  async updateTask(id: string, data: TaskUpdate): Promise<Task> {
+    return this.put<Task>(`/api/v1/tasks/${id}`, data);
+  }
+
+  async deleteTask(id: string): Promise<void> {
+    return this.delete(`/api/v1/tasks/${id}`);
+  }
+
+  async updateTaskStatus(id: string, status: TaskStatus): Promise<Task> {
+    return this.patch<Task>(`/api/v1/tasks/${id}/status?status=${status}`, {});
+  }
+
+  async getTaskStats(): Promise<TaskStats> {
+    return this.get<TaskStats>('/api/v1/tasks/stats/summary');
+  }
 }
 
 export const apiClient = new ApiClient();
+export const api = apiClient; // Backward compatibility alias
 export { 
   ApiClient, 
   type MenuItem, 
   type MenuItemCreate, 
+  type Sale,
+  type SaleCreate,
+  type SaleUpdate,
+  type SaleItem,
+  type SaleItemCreate,
+  type ProfitabilityReport,
+  type ProductProfitability,
+  type SalesReport,
   type Ingredient, 
   type IngredientCreate,
   type IngredientUpdate,
@@ -552,8 +863,4 @@ export {
   type RecipeIngredient,
   type RecipeIngredientCreate,
   type FeatureFlags,
-  type UserFeedback,
-  type UserFeedbackCreate,
-  type UserTestingMetrics,
-  type UserAnalyticsEvent
 };

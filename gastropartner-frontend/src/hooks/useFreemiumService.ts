@@ -5,48 +5,65 @@ import * as modulesApi from '../utils/modulesApi';
 export type ModuleTier = modulesApi.ModuleTier;
 export type ModuleName = modulesApi.ModuleName;
 export type ModuleSubscription = modulesApi.ModuleSubscription;
+export type ModuleAvailability = modulesApi.ModuleAvailability;
 
 export interface UseFreemiumServiceReturn {
   subscriptions: ModuleSubscription[];
+  availableModules: ModuleAvailability | null;
   loading: boolean;
   error: string | null;
   activateModule: (moduleName: ModuleName, tier: ModuleTier) => Promise<boolean>;
   deactivateModule: (moduleName: ModuleName) => Promise<boolean>;
   getModuleStatus: (moduleName: ModuleName) => { tier: ModuleTier | null; active: boolean };
+  isModuleAvailable: (moduleName: ModuleName) => boolean;
   refreshSubscriptions: () => Promise<void>;
 }
 
 export function useFreemiumService(): UseFreemiumServiceReturn {
   const { user, currentOrganization } = useAuth();
   const [subscriptions, setSubscriptions] = useState<ModuleSubscription[]>([]);
+  const [availableModules, setAvailableModules] = useState<ModuleAvailability | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refreshSubscriptions = useCallback(async () => {
-    console.log('🔄 refreshSubscriptions called with org:', currentOrganization?.id);
+    console.log('🔄 refreshSubscriptions called with org:', currentOrganization?.organization_id);
     
-    if (!currentOrganization?.id) {
+    if (!currentOrganization?.organization_id) {
       console.warn('⚠️ No organization ID available, currentOrganization:', currentOrganization);
       setLoading(false);
       setSubscriptions([]); // Clear subscriptions when no organization
+      setAvailableModules(null); // Clear available modules when no organization
       setError(null); // Clear any previous errors
       return;
     }
 
-    console.log('📡 Starting to fetch subscriptions for org:', currentOrganization.id);
+    console.log('📡 Starting to fetch data for org:', currentOrganization.organization_id);
     setLoading(true);
     setError(null);
 
     try {
-      const subscriptionsData = await modulesApi.getModuleSubscriptions();
+      // Fetch both subscriptions and available modules in parallel
+      const [subscriptionsData, availabilityData] = await Promise.all([
+        modulesApi.getModuleSubscriptions(),
+        modulesApi.getAvailableModules()
+      ]);
 
-      console.log('📊 API response:', { data: subscriptionsData });
+      console.log('📊 API response:', { 
+        subscriptions: subscriptionsData?.length || 0,
+        availableModules: availabilityData?.available_modules?.length || 0 
+      });
 
-      console.log('✅ Successfully fetched subscriptions:', subscriptionsData?.length || 0, 'items');
+      console.log('✅ Successfully fetched data:', {
+        subscriptions: subscriptionsData?.length || 0,
+        availableModules: availabilityData?.total_available || 0
+      });
+      
       setSubscriptions(subscriptionsData || []);
+      setAvailableModules(availabilityData || null);
     } catch (err) {
-      console.error('❌ Error fetching module subscriptions:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch subscriptions');
+      console.error('❌ Error fetching module data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch module data');
     } finally {
       console.log('🏁 refreshSubscriptions complete, setting loading to false');
       setLoading(false);
@@ -124,6 +141,14 @@ export function useFreemiumService(): UseFreemiumServiceReturn {
     };
   }, [subscriptions]);
 
+  const isModuleAvailable = useCallback((moduleName: ModuleName): boolean => {
+    if (!availableModules) return false;
+    
+    return availableModules.available_modules.some(
+      module => module.id === moduleName && module.available
+    );
+  }, [availableModules]);
+
   // Automatically refresh subscriptions when organization changes
   useEffect(() => {
     console.log('🔄 Organization changed, refreshing subscriptions:', currentOrganization?.id);
@@ -135,11 +160,13 @@ export function useFreemiumService(): UseFreemiumServiceReturn {
 
   return {
     subscriptions,
+    availableModules,
     loading,
     error,
     activateModule,
     deactivateModule,
     getModuleStatus,
+    isModuleAvailable,
     refreshSubscriptions
   };
 }

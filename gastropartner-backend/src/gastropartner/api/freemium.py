@@ -28,7 +28,7 @@ def get_authenticated_supabase_client(
     "/usage",
     response_model=dict[str, Any],
     summary="Get usage summary",
-    description="Get complete usage summary with upgrade prompts for freemium features"
+    description="Get complete usage summary with upgrade prompts for freemium features",
 )
 async def get_usage_summary(
     current_user: User = Depends(get_current_active_user),
@@ -37,7 +37,7 @@ async def get_usage_summary(
 ) -> dict[str, Any]:
     """
     Get comprehensive usage summary for the organization.
-    
+
     Returns current usage vs limits for all freemium features with
     context-specific upgrade prompts and recommendations.
     """
@@ -49,7 +49,7 @@ async def get_usage_summary(
     "/limits",
     response_model=UsageLimitsCheck,
     summary="Check all limits",
-    description="Check current usage against all freemium limits"
+    description="Check current usage against all freemium limits",
 )
 async def check_all_limits(
     current_user: User = Depends(get_current_active_user),
@@ -65,7 +65,7 @@ async def check_all_limits(
     "/upgrade-prompts",
     response_model=dict[str, str],
     summary="Get upgrade prompts",
-    description="Get context-specific upgrade prompts for features at or near limits"
+    description="Get context-specific upgrade prompts for features at or near limits",
 )
 async def get_upgrade_prompts(
     current_user: User = Depends(get_current_active_user),
@@ -82,7 +82,7 @@ async def get_upgrade_prompts(
     "/plan-comparison",
     response_model=dict[str, Any],
     summary="Get plan comparison",
-    description="Get comparison between free and premium plans (public endpoint)"
+    description="Get comparison between free and premium plans (public endpoint)",
 )
 async def get_plan_comparison() -> dict[str, Any]:
     """
@@ -114,11 +114,26 @@ async def get_plan_comparison() -> dict[str, Any]:
                     "ingredients": {"limit": None, "description": "Unlimited ingredients"},
                     "recipes": {"limit": None, "description": "Unlimited recipes"},
                     "menu_items": {"limit": None, "description": "Unlimited menu items"},
-                    "cost_tracking": {"enabled": True, "description": "Advanced cost analytics and forecasting"},
-                    "batch_operations": {"enabled": True, "description": "Bulk import/export and batch calculations"},
-                    "supplier_management": {"enabled": True, "description": "Advanced supplier tracking and price comparisons"},
-                    "profit_optimization": {"enabled": True, "description": "AI-powered profit optimization recommendations"},
-                    "nutritional_analysis": {"enabled": True, "description": "Nutritional information and compliance"},
+                    "cost_tracking": {
+                        "enabled": True,
+                        "description": "Advanced cost analytics and forecasting",
+                    },
+                    "batch_operations": {
+                        "enabled": True,
+                        "description": "Bulk import/export and batch calculations",
+                    },
+                    "supplier_management": {
+                        "enabled": True,
+                        "description": "Advanced supplier tracking and price comparisons",
+                    },
+                    "profit_optimization": {
+                        "enabled": True,
+                        "description": "AI-powered profit optimization recommendations",
+                    },
+                    "nutritional_analysis": {
+                        "enabled": True,
+                        "description": "Nutritional information and compliance",
+                    },
                     "support": {"enabled": True, "description": "Priority email support"},
                     "exports": {"enabled": True, "description": "CSV, Excel, and PDF exports"},
                 },

@@ -40,7 +40,7 @@ class TestCostControlService:
                     "cost_per_unit": 25.0,
                     "category": "Meat",
                     "created_at": datetime.now().isoformat(),
-                    "updated_at": datetime.now().isoformat()
+                    "updated_at": datetime.now().isoformat(),
                 },
                 {
                     "ingredient_id": str(uuid4()),
@@ -48,8 +48,8 @@ class TestCostControlService:
                     "cost_per_unit": 8.0,
                     "category": "Vegetables",
                     "created_at": datetime.now().isoformat(),
-                    "updated_at": datetime.now().isoformat()
-                }
+                    "updated_at": datetime.now().isoformat(),
+                },
             ]
         )
 
@@ -64,7 +64,7 @@ class TestCostControlService:
                     "total_cost": 15.0,
                     "cost_per_serving": 15.0,
                     "created_at": datetime.now().isoformat(),
-                    "updated_at": datetime.now().isoformat()
+                    "updated_at": datetime.now().isoformat(),
                 }
             ]
         )
@@ -81,21 +81,25 @@ class TestCostControlService:
                     "food_cost": 30.0,
                     "food_cost_percentage": 25.0,
                     "margin": 90.0,
-                    "created_at": datetime.now().isoformat()
+                    "created_at": datetime.now().isoformat(),
                 }
             ]
         )
 
     async def test_calculate_comprehensive_costs(
-        self, cost_service, mock_organization_id,
-        mock_ingredients_response, mock_recipes_response, mock_menu_items_response
+        self,
+        cost_service,
+        mock_organization_id,
+        mock_ingredients_response,
+        mock_recipes_response,
+        mock_menu_items_response,
     ):
         """Test comprehensive cost calculation."""
         # Setup mocks
         cost_service.supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.side_effect = [
             mock_ingredients_response,
             mock_recipes_response,
-            mock_menu_items_response
+            mock_menu_items_response,
         ]
 
         start_date = datetime.now() - timedelta(days=30)
@@ -142,7 +146,7 @@ class TestCostControlService:
             "budget_amount": 10000.0,
             "period": "monthly",
             "start_date": datetime.now().isoformat(),
-            "end_date": (datetime.now() + timedelta(days=30)).isoformat()
+            "end_date": (datetime.now() + timedelta(days=30)).isoformat(),
         }
 
         result = await cost_service.create_cost_budget(mock_organization_id, budget_data)
@@ -156,15 +160,12 @@ class TestCostControlService:
     async def test_generate_cost_forecast(self, cost_service, mock_organization_id):
         """Test cost forecast generation."""
         # Mock cost analysis response
-        with patch.object(cost_service, 'calculate_comprehensive_costs') as mock_calc:
+        with patch.object(cost_service, "calculate_comprehensive_costs") as mock_calc:
             mock_calc.return_value = {
                 "ingredient_analysis": {"total_cost": 1000.0},
                 "recipe_analysis": {"total_cost": 500.0},
-                "cost_efficiency": {
-                    "food_cost_percentage": 25.0,
-                    "margin_percentage": 75.0
-                },
-                "menu_analysis": {"average_margin": 90.0}
+                "cost_efficiency": {"food_cost_percentage": 25.0, "margin_percentage": 75.0},
+                "menu_analysis": {"average_margin": 90.0},
             }
 
             result = await cost_service.generate_cost_forecast(mock_organization_id, "next_month")
@@ -179,10 +180,10 @@ class TestCostControlService:
     async def test_check_cost_alerts(self, cost_service, mock_organization_id):
         """Test cost alerts checking."""
         # Mock cost analysis with high food cost percentage
-        with patch.object(cost_service, 'calculate_comprehensive_costs') as mock_calc:
+        with patch.object(cost_service, "calculate_comprehensive_costs") as mock_calc:
             mock_calc.return_value = {
                 "cost_efficiency": {"food_cost_percentage": 38.0},
-                "ingredient_analysis": {"average_cost_per_ingredient": 22.0}
+                "ingredient_analysis": {"average_cost_per_ingredient": 22.0},
             }
 
             alerts = await cost_service.check_cost_alerts(mock_organization_id)
@@ -198,19 +199,19 @@ class TestCostControlService:
     async def test_generate_cost_report(self, cost_service, mock_organization_id):
         """Test cost report generation."""
         # Mock responses
-        with patch.object(cost_service, 'calculate_comprehensive_costs') as mock_calc:
+        with patch.object(cost_service, "calculate_comprehensive_costs") as mock_calc:
             mock_calc.return_value = {
                 "ingredient_analysis": {"total_cost": 1000.0},
                 "recipe_analysis": {"total_cost": 500.0},
                 "menu_analysis": {"total_food_cost": 800.0, "total_menu_items": 5},
-                "cost_efficiency": {"food_cost_percentage": 30.0}
+                "cost_efficiency": {"food_cost_percentage": 30.0},
             }
 
             # Mock ingredients response for top cost drivers
             mock_ingredients_response = Mock(
                 data=[
                     {"name": "Premium Beef", "cost_per_unit": 35.0, "category": "Meat"},
-                    {"name": "Truffle Oil", "cost_per_unit": 120.0, "category": "Condiments"}
+                    {"name": "Truffle Oil", "cost_per_unit": 120.0, "category": "Condiments"},
                 ]
             )
             cost_service.supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value = mock_ingredients_response
@@ -234,7 +235,7 @@ class TestCostControlService:
                     "ingredient_id": str(uuid4()),
                     "name": "Premium Wagyu",
                     "cost_per_unit": 45.0,
-                    "category": "Meat"
+                    "category": "Meat",
                 }
             ]
         )
@@ -247,20 +248,18 @@ class TestCostControlService:
                     "name": "Expensive Dish",
                     "selling_price": 100.0,
                     "food_cost": 40.0,
-                    "food_cost_percentage": 40.0
+                    "food_cost_percentage": 40.0,
                 }
             ]
         )
 
         cost_service.supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.side_effect = [
             mock_ingredients_response,
-            mock_menu_items_response
+            mock_menu_items_response,
         ]
 
-        with patch.object(cost_service, 'calculate_comprehensive_costs') as mock_calc:
-            mock_calc.return_value = {
-                "cost_efficiency": {"food_cost_percentage": 35.0}
-            }
+        with patch.object(cost_service, "calculate_comprehensive_costs") as mock_calc:
+            mock_calc.return_value = {"cost_efficiency": {"food_cost_percentage": 35.0}}
 
             result = await cost_service.optimize_costs(mock_organization_id)
 
@@ -268,12 +267,16 @@ class TestCostControlService:
             assert len(result["optimizations"]) > 0
 
             # Check for ingredient substitution suggestion
-            ingredient_opt = next((o for o in result["optimizations"] if o["type"] == "ingredient_substitution"), None)
+            ingredient_opt = next(
+                (o for o in result["optimizations"] if o["type"] == "ingredient_substitution"), None
+            )
             assert ingredient_opt is not None
             assert "Premium Wagyu" in ingredient_opt["target"]
 
             # Check for price optimization suggestion
-            price_opt = next((o for o in result["optimizations"] if o["type"] == "price_optimization"), None)
+            price_opt = next(
+                (o for o in result["optimizations"] if o["type"] == "price_optimization"), None
+            )
             assert price_opt is not None
             assert "Expensive Dish" in price_opt["target"]
 
@@ -288,7 +291,7 @@ class TestCostControlModels:
             predicted_total_cost=Decimal("1500.00"),
             confidence_level=85.0,
             factors=["Historical trends", "Seasonal patterns"],
-            recommendations=["Negotiate with suppliers", "Optimize inventory"]
+            recommendations=["Negotiate with suppliers", "Optimize inventory"],
         )
 
         assert forecast.period == "next_month"
@@ -307,16 +310,11 @@ class TestCostControlModels:
             report_type="summary",
             period_start=datetime.now() - timedelta(days=30),
             period_end=datetime.now(),
-            total_costs={
-                "ingredients": Decimal("1000.00"),
-                "recipes": Decimal("500.00")
-            },
+            total_costs={"ingredients": Decimal("1000.00"), "recipes": Decimal("500.00")},
             budget_performance={},
-            top_cost_drivers=[
-                {"name": "Beef", "cost": 25.0, "category": "Meat"}
-            ],
+            top_cost_drivers=[{"name": "Beef", "cost": 25.0, "category": "Meat"}],
             recommendations=["Reduce portion sizes"],
-            generated_at=datetime.now()
+            generated_at=datetime.now(),
         )
 
         assert report.organization_id == organization_id

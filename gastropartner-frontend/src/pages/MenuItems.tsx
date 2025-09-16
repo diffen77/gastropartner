@@ -4,16 +4,23 @@ import { MetricsCard } from '../components/MetricsCard';
 import { SearchableTable, TableColumn } from '../components/SearchableTable';
 import { EmptyState } from '../components/EmptyState';
 import { OrganizationSelector } from '../components/Organizations/OrganizationSelector';
-import { apiClient, MenuItem } from '../utils/api';
+import { apiClient, MenuItem, MenuItemCreate } from '../utils/api';
 import { useFreemium } from '../hooks/useFreemium';
 import { useTranslation } from '../localization/sv';
+import { MenuItemForm } from '../components/MenuItems/MenuItemForm';
 
 export function MenuItems() {
   const { getUsagePercentage } = useFreemium();
   const { translateError } = useTranslation();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  // Note: Recipes could be loaded here for future recipe-linking functionality
   const [error, setError] = useState<string>('');
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    isOpen: boolean;
+    menuItem: MenuItem | null;
+  }>({ isOpen: false, menuItem: null });
 
   const loadMenuItems = async () => {
     try {
@@ -32,7 +39,61 @@ export function MenuItems() {
 
   useEffect(() => {
     loadMenuItems();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSubmitMenuItem = async (data: MenuItemCreate) => {
+    setIsLoading(true);
+    try {
+      if (editingMenuItem) {
+        // Update existing menu item
+        await apiClient.updateMenuItem(editingMenuItem.menu_item_id, data);
+      } else {
+        // Create new menu item
+        await apiClient.createMenuItem(data);
+      }
+      await loadMenuItems(); // Reload the list
+      setError('');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Ett fel uppstod';
+      const translatedError = translateError(errorMessage);
+      setError(translatedError);
+      throw err; // Re-throw to let the form handle it
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setEditingMenuItem(null);
+  };
+
+  const handleEditMenuItem = (menuItem: MenuItem) => {
+    setEditingMenuItem(menuItem);
+    setIsFormOpen(true);
+  };
+
+  const handleDeleteMenuItem = (menuItem: MenuItem) => {
+    setDeleteConfirmation({ isOpen: true, menuItem });
+  };
+
+  const confirmDeleteMenuItem = async () => {
+    if (!deleteConfirmation.menuItem) return;
+
+    setIsLoading(true);
+    try {
+      await apiClient.deleteMenuItem(deleteConfirmation.menuItem.menu_item_id);
+      await loadMenuItems(); // Reload the list
+      setError('');
+      setDeleteConfirmation({ isOpen: false, menuItem: null });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Ett fel uppstod';
+      const translatedError = translateError(errorMessage);
+      setError(translatedError);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
 
   const formatCurrency = (amount?: number | string): string => {
@@ -56,6 +117,35 @@ export function MenuItems() {
     { key: 'food_cost_percentage', label: 'Råvarukostnad %', sortable: true },
     { key: 'margin', label: 'Marginal', sortable: true },
     { key: 'margin_percentage', label: 'Marginal %', sortable: true },
+    { 
+      key: 'actions', 
+      label: 'Åtgärder', 
+      sortable: false,
+      render: (_, row) => (
+        <div className="recipe-actions">
+          <button
+            className="btn btn--small btn--secondary"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEditMenuItem(row.originalMenuItem);
+            }}
+            title="Redigera maträtt"
+          >
+            Redigera
+          </button>
+          <button
+            className="btn btn--small btn--danger"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteMenuItem(row.originalMenuItem);
+            }}
+            title="Ta bort maträtt"
+          >
+            Ta bort
+          </button>
+        </div>
+      )
+    },
   ];
 
   // Transform menu items for the table
@@ -67,6 +157,7 @@ export function MenuItems() {
     margin: item.margin ? formatCurrency(item.margin) : '-',
     margin_percentage: item.margin_percentage ? formatPercentage(item.margin_percentage) : '-',
     description: item.description,
+    originalMenuItem: item, // Include original menu item for edit/delete operations
   }));
 
   // Calculate metrics
@@ -123,7 +214,14 @@ export function MenuItems() {
       <PageHeader 
         title="🍽️ Maträtter" 
         subtitle="Skapa maträtter från dina recept och optimera prissättning"
-      />
+      >
+        <button 
+          className="btn btn--primary"
+          onClick={() => setIsFormOpen(true)}
+        >
+          <span>+</span> Ny Maträtt
+        </button>
+      </PageHeader>
 
       <div className="modules-container">
         <OrganizationSelector />
@@ -200,6 +298,8 @@ export function MenuItems() {
                 icon="🍽️"
                 title="Inga maträtter än"
                 description="Skapa dina första maträtter från recept för att analysera lönsamhet och optimera prissättning"
+                actionLabel="Skapa Maträtt"
+                onAction={() => setIsFormOpen(true)}
               />
             ) : (
               <SearchableTable
@@ -243,6 +343,44 @@ export function MenuItems() {
         )}
       </div>
 
+      <MenuItemForm
+        isOpen={isFormOpen}
+        onClose={handleCloseForm}
+        onSubmit={handleSubmitMenuItem}
+        isLoading={isLoading}
+        editingMenuItem={editingMenuItem}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirmation.isOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h3>Bekräfta borttagning</h3>
+            </div>
+            <div className="modal-body">
+              <p>Är du säker på att du vill ta bort maträtten <strong>"{deleteConfirmation.menuItem?.name}"</strong>?</p>
+              <p>Denna åtgärd kan inte ångras.</p>
+            </div>
+            <div className="modal-actions">
+              <button
+                className="btn btn--secondary"
+                onClick={() => setDeleteConfirmation({ isOpen: false, menuItem: null })}
+                disabled={isLoading}
+              >
+                Avbryt
+              </button>
+              <button
+                className="btn btn--danger"
+                onClick={confirmDeleteMenuItem}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Tar bort...' : 'Ta bort'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

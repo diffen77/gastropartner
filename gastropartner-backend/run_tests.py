@@ -27,7 +27,9 @@ def run_tests_with_reports():
 
     # Base pytest command with comprehensive reporting
     cmd = [
-        "uv", "run", "pytest",
+        "uv",
+        "run",
+        "pytest",
         "--verbose",
         "--tb=short",  # Shorter traceback format
         # JUnit XML for CI/CD integration

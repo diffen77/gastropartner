@@ -51,7 +51,7 @@ def mock_organization_user_data():
         "role": "owner",
         "joined_at": "2024-01-01T00:00:00Z",
         "organization_id": "87654321-4321-4321-4321-210987654321",
-        "user_id": "12345678-1234-1234-1234-123456789012"
+        "user_id": "12345678-1234-1234-1234-123456789012",
     }
 
 
@@ -64,5 +64,5 @@ def mock_organization_data():
         "slug": "test-org",
         "plan": "free",
         "description": "Test organization for unit tests",
-        "created_at": "2024-01-01T00:00:00Z"
+        "created_at": "2024-01-01T00:00:00Z",
     }

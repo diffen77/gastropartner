@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useModuleSettings } from '../hooks/useModuleSettings';
+import { useModuleSettings } from '../contexts/ModuleSettingsContext';
+import { useGlobalFeatureFlags } from '../hooks/useGlobalFeatureFlags';
 
 interface ModuleProtectedRouteProps {
   children: React.ReactNode;
@@ -9,7 +10,10 @@ interface ModuleProtectedRouteProps {
   showDisabledMessage?: boolean;
 }
 
-const ModuleDisabledMessage: React.FC<{ moduleId: string }> = ({ moduleId }) => (
+const ModuleDisabledMessage: React.FC<{ 
+  moduleId: string; 
+  isGloballyDisabled?: boolean; 
+}> = ({ moduleId, isGloballyDisabled = false }) => (
   <div style={{
     display: 'flex',
     flexDirection: 'column',
@@ -36,33 +40,37 @@ const ModuleDisabledMessage: React.FC<{ moduleId: string }> = ({ moduleId }) => 
       color: '#374151',
       marginBottom: '0.5rem'
     }}>
-      Modulen är inaktiverad
+      {isGloballyDisabled ? 'Modulen är inte tillgänglig' : 'Modulen är inaktiverad'}
     </h2>
     <p style={{
       color: '#6b7280',
       marginBottom: '1.5rem',
       maxWidth: '400px'
     }}>
-      Modulen "{moduleId}" är för närvarande inaktiverad för din organisation. 
-      Kontakta en administratör för att aktivera den.
+      {isGloballyDisabled 
+        ? `Modulen "${moduleId}" är för närvarande inte tillgänglig. Den är under utveckling och kommer att vara tillgänglig snart.`
+        : `Modulen "${moduleId}" är för närvarande inaktiverad för din organisation. Kontakta en administratör för att aktivera den.`
+      }
     </p>
-    <a
-      href="/installningar"
-      style={{
-        padding: '0.75rem 1.5rem',
-        backgroundColor: '#3b82f6',
-        color: 'white',
-        textDecoration: 'none',
-        borderRadius: '0.375rem',
-        fontSize: '0.875rem',
-        fontWeight: '500',
-        transition: 'background-color 0.2s'
-      }}
-      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
-      onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
-    >
-      Gå till Inställningar
-    </a>
+    {!isGloballyDisabled && (
+      <a
+        href="/installningar"
+        style={{
+          padding: '0.75rem 1.5rem',
+          backgroundColor: '#3b82f6',
+          color: 'white',
+          textDecoration: 'none',
+          borderRadius: '0.375rem',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          transition: 'background-color 0.2s'
+        }}
+        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+      >
+        Gå till Inställningar
+      </a>
+    )}
   </div>
 );
 
@@ -72,10 +80,11 @@ export const ModuleProtectedRoute: React.FC<ModuleProtectedRouteProps> = ({
   fallbackPath = '/',
   showDisabledMessage = true
 }) => {
-  const { isModuleEnabled, loading } = useModuleSettings();
+  const { isModuleEnabled, loading: moduleSettingsLoading } = useModuleSettings();
+  const { isModuleGloballyAvailable, loading: globalFlagsLoading } = useGlobalFeatureFlags();
 
   // Show loading state while checking module status
-  if (loading) {
+  if (moduleSettingsLoading || globalFlagsLoading) {
     return (
       <div style={{
         display: 'flex',
@@ -89,18 +98,32 @@ export const ModuleProtectedRoute: React.FC<ModuleProtectedRouteProps> = ({
     );
   }
 
-  // Check if module is enabled
-  const moduleEnabled = isModuleEnabled(moduleId);
-
-  if (!moduleEnabled) {
+  // 🚨 CRITICAL: TWO-LEVEL MODULE VALIDATION
+  // LEVEL 1: Check global feature flag first (SuperAdmin control)
+  const globallyAvailable = isModuleGloballyAvailable(moduleId as any);
+  
+  if (!globallyAvailable) {
+    // Module is globally disabled by SuperAdmin - not available for any organization
     if (showDisabledMessage) {
-      return <ModuleDisabledMessage moduleId={moduleId} />;
+      return <ModuleDisabledMessage moduleId={moduleId} isGloballyDisabled={true} />;
     } else {
       return <Navigate to={fallbackPath} replace />;
     }
   }
 
-  // Module is enabled, render children
+  // LEVEL 2: Check organization-specific setting
+  const orgModuleEnabled = isModuleEnabled(moduleId);
+  
+  if (!orgModuleEnabled) {
+    // Module is globally available but disabled for this organization
+    if (showDisabledMessage) {
+      return <ModuleDisabledMessage moduleId={moduleId} isGloballyDisabled={false} />;
+    } else {
+      return <Navigate to={fallbackPath} replace />;
+    }
+  }
+
+  // ✅ Module is both globally available AND enabled for this organization
   return <>{children}</>;
 };
 

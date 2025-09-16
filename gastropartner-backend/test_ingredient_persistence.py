@@ -28,12 +28,14 @@ async def test_ingredient_persistence():
         # This simulates proper authentication
         try:
             # Use development token pattern from auth.py
-            supabase.auth.set_session({
-                'access_token': 'dev_token_dev_example_com',
-                'refresh_token': 'mock_refresh',
-                'token_type': 'Bearer',
-                'expires_in': 3600
-            })
+            supabase.auth.set_session(
+                {
+                    "access_token": "dev_token_dev_example_com",
+                    "refresh_token": "mock_refresh",
+                    "token_type": "Bearer",
+                    "expires_in": 3600,
+                }
+            )
         except Exception as e:
             print(f"⚠️  Could not set auth session: {e}")
 
@@ -45,7 +47,7 @@ async def test_ingredient_persistence():
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
         email_confirmed_at=datetime.now(UTC),
-        last_sign_in_at=datetime.now(UTC)
+        last_sign_in_at=datetime.now(UTC),
     )
 
     # Get organization ID (this should return development org ID)
@@ -57,9 +59,13 @@ async def test_ingredient_persistence():
     print(f"📋 Using organization ID: {organization_id}")
 
     # Test 1: Count ingredients before creation
-    initial_ingredients = supabase.table("ingredients").select(
-        "*"
-    ).eq("organization_id", str(organization_id)).eq("is_active", True).execute()
+    initial_ingredients = (
+        supabase.table("ingredients")
+        .select("*")
+        .eq("organization_id", str(organization_id))
+        .eq("is_active", True)
+        .execute()
+    )
 
     initial_count = len(initial_ingredients.data)
     print(f"📊 Initial ingredient count: {initial_count}")
@@ -71,7 +77,7 @@ async def test_ingredient_persistence():
         unit="kg",
         cost_per_unit=Decimal("25.50"),
         supplier="Test Supplier",
-        notes="Test ingredient for persistence verification"
+        notes="Test ingredient for persistence verification",
     )
 
     print(f"🧄 Creating ingredient: {test_ingredient.name}")
@@ -82,16 +88,23 @@ async def test_ingredient_persistence():
             ingredient_data=test_ingredient,
             current_user=mock_user,
             organization_id=organization_id,
-            supabase=supabase
+            supabase=supabase,
         )
 
         print(f"✅ Ingredient created with ID: {created_ingredient.ingredient_id}")
-        print(f"📋 Created ingredient data: {json.dumps({
-            'id': str(created_ingredient.ingredient_id),
-            'name': created_ingredient.name,
-            'category': created_ingredient.category,
-            'cost': str(created_ingredient.cost_per_unit)
-        }, indent=2)}")
+        print(
+            f"📋 Created ingredient data: {
+                json.dumps(
+                    {
+                        'id': str(created_ingredient.ingredient_id),
+                        'name': created_ingredient.name,
+                        'category': created_ingredient.category,
+                        'cost': str(created_ingredient.cost_per_unit),
+                    },
+                    indent=2,
+                )
+            }"
+        )
 
     except Exception as e:
         print(f"❌ Failed to create ingredient: {e}")
@@ -100,9 +113,13 @@ async def test_ingredient_persistence():
     # Test 3: Verify ingredient was persisted to database
     print("🔍 Verifying persistence...")
 
-    final_ingredients = supabase.table("ingredients").select(
-        "*"
-    ).eq("organization_id", str(organization_id)).eq("is_active", True).execute()
+    final_ingredients = (
+        supabase.table("ingredients")
+        .select("*")
+        .eq("organization_id", str(organization_id))
+        .eq("is_active", True)
+        .execute()
+    )
 
     final_count = len(final_ingredients.data)
     print(f"📊 Final ingredient count: {final_count}")
@@ -120,12 +137,19 @@ async def test_ingredient_persistence():
 
         if created_in_db:
             print("✅ SUCCESS: Found created ingredient in database!")
-            print(f"📋 Database record: {json.dumps({
-                'id': created_in_db['ingredient_id'],
-                'name': created_in_db['name'],
-                'category': created_in_db['category'],
-                'cost': created_in_db['cost_per_unit']
-            }, indent=2)}")
+            print(
+                f"📋 Database record: {
+                    json.dumps(
+                        {
+                            'id': created_in_db['ingredient_id'],
+                            'name': created_in_db['name'],
+                            'category': created_in_db['category'],
+                            'cost': created_in_db['cost_per_unit'],
+                        },
+                        indent=2,
+                    )
+                }"
+            )
         else:
             print("⚠️  WARNING: Count increased but couldn't find exact ingredient")
 
@@ -133,8 +157,7 @@ async def test_ingredient_persistence():
         print("🔍 Testing list API endpoint...")
         try:
             api_ingredients = await list_ingredients(
-                organization_id=organization_id,
-                supabase=supabase
+                organization_id=organization_id, supabase=supabase
             )
 
             print(f"📊 API returned {len(api_ingredients)} ingredients")

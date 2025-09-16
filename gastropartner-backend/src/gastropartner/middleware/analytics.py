@@ -9,6 +9,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from gastropartner.core.analytics import AnalyticsService
 from gastropartner.core.database import get_supabase_client
+from gastropartner.utils.logger import dev_logger
 
 
 class AnalyticsMiddleware(BaseHTTPMiddleware):
@@ -70,7 +71,7 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
             organization_id = UUID("87654321-4321-4321-4321-210987654321")
 
             # Extract user ID from request state if available
-            user_id = getattr(request.state, 'user_id', None)
+            user_id = getattr(request.state, "user_id", None)
             if user_id:
                 user_id = UUID(user_id) if isinstance(user_id, str) else user_id
 
@@ -113,13 +114,16 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
 
         except Exception as e:
             # Don't let analytics tracking break the main request
-            print(f"Analytics tracking error: {e}")
+            dev_logger.error_print(f"Analytics tracking error: {e}")
 
     def _should_track_api_call(self, path: str, method: str, status_code: int) -> bool:
         """Determine if API call should be tracked."""
         # Skip tracking for certain paths
         skip_paths = [
-            "/docs", "/openapi.json", "/favicon.ico", "/health",
+            "/docs",
+            "/openapi.json",
+            "/favicon.ico",
+            "/health",
             "/api/v1/analytics/track",  # Avoid infinite loops
         ]
 
@@ -185,7 +189,7 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
             )
 
         except Exception as e:
-            print(f"Error tracking limit hit: {e}")
+            dev_logger.error_print(f"Error tracking limit hit: {e}")
 
     async def _track_feature_usage_from_path(
         self,
@@ -235,7 +239,7 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
                 )
 
         except Exception as e:
-            print(f"Error tracking feature usage: {e}")
+            dev_logger.error_print(f"Error tracking feature usage: {e}")
 
 
 # Enhanced freemium service integration
@@ -264,7 +268,7 @@ async def track_limit_hit_with_analytics(
         )
 
     except Exception as e:
-        print(f"Failed to track limit hit: {e}")
+        dev_logger.error_print(f"Failed to track limit hit: {e}")
 
 
 async def track_upgrade_prompt_with_analytics(
@@ -290,7 +294,7 @@ async def track_upgrade_prompt_with_analytics(
         )
 
     except Exception as e:
-        print(f"Failed to track upgrade prompt: {e}")
+        dev_logger.error_print(f"Failed to track upgrade prompt: {e}")
 
 
 async def track_successful_feature_usage(
@@ -317,4 +321,4 @@ async def track_successful_feature_usage(
         )
 
     except Exception as e:
-        print(f"Failed to track feature usage: {e}")
+        dev_logger.error_print(f"Failed to track feature usage: {e}")

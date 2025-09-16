@@ -25,50 +25,64 @@ def get_authenticated_supabase_client(
     supabase: Client = Depends(get_supabase_client),
 ) -> Client:
     """Get Supabase client with proper authentication context."""
-    # For development user, try to get admin client to bypass RLS
+    # Get authenticated client to ensure RLS policies are applied
     auth_client = get_supabase_client_with_auth(str(current_user.id))
     return auth_client
 
 
 async def check_ingredient_limits(
-    organization_id: UUID,
-    supabase: Client,
-    exclude_creating: bool = False
+    organization_id: UUID, supabase: Client, exclude_creating: bool = False
 ) -> UsageLimitsCheck:
     """Check if organization can add more ingredients."""
 
     # Get organization limits
-    org_response = supabase.table("organizations").select(
-        "max_ingredients, current_ingredients, max_recipes, current_recipes, max_menu_items, current_menu_items"
-    ).eq("organization_id", str(organization_id)).execute()
+    org_response = (
+        supabase.table("organizations")
+        .select(
+            "max_ingredients, current_ingredients, max_recipes, current_recipes, max_menu_items, current_menu_items"
+        )
+        .eq("organization_id", str(organization_id))
+        .execute()
+    )
 
     if not org_response.data:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Organization not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found")
 
     org = org_response.data[0]
 
     # Count current usage
-    ingredients_count = supabase.table("ingredients").select(
-        "ingredient_id", count="exact"
-    ).eq("organization_id", str(organization_id)).eq("is_active", True).execute()
+    ingredients_count = (
+        supabase.table("ingredients")
+        .select("ingredient_id", count="exact")
+        .eq("organization_id", str(organization_id))
+        .eq("is_active", True)
+        .execute()
+    )
 
-    recipes_count = supabase.table("recipes").select(
-        "recipe_id", count="exact"
-    ).eq("organization_id", str(organization_id)).eq("is_active", True).execute()
+    recipes_count = (
+        supabase.table("recipes")
+        .select("recipe_id", count="exact")
+        .eq("organization_id", str(organization_id))
+        .eq("is_active", True)
+        .execute()
+    )
 
-    menu_items_count = supabase.table("menu_items").select(
-        "menu_item_id", count="exact"
-    ).eq("organization_id", str(organization_id)).eq("is_active", True).execute()
+    menu_items_count = (
+        supabase.table("menu_items")
+        .select("menu_item_id", count="exact")
+        .eq("organization_id", str(organization_id))
+        .eq("is_active", True)
+        .execute()
+    )
 
     current_ingredients = ingredients_count.count or 0
     current_recipes = recipes_count.count or 0
     current_menu_items = menu_items_count.count or 0
 
     # Check if adding one more would exceed limits
-    can_add_ingredient = (current_ingredients + (1 if not exclude_creating else 0)) <= org["max_ingredients"]
+    can_add_ingredient = (current_ingredients + (1 if not exclude_creating else 0)) <= org[
+        "max_ingredients"
+    ]
     can_add_recipe = current_recipes <= org["max_recipes"]
     can_add_menu_item = current_menu_items <= org["max_menu_items"]
 
@@ -93,7 +107,7 @@ async def check_ingredient_limits(
     response_model=Ingredient,
     status_code=status.HTTP_201_CREATED,
     summary="Create ingredient",
-    description="Create a new ingredient (freemium: max 50 ingredients)"
+    description="Create a new ingredient (freemium: max 50 ingredients)",
 )
 async def create_ingredient(
     ingredient_data: IngredientCreate,
@@ -124,20 +138,17 @@ async def create_ingredient(
             "supplier": ingredient_data.supplier,
             "notes": ingredient_data.notes,
         }
-        
-        # For development users (UUID starts with 'd'), don't set creator_id
-        # since they don't exist in auth.users table
-        if not str(current_user.id).startswith("d"):
-            ingredient_insert_data["creator_id"] = str(current_user.id)
-        # For dev users, creator_id will be NULL which should be allowed
-        
+
+        # Always set creator_id for proper audit tracking
+        ingredient_insert_data["creator_id"] = str(current_user.id)
+
         # Create ingredient
         response = supabase.table("ingredients").insert(ingredient_insert_data).execute()
 
         if not response.data:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create ingredient"
+                detail="Failed to create ingredient",
             )
 
         return Ingredient(**response.data[0])
@@ -146,8 +157,7 @@ async def create_ingredient(
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {e!s}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {e!s}"
         ) from e
 
 
@@ -155,7 +165,7 @@ async def create_ingredient(
     "/",
     response_model=list[Ingredient],
     summary="List ingredients",
-    description="Get all ingredients for the organization"
+    description="Get all ingredients for the organization",
 )
 async def list_ingredients(
     organization_id: UUID = Depends(get_user_organization),
@@ -172,8 +182,8 @@ async def list_ingredients(
     """
 
     try:
-        query = supabase.table("ingredients").select("*").eq(
-            "organization_id", str(organization_id)
+        query = (
+            supabase.table("ingredients").select("*").eq("organization_id", str(organization_id))
         )
 
         if category:
@@ -190,8 +200,7 @@ async def list_ingredients(
 
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {e!s}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {e!s}"
         ) from e
 
 
@@ -199,7 +208,7 @@ async def list_ingredients(
     "/{ingredient_id}",
     response_model=Ingredient,
     summary="Get ingredient",
-    description="Get ingredient details by ID"
+    description="Get ingredient details by ID",
 )
 async def get_ingredient(
     ingredient_id: UUID,
@@ -208,15 +217,16 @@ async def get_ingredient(
 ) -> Ingredient:
     """Get ingredient by ID."""
 
-    response = supabase.table("ingredients").select("*").eq(
-        "ingredient_id", str(ingredient_id)
-    ).eq("organization_id", str(organization_id)).execute()
+    response = (
+        supabase.table("ingredients")
+        .select("*")
+        .eq("ingredient_id", str(ingredient_id))
+        .eq("organization_id", str(organization_id))
+        .execute()
+    )
 
     if not response.data:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Ingredient not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ingredient not found")
 
     return Ingredient(**response.data[0])
 
@@ -225,7 +235,7 @@ async def get_ingredient(
     "/{ingredient_id}",
     response_model=Ingredient,
     summary="Update ingredient",
-    description="Update ingredient details"
+    description="Update ingredient details",
 )
 async def update_ingredient(
     ingredient_id: UUID,
@@ -260,14 +270,17 @@ async def update_ingredient(
 
     update_data["updated_at"] = "now()"
 
-    response = supabase.table("ingredients").update(update_data).eq(
-        "ingredient_id", str(ingredient_id)
-    ).eq("organization_id", str(organization_id)).execute()
+    response = (
+        supabase.table("ingredients")
+        .update(update_data)
+        .eq("ingredient_id", str(ingredient_id))
+        .eq("organization_id", str(organization_id))
+        .execute()
+    )
 
     if not response.data:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update ingredient"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update ingredient"
         )
 
     return Ingredient(**response.data[0])
@@ -277,7 +290,7 @@ async def update_ingredient(
     "/{ingredient_id}",
     response_model=MessageResponse,
     summary="Delete ingredient",
-    description="Delete ingredient (soft delete - marks as inactive)"
+    description="Delete ingredient (soft delete - marks as inactive)",
 )
 async def delete_ingredient(
     ingredient_id: UUID,
@@ -295,30 +308,27 @@ async def delete_ingredient(
     await get_ingredient(ingredient_id, organization_id, supabase)
 
     # Soft delete by setting is_active = false
-    response = supabase.table("ingredients").update({
-        "is_active": False,
-        "updated_at": "now()"
-    }).eq("ingredient_id", str(ingredient_id)).eq(
-        "organization_id", str(organization_id)
-    ).execute()
+    response = (
+        supabase.table("ingredients")
+        .update({"is_active": False, "updated_at": "now()"})
+        .eq("ingredient_id", str(ingredient_id))
+        .eq("organization_id", str(organization_id))
+        .execute()
+    )
 
     if not response.data:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete ingredient"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to delete ingredient"
         )
 
-    return MessageResponse(
-        message="Ingredient deleted successfully",
-        success=True
-    )
+    return MessageResponse(message="Ingredient deleted successfully", success=True)
 
 
 @router.get(
     "/usage/limits",
     response_model=UsageLimitsCheck,
     summary="Check usage limits",
-    description="Check current usage vs freemium limits"
+    description="Check current usage vs freemium limits",
 )
 async def check_usage_limits(
     organization_id: UUID = Depends(get_user_organization),
@@ -334,7 +344,7 @@ async def check_usage_limits(
     "/categories",
     response_model=list[str],
     summary="List ingredient categories",
-    description="Get all ingredient categories used in the organization"
+    description="Get all ingredient categories used in the organization",
 )
 async def list_ingredient_categories(
     organization_id: UUID = Depends(get_user_organization),
@@ -342,14 +352,15 @@ async def list_ingredient_categories(
 ) -> list[str]:
     """List all ingredient categories used in the organization."""
 
-    response = supabase.table("ingredients").select("category").eq(
-        "organization_id", str(organization_id)
-    ).eq("is_active", True).execute()
+    response = (
+        supabase.table("ingredients")
+        .select("category")
+        .eq("organization_id", str(organization_id))
+        .eq("is_active", True)
+        .execute()
+    )
 
     # Extract unique categories, filter out nulls
-    categories = list({
-        item["category"] for item in response.data
-        if item["category"] is not None
-    })
+    categories = list({item["category"] for item in response.data if item["category"] is not None})
 
     return sorted(categories)

@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from '../localization/sv';
+import { MobileTableView } from './SearchableTable/MobileTableView';
 import './SearchableTable.css';
 
 export interface TableColumn {
@@ -32,6 +33,19 @@ export function SearchableTable({
   const [searchTerm, setSearchTerm] = useState('');
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   // Use translated defaults if not provided
   const finalSearchPlaceholder = searchPlaceholder || t('search') + '...';
@@ -108,6 +122,7 @@ export function SearchableTable({
               type="text"
               className="search-input__field"
               placeholder={finalSearchPlaceholder}
+              aria-label={`Sök bland ${finalSearchPlaceholder}`}
               autoComplete="off"
               disabled
             />
@@ -135,6 +150,7 @@ export function SearchableTable({
             type="text"
             className="search-input__field"
             placeholder={finalSearchPlaceholder}
+            aria-label={`Sök bland ${finalSearchPlaceholder}`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             autoComplete="off"
@@ -143,55 +159,66 @@ export function SearchableTable({
       </div>
 
       <div className="table-container">
-        {filteredAndSortedData.length === 0 ? (
-          <div className="table-empty">
-            <p>{finalEmptyMessage}</p>
-          </div>
+        {isMobile ? (
+          <MobileTableView
+            columns={columns}
+            data={filteredAndSortedData}
+            onRowClick={onRowClick}
+            emptyMessage={finalEmptyMessage}
+          />
         ) : (
-          <table className="data-table">
-            <thead className="data-table__header">
-              <tr>
-                {columns.map((column) => (
-                  <th
-                    key={column.key}
-                    className={`data-table__header-cell ${
-                      column.sortable ? 'data-table__header-cell--sortable' : ''
-                    }`}
-                    onClick={() => column.sortable && handleSort(column.key)}
-                  >
-                    <div className="data-table__header-content">
-                      <span>{column.label}</span>
-                      {column.sortable && (
-                        <span className="data-table__sort-icon">
-                          {getSortIcon(column.key)}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="data-table__body">
-              {filteredAndSortedData.map((row, index) => (
-                <tr
-                  key={index}
-                  className={`data-table__row ${
-                    onRowClick ? 'data-table__row--clickable' : ''
-                  }`}
-                  onClick={() => onRowClick?.(row)}
-                >
-                  {columns.map((column) => (
-                    <td key={column.key} className="data-table__cell">
-                      {column.render 
-                        ? column.render(row[column.key], row)
-                        : row[column.key]
-                      }
-                    </td>
+          <>
+            {filteredAndSortedData.length === 0 ? (
+              <div className="table-empty">
+                <p>{finalEmptyMessage}</p>
+              </div>
+            ) : (
+              <table className="data-table">
+                <thead className="data-table__header">
+                  <tr>
+                    {columns.map((column) => (
+                      <th
+                        key={column.key}
+                        className={`data-table__header-cell ${
+                          column.sortable ? 'data-table__header-cell--sortable' : ''
+                        }`}
+                        onClick={() => column.sortable && handleSort(column.key)}
+                      >
+                        <div className="data-table__header-content">
+                          <span>{column.label}</span>
+                          {column.sortable && (
+                            <span className="data-table__sort-icon">
+                              {getSortIcon(column.key)}
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="data-table__body">
+                  {filteredAndSortedData.map((row, index) => (
+                    <tr
+                      key={index}
+                      className={`data-table__row ${
+                        onRowClick ? 'data-table__row--clickable' : ''
+                      }`}
+                      onClick={() => onRowClick?.(row)}
+                    >
+                      {columns.map((column) => (
+                        <td key={column.key} className="data-table__cell">
+                          {column.render
+                            ? column.render(row[column.key], row)
+                            : row[column.key]
+                          }
+                        </td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                </tbody>
+              </table>
+            )}
+          </>
         )}
       </div>
     </div>

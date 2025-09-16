@@ -4,6 +4,7 @@ import StatusIndicator from '../components/Status/StatusIndicator';
 import IncidentHistory from '../components/Status/IncidentHistory';
 import './Status.css';
 
+/* SystemStatus interface preserved for future status page functionality
 interface SystemStatus {
   overall_status: string;
   last_updated: string;
@@ -29,6 +30,7 @@ interface SystemStatus {
     description: string;
   }>;
 }
+*/
 
 const Status: React.FC = () => {
   const { status, loading, error, refreshStatus } = useSystemStatus();

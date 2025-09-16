@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { PageHeader } from '../components/PageHeader';
 import { RecipeForm } from '../components/Recipes/RecipeForm';
+import { RecipeView } from '../components/Recipes/RecipeView';
 import { MetricsCard } from '../components/MetricsCard';
 import { SearchableTable, TableColumn } from '../components/SearchableTable';
 import { EmptyState } from '../components/EmptyState';
 import { OrganizationSelector } from '../components/Organizations/OrganizationSelector';
-import PlanStatusWidget from '../components/PlanStatusWidget';
 import { useTranslation } from '../localization/sv';
 import { formatCurrency, formatPercentage } from '../utils/formatting';
 import { apiClient, Recipe, RecipeCreate } from '../utils/api';
@@ -23,6 +23,7 @@ export function Recipes() {
     isOpen: boolean;
     recipe: Recipe | null;
   }>({ isOpen: false, recipe: null });
+  const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null);
 
   const loadRecipes = async () => {
     try {
@@ -100,6 +101,15 @@ export function Recipes() {
   const handleEditRecipe = (recipe: Recipe) => {
     setEditingRecipe(recipe);
     setIsFormOpen(true);
+    setViewingRecipe(null); // Close recipe view if open
+  };
+
+  const handleViewRecipe = (recipe: Recipe) => {
+    setViewingRecipe(recipe);
+  };
+
+  const handleCloseRecipeView = () => {
+    setViewingRecipe(null);
   };
 
   const handleDeleteRecipe = (recipe: Recipe) => {
@@ -199,41 +209,19 @@ export function Recipes() {
         title="📝 Recept" 
         subtitle="Skapa recept och beräkna kostnader för dina rätter"
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
-          <div style={{ 
-            background: 'rgba(0, 102, 204, 0.1)', 
-            border: '1px solid rgba(0, 102, 204, 0.2)', 
-            borderRadius: 'var(--border-radius)', 
-            padding: 'var(--spacing-xs) var(--spacing-sm)', 
-            fontSize: 'var(--font-size-sm)',
-            color: 'var(--color-primary-blue)',
-            fontWeight: '500'
-          }}>
-            <span>Plan: FREE</span>
-            <span style={{ marginLeft: 'var(--spacing-xs)' }}>({activeRecipes.length}/5 recept)</span>
-          </div>
-          <button 
-            className="btn btn--primary"
-            onClick={() => setIsFormOpen(true)}
-            disabled={atRecipeLimit}
-            title={atRecipeLimit ? "Du har nått gränsen för FREE-planen. Uppgradera för fler recept." : "Skapa nytt recept"}
-          >
-            + Nytt Recept
-          </button>
-        </div>
+        <button 
+          className="btn btn--primary"
+          onClick={() => setIsFormOpen(true)}
+          disabled={atRecipeLimit}
+          title={atRecipeLimit ? "Du har nått receptgränsen. Uppgradera för fler recept." : "Skapa nytt recept"}
+        >
+          + Nytt Recept
+        </button>
       </PageHeader>
 
       <div className="modules-container">
         <OrganizationSelector />
         
-        {/* Plan Status Widget */}
-        <div style={{ marginBottom: 'var(--spacing-xl)' }}>
-          <PlanStatusWidget 
-            plan="free" 
-            showUpgradeButton={true}
-            onUpgrade={() => alert('Upgrade funktionalitet kommer snart!')}
-          />
-        </div>
         
         {error && (
           <div className="error-banner">
@@ -243,7 +231,7 @@ export function Recipes() {
 
         {atRecipeLimit && (
           <div className="error-banner">
-            <span>⚠️ Du har nått gränsen för recept på FREE-planen (5/5). Uppgradera till Premium för obegränsade recept.</span>
+            <span>⚠️ Du har nått receptgränsen (5/5). Uppgradera till Premium för obegränsade recept.</span>
           </div>
         )}
         
@@ -258,7 +246,7 @@ export function Recipes() {
             marginBottom: 'var(--spacing-lg)',
             fontWeight: '500'
           }}>
-            <span>ℹ️ FREE-plan: Du har använt {activeRecipes.length} av 5 tillgängliga recept ({formatPercentage(recipeUsagePercentage, 0)}). Uppgradera till Premium för obegränsade recept.</span>
+            <span>ℹ️ Du har använt {activeRecipes.length} av 5 tillgängliga recept ({formatPercentage(recipeUsagePercentage, 0)}). Uppgradera till Premium för obegränsade recept.</span>
           </div>
         )}
 
@@ -336,6 +324,7 @@ export function Recipes() {
                 data={tableData}
                 searchPlaceholder="Sök recept..."
                 emptyMessage="Inga recept hittades"
+                onRowClick={(row) => handleViewRecipe(row.originalRecipe)}
               />
             )}
           </div>
@@ -411,6 +400,15 @@ export function Recipes() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Recipe View Modal */}
+      {viewingRecipe && (
+        <RecipeView
+          recipe={viewingRecipe}
+          onEdit={() => handleEditRecipe(viewingRecipe)}
+          onClose={handleCloseRecipeView}
+        />
       )}
     </div>
   );
