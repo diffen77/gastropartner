@@ -1,0 +1,123 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - heading "GastroPartner" [level=1] [ref=e6]
+      - paragraph [ref=e7]: SaaS för restauranger och livsmedelsproducenter
+    - generic [ref=e9]:
+      - heading "Logga in" [level=2] [ref=e10]
+      - generic [ref=e11]:
+        - generic [ref=e12]: E-post
+        - textbox "E-post" [ref=e13]
+      - generic [ref=e14]:
+        - generic [ref=e15]: Lösenord
+        - textbox "Lösenord" [ref=e16]
+      - button "Logga in" [ref=e17] [cursor=pointer]:
+        - generic [ref=e18] [cursor=pointer]: Logga in
+      - paragraph [ref=e20]:
+        - text: Har du inget konto?
+        - button "Skapa konto" [ref=e21] [cursor=pointer]
+  - iframe [ref=e22]:
+    - generic [ref=f1e1]:
+      - generic [ref=f1e2]: "Compiled with problems:"
+      - button "Dismiss" [ref=f1e3] [cursor=pointer]: ×
+      - generic [ref=f1e4]:
+        - generic [ref=f1e5]:
+          - generic [ref=f1e6]: ERROR in src/components/RecipeManagement/RecipeMenuWizard.tsx:174:22
+          - generic [ref=f1e7]: "TS2339: Property 'id' does not exist on type 'Recipe'. 172 | onComplete?.({ 173 | type: 'recipe', > 174 | id: result.id, | ^^ 175 | data: result, 176 | }); 177 | } else {"
+        - generic [ref=f1e8]:
+          - generic [ref=f1e9]: ERROR in src/components/RecipeManagement/RecipeMenuWizard.tsx:184:13
+          - generic [ref=f1e10]: "TS2345: Argument of type '{ name: string; description: string; category: string; ingredients: Ingredients; instructions: string; preparationTime: number; cookingTime: number; servings: number; price: number; margin: number; isAvailable: boolean; organizationId: string | undefined; }' is not assignable to parameter of type 'Partial<MenuItemCreate>'. Object literal may only specify known properties, and 'ingredients' does not exist in type 'Partial<MenuItemCreate>'. 182 | description: data.basicInfo.description, 183 | category: data.basicInfo.category, > 184 | ingredients: data.ingredients, | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 185 | instructions: data.preparation.instructions, 186 | preparationTime: data.preparation.preparationTime, 187 | cookingTime: data.preparation.cookingTime,"
+        - generic [ref=f1e11]:
+          - generic [ref=f1e12]: ERROR in src/components/RecipeManagement/RecipeMenuWizard.tsx:199:13
+          - generic [ref=f1e13]: "TS2345: Argument of type '{ name: string; description: string; category: string; ingredients: Ingredients; instructions: string; preparationTime: number; cookingTime: number; servings: number; price: number; margin: number; isAvailable: boolean; organizationId: string | undefined; }' is not assignable to parameter of type 'MenuItemCreate'. Object literal may only specify known properties, and 'ingredients' does not exist in type 'MenuItemCreate'. 197 | description: data.basicInfo.description, 198 | category: data.basicInfo.category, > 199 | ingredients: data.ingredients, | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 200 | instructions: data.preparation.instructions, 201 | preparationTime: data.preparation.preparationTime, 202 | cookingTime: data.preparation.cookingTime,"
+        - generic [ref=f1e14]:
+          - generic [ref=f1e15]: ERROR in src/components/RecipeManagement/RecipeMenuWizard.tsx:213:22
+          - generic [ref=f1e16]: "TS2339: Property 'id' does not exist on type 'MenuItem'. 211 | onComplete?.({ 212 | type: 'menu-item', > 213 | id: result.id, | ^^ 214 | data: result, 215 | }); 216 | }"
+        - generic [ref=f1e17]:
+          - generic [ref=f1e18]: ERROR in src/components/RecipeManagement/RecipeMenuWizard.tsx:342:13
+          - generic [ref=f1e19]: "TS2322: Type '{ data: WizardData; creationType: \"recipe\" | \"menu-item\" | null; errors: string[]; isLoading: boolean; onEditStep: (step: any) => void; onDataUpdate: (newData: Partial<WizardData>) => void; }' is not assignable to type 'IntrinsicAttributes & PreviewStepProps'. Property 'onEditStep' does not exist on type 'IntrinsicAttributes & PreviewStepProps'. 340 | errors={errors} 341 | isLoading={isLoading} > 342 | onEditStep={(step) => goToStep(step)} | ^^^^^^^^^^ 343 | onDataUpdate={updateData} 344 | /> 345 | );"
+        - generic [ref=f1e20]:
+          - generic [ref=f1e21]: ERROR in src/components/RecipeManagement/RecipeMenuWizard.tsx:342:26
+          - generic [ref=f1e22]: "TS7006: Parameter 'step' implicitly has an 'any' type. 340 | errors={errors} 341 | isLoading={isLoading} > 342 | onEditStep={(step) => goToStep(step)} | ^^^^ 343 | onDataUpdate={updateData} 344 | /> 345 | );"
+        - generic [ref=f1e23]:
+          - generic [ref=f1e24]: ERROR in src/components/RecipeManagement/RecipeMenuWizard.tsx:357:9
+          - generic [ref=f1e25]: "TS2322: Type 'import(\"/Users/diffen/Documents/Code/gastropartner/gastropartner-frontend/src/hooks/useRecipeMenuWizardState\").WizardStep' is not assignable to type 'import(\"/Users/diffen/Documents/Code/gastropartner/gastropartner-frontend/src/hooks/useWizardState\").WizardStep'. Type '\"basic-info\"' is not assignable to type 'WizardStep'. 355 | <WizardNavigation 356 | steps={WIZARD_STEPS.filter(step => isStepRequired(step.id))} > 357 | currentStep={currentStep} | ^^^^^^^^^^^ 358 | progress={progress} 359 | canGoNext={canGoNext} 360 | canGoPrevious={canGoPrevious}"
+        - generic [ref=f1e26]:
+          - generic [ref=f1e27]: ERROR in src/components/RecipeManagement/steps/BasicInfoStep.tsx:10:10
+          - generic [ref=f1e28]: "TS2305: Module '\"../../../hooks/useWizardState\"' has no exported member 'BasicInfo'. 8 | 9 | import React, { useCallback, useState } from 'react'; > 10 | import { BasicInfo } from '../../../hooks/useWizardState'; | ^^^^^^^^^ 11 | import { WizardStep, WizardStepSection, WizardStepHint } from '../WizardStep'; 12 | import './BasicInfoStep.css'; 13 |"
+        - generic [ref=f1e29]:
+          - generic [ref=f1e30]: ERROR in src/components/RecipeManagement/steps/BasicInfoStep.tsx:135:7
+          - generic [ref=f1e31]: "TS2322: Type '\"basic-info\"' is not assignable to type 'WizardStep'. 133 | return ( 134 | <WizardStep > 135 | stepId=\"basic-info\" | ^^^^^^ 136 | title=\"Grundinformation\" 137 | description={`Fyll i grundläggande information för ditt ${creationType === 'recipe' ? 'grundrecept' : 'maträtt'}`} 138 | isActive={true}"
+        - generic [ref=f1e32]:
+          - generic [ref=f1e33]: ERROR in src/components/RecipeManagement/steps/CostCalculationStep.tsx:10:10
+          - generic [ref=f1e34]: "TS2724: '\"../../../hooks/useWizardState\"' has no exported member named 'CostCalculation'. Did you mean 'CostCalculationData'? 8 | 9 | import React, { useCallback, useState, useMemo } from 'react'; > 10 | import { CostCalculation, Ingredients } from '../../../hooks/useWizardState'; | ^^^^^^^^^^^^^^^ 11 | import { LiveCostCalculator } from '../../CostAnalysis/LiveCostCalculator'; 12 | import { WizardStep, WizardStepSection, WizardStepHint } from '../WizardStep'; 13 | import { useIngredients } from '../../../hooks/useIngredients';"
+        - generic [ref=f1e35]:
+          - generic [ref=f1e36]: ERROR in src/components/RecipeManagement/steps/CostCalculationStep.tsx:10:27
+          - generic [ref=f1e37]: "TS2305: Module '\"../../../hooks/useWizardState\"' has no exported member 'Ingredients'. 8 | 9 | import React, { useCallback, useState, useMemo } from 'react'; > 10 | import { CostCalculation, Ingredients } from '../../../hooks/useWizardState'; | ^^^^^^^^^^^ 11 | import { LiveCostCalculator } from '../../CostAnalysis/LiveCostCalculator'; 12 | import { WizardStep, WizardStepSection, WizardStepHint } from '../WizardStep'; 13 | import { useIngredients } from '../../../hooks/useIngredients';"
+        - generic [ref=f1e38]:
+          - generic [ref=f1e39]: ERROR in src/components/RecipeManagement/steps/CostCalculationStep.tsx:13:32
+          - generic [ref=f1e40]: "TS2307: Cannot find module '../../../hooks/useIngredients' or its corresponding type declarations. 11 | import { LiveCostCalculator } from '../../CostAnalysis/LiveCostCalculator'; 12 | import { WizardStep, WizardStepSection, WizardStepHint } from '../WizardStep'; > 13 | import { useIngredients } from '../../../hooks/useIngredients'; | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 14 | import { useRecipes } from '../../../hooks/useRecipes'; 15 | import './CostCalculationStep.css'; 16 |"
+        - generic [ref=f1e41]:
+          - generic [ref=f1e42]: ERROR in src/components/RecipeManagement/steps/CostCalculationStep.tsx:14:28
+          - generic [ref=f1e43]: "TS2307: Cannot find module '../../../hooks/useRecipes' or its corresponding type declarations. 12 | import { WizardStep, WizardStepSection, WizardStepHint } from '../WizardStep'; 13 | import { useIngredients } from '../../../hooks/useIngredients'; > 14 | import { useRecipes } from '../../../hooks/useRecipes'; | ^^^^^^^^^^^^^^^^^^^^^^^^^^^ 15 | import './CostCalculationStep.css'; 16 | 17 | export interface CostCalculationStepProps {"
+        - generic [ref=f1e44]:
+          - generic [ref=f1e45]: ERROR in src/components/RecipeManagement/steps/CostCalculationStep.tsx:81:28
+          - generic [ref=f1e46]: "TS7006: Parameter 'ingredient' implicitly has an 'any' type. 79 | // Convert wizard ingredients to LiveCostCalculator format 80 | const costCalculationItems = useMemo(() => { > 81 | return ingredients.map(ingredient => ({ | ^^^^^^^^^^ 82 | type: 'ingredient' as const, 83 | item_id: ingredient.ingredientId, 84 | quantity: ingredient.quantity,"
+        - generic [ref=f1e47]:
+          - generic [ref=f1e48]: ERROR in src/components/RecipeManagement/steps/PreviewStep.tsx:229:42
+          - generic [ref=f1e49]: "TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ appetizers: string; 'main-courses': string; desserts: string; beverages: string; sides: string; salads: string; soups: string; specials: string; vegetarian: string; seafood: string; }'. 227 | <div className=\"sales-item\"> 228 | <span className=\"sales-label\">Kategori:</span> > 229 | <span className=\"sales-value\">{categories[salesSettings.category] || salesSettings.category || 'Ej vald'}</span> | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 230 | </div> 231 | <div className=\"sales-item\"> 232 | <span className=\"sales-label\">Status:</span>"
+        - generic [ref=f1e50]:
+          - generic [ref=f1e51]: ERROR in src/components/RecipeManagement/steps/PreviewStep.tsx:262:58
+          - generic [ref=f1e52]: "TS7006: Parameter 'ing' implicitly has an 'any' type. 260 | issues.push('Inga ingredienser har lagts till'); 261 | } else { > 262 | const invalidIngredients = data.ingredients.filter(ing => !ing.ingredientId || !ing.quantity); | ^^^ 263 | if (invalidIngredients.length > 0) { 264 | issues.push(`${invalidIngredients.length} ingrediens(er) är ofullständiga`); 265 | }"
+        - generic [ref=f1e53]:
+          - generic [ref=f1e54]: ERROR in src/components/RecipeManagement/steps/PreviewStep.tsx:504:33
+          - generic [ref=f1e55]: "TS7006: Parameter 'ing' implicitly has an 'any' type. 502 | <span className=\"ingredients-text\"> 503 | {data.ingredients > 504 | .filter(ing => ing.name) | ^^^ 505 | .map(ing => ing.name) 506 | .join(', ')} 507 | </span>"
+        - generic [ref=f1e56]:
+          - generic [ref=f1e57]: ERROR in src/components/RecipeManagement/steps/PreviewStep.tsx:505:30
+          - generic [ref=f1e58]: "TS7006: Parameter 'ing' implicitly has an 'any' type. 503 | {data.ingredients 504 | .filter(ing => ing.name) > 505 | .map(ing => ing.name) | ^^^ 506 | .join(', ')} 507 | </span> 508 | </div>"
+        - generic [ref=f1e59]:
+          - generic [ref=f1e60]: ERROR in src/components/RecipeManagement/steps/SalesSettingsStep.tsx:375:45
+          - generic [ref=f1e61]: "TS2339: Property 'category' does not exist on type 'SalesSettings'. 373 | <h3>Kategori</h3> 374 | <CategorySelector > 375 | selectedCategory={salesSettings.category || ''} | ^^^^^^^^ 376 | onChange={(category) => handleSettingsUpdate({ category })} 377 | disabled={isLoading} 378 | />"
+        - generic [ref=f1e62]:
+          - generic [ref=f1e63]: ERROR in src/components/RecipeManagement/steps/SalesSettingsStep.tsx:376:60
+          - generic [ref=f1e64]: "TS2345: Argument of type '{ category: string; }' is not assignable to parameter of type 'Partial<SalesSettings>'. Object literal may only specify known properties, and 'category' does not exist in type 'Partial<SalesSettings>'. 374 | <CategorySelector 375 | selectedCategory={salesSettings.category || ''} > 376 | onChange={(category) => handleSettingsUpdate({ category })} | ^^^^^^^^ 377 | disabled={isLoading} 378 | /> 379 | </div>"
+        - generic [ref=f1e65]:
+          - generic [ref=f1e66]: ERROR in src/components/RecipeManagement/steps/SalesSettingsStep.tsx:420:62
+          - generic [ref=f1e67]: "TS2339: Property 'category' does not exist on type 'SalesSettings'. 418 | <div className=\"summary-item\"> 419 | <span className=\"summary-label\">Kategori:</span> > 420 | <span className=\"summary-value\">{salesSettings.category || 'Ej vald'}</span> | ^^^^^^^^ 421 | </div> 422 | <div className=\"summary-item\"> 423 | <span className=\"summary-label\">Status:</span>"
+        - generic [ref=f1e68]:
+          - generic [ref=f1e69]: ERROR in src/hooks/useRecipeMenuWizardState.ts:121:18
+          - generic [ref=f1e70]: "TS2451: Cannot redeclare block-scoped variable 'setErrors'. 119 | const [currentStep, setCurrentStep] = useState<WizardStep>('creation-type'); 120 | const [data, setData] = useState<WizardData>(getDefaultWizardData); > 121 | const [errors, setErrors] = useState<string[]>([]); | ^^^^^^^^^ 122 | const [isLoading, setIsLoading] = useState(false); 123 | 124 | // History for undo/redo"
+        - generic [ref=f1e71]:
+          - generic [ref=f1e72]: ERROR in src/hooks/useRecipeMenuWizardState.ts:314:9
+          - generic [ref=f1e73]: "TS2451: Cannot redeclare block-scoped variable 'setErrors'. 312 | }, [data]); 313 | > 314 | const setErrors = useCallback((newErrors: string[]) => { | ^^^^^^^^^ 315 | setErrors(newErrors); 316 | }, []); 317 |"
+        - generic [ref=f1e74]:
+          - generic [ref=f1e75]: ERROR in src/hooks/useWizardState.ts:36:14
+          - generic [ref=f1e76]: "TS2323: Cannot redeclare exported variable 'WIZARD_STEPS'. 34 | } 35 | > 36 | export const WIZARD_STEPS: WizardStepConfig[] = [ | ^^^^^^^^^^^^ 37 | { 38 | id: 'creation-type', 39 | title: 'Vad skapar du?',"
+        - generic [ref=f1e77]:
+          - generic [ref=f1e78]: ERROR in src/hooks/useWizardState.ts:289:45
+          - generic [ref=f1e79]: "TS2802: Type 'Set<WizardStep>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher. 287 | 288 | // Mark step as completed > 289 | setCompletedSteps(prev => new Set([...prev, currentStep])); | ^^^^ 290 | 291 | // Move to next step 292 | const nextStep = WIZARD_STEPS[stepIndex + 1].id;"
+        - generic [ref=f1e80]:
+          - generic [ref=f1e81]: ERROR in src/hooks/useWizardState.ts:508:7
+          - generic [ref=f1e82]: "TS2322: Type '{ name: string; description: string; instructions: string; servings: number; preparation_time: number; ingredients: { ingredient_id: any; quantity: number; unit: string; notes: string | undefined; }[]; tags: string[]; }' is not assignable to type 'RecipeCreate'. Object literal may only specify known properties, and 'preparation_time' does not exist in type 'RecipeCreate'. 506 | instructions: '', // Will be set in a separate step if needed 507 | servings: data.salesSettings.servings, > 508 | preparation_time: data.salesSettings.preparationTime || 0, | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 509 | ingredients: data.componentSelection.ingredients.map(item => ({ 510 | ingredient_id: item.ingredient.id, 511 | quantity: item.quantity,"
+        - generic [ref=f1e83]:
+          - generic [ref=f1e84]: ERROR in src/hooks/useWizardState.ts:510:40
+          - generic [ref=f1e85]: "TS2339: Property 'id' does not exist on type 'Ingredient'. 508 | preparation_time: data.salesSettings.preparationTime || 0, 509 | ingredients: data.componentSelection.ingredients.map(item => ({ > 510 | ingredient_id: item.ingredient.id, | ^^ 511 | quantity: item.quantity, 512 | unit: item.unit, 513 | notes: item.notes,"
+        - generic [ref=f1e86]:
+          - generic [ref=f1e87]: ERROR in src/hooks/useWizardState.ts:530:7
+          - generic [ref=f1e88]: "TS2322: Type 'number' is not assignable to type 'SwedishVATRate | undefined'. 528 | price: data.salesSettings.sellingPrice, 529 | cost: data.costCalculation?.totalCost || 0, > 530 | vat_rate: data.salesSettings.vatRate, | ^^^^^^^^ 531 | recipe_id: data.componentSelection.recipes[0]?.recipe.id || null, 532 | ingredients: data.componentSelection.ingredients.map(item => ({ 533 | ingredient_id: item.ingredient.id,"
+        - generic [ref=f1e89]:
+          - generic [ref=f1e90]: ERROR in src/hooks/useWizardState.ts:531:61
+          - generic [ref=f1e91]: "TS2339: Property 'id' does not exist on type 'Recipe'. 529 | cost: data.costCalculation?.totalCost || 0, 530 | vat_rate: data.salesSettings.vatRate, > 531 | recipe_id: data.componentSelection.recipes[0]?.recipe.id || null, | ^^ 532 | ingredients: data.componentSelection.ingredients.map(item => ({ 533 | ingredient_id: item.ingredient.id, 534 | quantity: item.quantity,"
+        - generic [ref=f1e92]:
+          - generic [ref=f1e93]: ERROR in src/hooks/useWizardState.ts:533:40
+          - generic [ref=f1e94]: "TS2339: Property 'id' does not exist on type 'Ingredient'. 531 | recipe_id: data.componentSelection.recipes[0]?.recipe.id || null, 532 | ingredients: data.componentSelection.ingredients.map(item => ({ > 533 | ingredient_id: item.ingredient.id, | ^^ 534 | quantity: item.quantity, 535 | unit: item.unit, 536 | notes: item.notes,"
+        - generic [ref=f1e95]:
+          - generic [ref=f1e96]: ERROR in src/hooks/useWizardState.ts:595:10
+          - generic [ref=f1e97]: "TS2323: Cannot redeclare exported variable 'WIZARD_STEPS'. 593 | 594 | // Export step configurations for use by components > 595 | export { WIZARD_STEPS }; | ^^^^^^^^^^^^"
+        - generic [ref=f1e98]:
+          - generic [ref=f1e99]: ERROR in src/hooks/useWizardState.ts:595:10
+          - generic [ref=f1e100]: "TS2484: Export declaration conflicts with exported declaration of 'WIZARD_STEPS'. 593 | 594 | // Export step configurations for use by components > 595 | export { WIZARD_STEPS }; | ^^^^^^^^^^^^"
+```

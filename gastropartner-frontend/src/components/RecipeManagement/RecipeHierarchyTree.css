@@ -1,0 +1,423 @@
+/**
+ * Recipe Hierarchy Tree Styles
+ *
+ * Interactive tree visualization with mobile-first responsive design
+ * and accessibility-focused styling.
+ */
+
+.recipe-hierarchy-tree {
+  width: 100%;
+  min-height: 200px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+/* Loading and empty states */
+.recipe-hierarchy-tree.loading,
+.recipe-hierarchy-tree.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: #6b7280;
+}
+
+.loading-spinner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 16px;
+}
+
+.loading-spinner::before {
+  content: '';
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e5e7eb;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.empty-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.empty-state h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.empty-state p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* Tree header */
+.tree-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.tree-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.tree-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+/* Tree content */
+.tree-content {
+  padding: 12px 0;
+  max-height: 500px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Tree node container */
+.tree-node-container {
+  width: 100%;
+}
+
+/* Individual tree nodes */
+.tree-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  min-height: 40px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+  position: relative;
+}
+
+.tree-node:hover {
+  background-color: #f9fafb;
+  border-left-color: #d1d5db;
+}
+
+.tree-node:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: -2px;
+  background-color: #eff6ff;
+}
+
+.tree-node:active {
+  background-color: #e5e7eb;
+  transform: scale(0.995);
+}
+
+/* Node type specific styling */
+.tree-node-menuitem {
+  border-left-color: #10b981;
+  font-weight: 500;
+}
+
+.tree-node-menuitem:hover {
+  background-color: #f0fdf4;
+  border-left-color: #059669;
+}
+
+.tree-node-recipe {
+  border-left-color: #3b82f6;
+}
+
+.tree-node-recipe:hover {
+  background-color: #eff6ff;
+  border-left-color: #2563eb;
+}
+
+.tree-node-ingredient {
+  border-left-color: #f59e0b;
+  opacity: 0.9;
+}
+
+.tree-node-ingredient:hover {
+  background-color: #fffbeb;
+  border-left-color: #d97706;
+}
+
+/* Node icons */
+.node-icon {
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+  font-size: 14px;
+  transition: transform 0.2s ease;
+}
+
+.tree-node.expanded .node-icon {
+  transform: rotate(0deg);
+}
+
+/* Node names */
+.node-name {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #374151;
+  word-break: break-word;
+}
+
+.tree-node-menuitem .node-name {
+  font-weight: 500;
+  color: #111827;
+}
+
+/* Cost indicators */
+.hierarchy-cost {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cost-good {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.cost-warning {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.cost-poor {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.hierarchy-cost:not(.cost-good):not(.cost-warning):not(.cost-poor) {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+/* Drag and drop styling */
+.tree-node[draggable="true"] {
+  cursor: grab;
+}
+
+.tree-node[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.tree-node.drag-over {
+  background-color: #dbeafe;
+  border-left-color: #3b82f6;
+  border-left-width: 4px;
+}
+
+.tree-node.dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .tree-header {
+    padding: 12px 16px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tree-header h3 {
+    font-size: 16px;
+    text-align: center;
+  }
+
+  .tree-legend {
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .legend-item {
+    font-size: 11px;
+  }
+
+  .tree-node {
+    padding: 10px 16px;
+    min-height: 44px; /* Touch-friendly minimum */
+    gap: 12px;
+  }
+
+  .node-icon {
+    width: 24px;
+    font-size: 16px;
+  }
+
+  .node-name {
+    font-size: 15px;
+    line-height: 1.3;
+  }
+
+  .hierarchy-cost {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .recipe-hierarchy-tree {
+    border-left: none;
+    border-right: none;
+    border-radius: 0;
+  }
+
+  .tree-header {
+    padding: 10px 12px;
+  }
+
+  .tree-node {
+    padding: 8px 12px;
+  }
+
+  .tree-legend {
+    gap: 8px;
+    font-size: 10px;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .tree-node {
+    min-height: 48px;
+    padding: 12px 16px;
+  }
+
+  .tree-node:hover {
+    background-color: transparent;
+  }
+
+  .tree-node:active {
+    background-color: #f3f4f6;
+  }
+
+  /* Enhanced touch targets */
+  .node-icon {
+    padding: 4px;
+    margin: -4px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .recipe-hierarchy-tree {
+    border: 2px solid #000000;
+  }
+
+  .tree-node {
+    border-left-width: 4px;
+  }
+
+  .tree-node:focus {
+    outline: 3px solid #0000ff;
+  }
+
+  .hierarchy-cost {
+    border: 1px solid currentColor;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .tree-node,
+  .node-icon,
+  .loading-spinner::before {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* Dark mode support (if implemented) */
+@media (prefers-color-scheme: dark) {
+  .recipe-hierarchy-tree {
+    background-color: #1f2937;
+    border-color: #374151;
+    color: #f9fafb;
+  }
+
+  .tree-header {
+    border-bottom-color: #374151;
+  }
+
+  .tree-header h3 {
+    color: #f9fafb;
+  }
+
+  .tree-node:hover {
+    background-color: #374151;
+  }
+
+  .tree-node:focus {
+    background-color: #1e40af;
+  }
+
+  .node-name {
+    color: #e5e7eb;
+  }
+
+  .tree-node-menuitem .node-name {
+    color: #f9fafb;
+  }
+}
+
+/* Animation keyframes */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Print styles */
+@media print {
+  .recipe-hierarchy-tree {
+    border: 1px solid #000;
+    box-shadow: none;
+  }
+
+  .tree-node {
+    break-inside: avoid;
+  }
+
+  .hierarchy-cost {
+    background-color: transparent !important;
+    border: 1px solid #000;
+  }
+}

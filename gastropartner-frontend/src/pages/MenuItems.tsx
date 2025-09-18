@@ -8,6 +8,7 @@ import { apiClient, MenuItem, MenuItemCreate } from '../utils/api';
 import { useFreemium } from '../hooks/useFreemium';
 import { useTranslation } from '../localization/sv';
 import { MenuItemForm } from '../components/MenuItems/MenuItemForm';
+import { RecipeComposer } from '../components/RecipeManagement/RecipeComposer';
 
 export function MenuItems() {
   const { getUsagePercentage } = useFreemium();
@@ -21,6 +22,7 @@ export function MenuItems() {
     isOpen: boolean;
     menuItem: MenuItem | null;
   }>({ isOpen: false, menuItem: null });
+  const [isComposerOpen, setIsComposerOpen] = useState(false);
 
   const loadMenuItems = async () => {
     try {
@@ -90,6 +92,23 @@ export function MenuItems() {
       const errorMessage = err instanceof Error ? err.message : 'Ett fel uppstod';
       const translatedError = translateError(errorMessage);
       setError(translatedError);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleComposerSave = async (data: MenuItemCreate) => {
+    setIsLoading(true);
+    try {
+      await apiClient.createMenuItem(data);
+      await loadMenuItems(); // Reload the list
+      setError('');
+      setIsComposerOpen(false);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Ett fel uppstod';
+      const translatedError = translateError(errorMessage);
+      setError(translatedError);
+      throw err; // Re-throw to let the composer handle it
     } finally {
       setIsLoading(false);
     }
@@ -211,16 +230,25 @@ export function MenuItems() {
 
   return (
     <div className="main-content">
-      <PageHeader 
-        title="🍽️ Maträtter" 
+      <PageHeader
+        title="🍽️ Maträtter"
         subtitle="Skapa maträtter från dina recept och optimera prissättning"
       >
-        <button 
-          className="btn btn--primary"
-          onClick={() => setIsFormOpen(true)}
-        >
-          <span>+</span> Ny Maträtt
-        </button>
+        <div className="btn-group">
+          <button
+            className="btn btn--secondary"
+            onClick={() => setIsComposerOpen(true)}
+            title="Kombinera recept till nya maträtter"
+          >
+            🎯 Receptkombinator
+          </button>
+          <button
+            className="btn btn--primary"
+            onClick={() => setIsFormOpen(true)}
+          >
+            <span>+</span> Ny Maträtt
+          </button>
+        </div>
       </PageHeader>
 
       <div className="modules-container">
@@ -349,6 +377,14 @@ export function MenuItems() {
         onSubmit={handleSubmitMenuItem}
         isLoading={isLoading}
         editingMenuItem={editingMenuItem}
+      />
+
+      {/* Recipe Composer */}
+      <RecipeComposer
+        isOpen={isComposerOpen}
+        onClose={() => setIsComposerOpen(false)}
+        onSave={handleComposerSave}
+        isLoading={isLoading}
       />
 
       {/* Delete Confirmation Dialog */}

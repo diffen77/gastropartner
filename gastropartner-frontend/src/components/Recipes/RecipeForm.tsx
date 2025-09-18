@@ -5,6 +5,7 @@ import { calculateIngredientCost, getCompatibleUnits } from '../../utils/unitCon
 import { UNITS, renderUnitOptions } from '../../utils/units';
 import './RecipeForm.css';
 import { InstructionsEditor } from './InstructionsEditor';
+import { BatchRecipeEditor } from './BatchRecipeEditor';
 
 interface RecipeFormProps {
   isOpen: boolean;
@@ -12,13 +13,14 @@ interface RecipeFormProps {
   onSubmit: (data: RecipeCreate) => Promise<void>;
   isLoading?: boolean;
   editingRecipe?: Recipe | null;
+  onRecipeUpdate?: (updatedRecipe: Recipe) => void;
 }
 
 interface RecipeIngredientFormData extends RecipeIngredientCreate {
   id: string; // temporary ID for form management
 }
 
-export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false, editingRecipe = null }: RecipeFormProps) {
+export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false, editingRecipe = null, onRecipeUpdate }: RecipeFormProps) {
   const { canAddRecipe, isAtLimit } = useFreemium();
   const [formData, setFormData] = useState<RecipeCreate>({
     name: '',
@@ -36,6 +38,7 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false, editi
   const [featureFlags, setFeatureFlags] = useState<FeatureFlags | null>(null);
   const [error, setError] = useState<string>('');
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const [showBatchEditor, setShowBatchEditor] = useState(false);
 
   // Load available ingredients and feature flags when form opens
   useEffect(() => {
@@ -533,18 +536,48 @@ export function RecipeForm({ isOpen, onClose, onSubmit, isLoading = false, editi
               >
                 Avbryt
               </button>
+
+              {editingRecipe && (
+                <button
+                  type="button"
+                  className="btn btn--warning"
+                  onClick={() => setShowBatchEditor(true)}
+                  disabled={isLoading}
+                  title="Öppna batch-redigering med påverkananalys"
+                >
+                  🔍 Batch-redigering
+                </button>
+              )}
+
               <button
                 type="submit"
                 className="btn btn--primary"
                 disabled={isLoading || formData.name.trim() === ''}
               >
-                {isLoading 
-                  ? (editingRecipe ? 'Uppdaterar...' : 'Sparar...') 
+                {isLoading
+                  ? (editingRecipe ? 'Uppdaterar...' : 'Sparar...')
                   : (editingRecipe ? 'Uppdatera Recept' : 'Spara Recept')
                 }
               </button>
             </div>
           </form>
+        )}
+        {/* Batch Recipe Editor */}
+        {editingRecipe && (
+          <BatchRecipeEditor
+            isOpen={showBatchEditor}
+            onClose={() => setShowBatchEditor(false)}
+            recipe={editingRecipe}
+            onUpdate={(updatedRecipe) => {
+              // Update the recipe in the parent component
+              if (onRecipeUpdate) {
+                onRecipeUpdate(updatedRecipe);
+              }
+              // Update the form data to reflect changes
+              populateFormForEdit(updatedRecipe);
+              setShowBatchEditor(false);
+            }}
+          />
         )}
       </div>
     </div>

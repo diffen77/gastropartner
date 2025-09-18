@@ -9,7 +9,7 @@ import { apiClient, Ingredient, IngredientCreate } from '../../utils/api';
 import { TabContentProps } from '../../pages/RecipeManagement';
 import { useRecipeManagement } from '../../contexts/RecipeManagementContext';
 
-export function IngredientsTab({ isActive }: TabContentProps) {
+function IngredientsTab({ isActive }: TabContentProps) {
   const { translateError } = useTranslation();
   const {
     ingredients,
@@ -288,3 +288,5 @@ export function IngredientsTab({ isActive }: TabContentProps) {
     </div>
   );
 }
+
+export default IngredientsTab;

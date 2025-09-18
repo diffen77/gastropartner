@@ -1,0 +1,356 @@
+/**
+ * Enhanced Menu Item Form with Live Cost Calculator Styles
+ * Additional styling for the integrated calculator layout
+ */
+
+/* Enhanced Modal Layout */
+.menu-item-form-with-calculator {
+  max-width: 1200px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header .header-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-controls .btn--ghost.active {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+/* Form Layout with Calculator */
+.form-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  padding: 0;
+  min-height: 600px;
+}
+
+.calculator-section {
+  padding: 20px;
+  background: #f8fafc;
+  border-right: 1px solid #e5e7eb;
+}
+
+.form-section {
+  padding: 20px;
+}
+
+.embedded-calculator {
+  box-shadow: none;
+  border: 1px solid #e5e7eb;
+  margin: 0;
+}
+
+/* Cost Summary Widget */
+.cost-summary-widget {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.cost-summary-widget h4 {
+  margin: 0 0 12px 0;
+  color: #1f2937;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.cost-summary-widget .cost-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 14px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.cost-summary-widget .cost-row:last-child {
+  border-bottom: none;
+}
+
+.cost-value,
+.margin-value,
+.target-margin {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.cost-value {
+  color: #1f2937;
+}
+
+.margin-value {
+  /* Color set dynamically based on margin status */
+}
+
+.target-margin {
+  color: #6b7280;
+}
+
+/* Enhanced Form Styling */
+.menu-item-form-with-calculator .menu-item-form {
+  margin: 0;
+}
+
+.menu-item-form-with-calculator .form-group {
+  margin-bottom: 20px;
+}
+
+.menu-item-form-with-calculator .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.menu-item-form-with-calculator label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #374151;
+  font-size: 14px;
+}
+
+.menu-item-form-with-calculator input,
+.menu-item-form-with-calculator select,
+.menu-item-form-with-calculator textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.menu-item-form-with-calculator input:focus,
+.menu-item-form-with-calculator select:focus,
+.menu-item-form-with-calculator textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.menu-item-form-with-calculator input.error,
+.menu-item-form-with-calculator select.error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.menu-item-form-with-calculator .error-message {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+}
+
+/* VAT Summary Integration */
+.menu-item-form-with-calculator .vat-summary {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 20px 0;
+}
+
+.menu-item-form-with-calculator .vat-summary h4 {
+  margin: 0 0 12px 0;
+  color: #1f2937;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.vat-calculation-display .vat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 14px;
+}
+
+.vat-calculation-display .vat-row.total {
+  border-top: 1px solid #d1d5db;
+  margin-top: 8px;
+  padding-top: 12px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* Form Actions */
+.menu-item-form-with-calculator .form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .form-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .calculator-section {
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .menu-item-form-with-calculator {
+    max-width: 800px;
+  }
+}
+
+@media (max-width: 768px) {
+  .menu-item-form-with-calculator {
+    max-width: 95vw;
+    margin: 20px auto;
+  }
+
+  .form-layout {
+    gap: 12px;
+  }
+
+  .calculator-section,
+  .form-section {
+    padding: 16px;
+  }
+
+  .menu-item-form-with-calculator .form-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .modal-header .header-controls {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .cost-summary-widget {
+    margin-bottom: 16px;
+    padding: 12px;
+  }
+
+  .menu-item-form-with-calculator .form-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .menu-item-form-with-calculator .form-actions button {
+    width: 100%;
+  }
+}
+
+/* Calculator Toggle States */
+.calculator-section.hidden {
+  display: none;
+}
+
+.form-layout.calculator-hidden {
+  grid-template-columns: 1fr;
+}
+
+.form-layout.calculator-hidden .calculator-section {
+  display: none;
+}
+
+/* Enhanced Visual Feedback */
+.cost-summary-widget[data-margin-status="excellent"] {
+  border-left: 4px solid #10b981;
+  background: linear-gradient(90deg, #ecfdf5 0%, #ffffff 100%);
+}
+
+.cost-summary-widget[data-margin-status="good"] {
+  border-left: 4px solid #059669;
+  background: linear-gradient(90deg, #f0fdf4 0%, #ffffff 100%);
+}
+
+.cost-summary-widget[data-margin-status="warning"] {
+  border-left: 4px solid #d97706;
+  background: linear-gradient(90deg, #fffbeb 0%, #ffffff 100%);
+}
+
+.cost-summary-widget[data-margin-status="danger"] {
+  border-left: 4px solid #dc2626;
+  background: linear-gradient(90deg, #fef2f2 0%, #ffffff 100%);
+}
+
+/* Loading States */
+.calculator-section.loading {
+  position: relative;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.calculator-section.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* Accessibility Improvements */
+.menu-item-form-with-calculator [aria-pressed="true"] {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.menu-item-form-with-calculator button:focus-visible,
+.menu-item-form-with-calculator input:focus-visible,
+.menu-item-form-with-calculator select:focus-visible,
+.menu-item-form-with-calculator textarea:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .cost-summary-widget {
+    border-width: 2px;
+  }
+
+  .menu-item-form-with-calculator input,
+  .menu-item-form-with-calculator select,
+  .menu-item-form-with-calculator textarea {
+    border-width: 2px;
+  }
+
+  .vat-calculation-display .vat-row.total {
+    border-top-width: 2px;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .menu-item-form-with-calculator input,
+  .menu-item-form-with-calculator select,
+  .menu-item-form-with-calculator textarea {
+    transition: none;
+  }
+
+  .calculator-section.loading::after {
+    animation: none;
+  }
+}

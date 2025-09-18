@@ -26,12 +26,13 @@ import { OrganizationSelector } from '../components/Organizations/OrganizationSe
 import { RecipeManagementProvider } from '../contexts/RecipeManagementContext';
 
 // Tab content components - each encapsulates complete functionality from original pages
-import { IngredientsTab } from '../components/RecipeManagement/IngredientsTab';
-import { RecipesTab } from '../components/RecipeManagement/RecipesTab';
-import { MenuItemsTab } from '../components/RecipeManagement/MenuItemsTab';
+import IngredientsTab from '../components/RecipeManagement/IngredientsTab';
+import RecipesTab from '../components/RecipeManagement/RecipesTab';
+import MenuItemsTab from '../components/RecipeManagement/MenuItemsTab';
+import { HierarchyTab } from '../components/RecipeManagement/HierarchyTab';
 
 // Type definitions for tab management system
-export type RecipeManagementTab = 'ingredients' | 'recipes' | 'menu-items';
+export type RecipeManagementTab = 'ingredients' | 'recipes' | 'menu-items' | 'hierarchy';
 
 /**
  * Configuration interface for tab management system
@@ -80,6 +81,12 @@ function RecipeManagementContent() {
       label: 'Maträtter',
       icon: '🍽️',
       component: MenuItemsTab,
+    },
+    {
+      key: 'hierarchy',
+      label: 'Hierarki',
+      icon: '🌳',
+      component: HierarchyTab,
     },
   ], []);
 

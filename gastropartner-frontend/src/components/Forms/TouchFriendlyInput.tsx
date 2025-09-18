@@ -27,7 +27,7 @@ export function TouchFriendlyInput({
   unit,
   min,
   max,
-  step,
+  step = 1,
   disabled = false,
   required = false,
   className = '',
@@ -53,25 +53,29 @@ export function TouchFriendlyInput({
   };
 
   const incrementValue = () => {
-    if (type !== 'number' || disabled) return;
-    const numValue = parseFloat(value.toString()) || 0;
-    const stepValue = step || 1;
-    const newValue = Math.min(numValue + stepValue, max || Infinity);
-    onChange(newValue.toString());
+    if (type === 'number' && !disabled) {
+      const currentValue = parseFloat(value.toString()) || 0;
+      const newValue = currentValue + (step || 1);
+      if (max === undefined || newValue <= max) {
+        onChange(newValue.toString());
+      }
+    }
   };
 
   const decrementValue = () => {
-    if (type !== 'number' || disabled) return;
-    const numValue = parseFloat(value.toString()) || 0;
-    const stepValue = step || 1;
-    const newValue = Math.max(numValue - stepValue, min || -Infinity);
-    onChange(newValue.toString());
+    if (type === 'number' && !disabled) {
+      const currentValue = parseFloat(value.toString()) || 0;
+      const newValue = currentValue - (step || 1);
+      if (min === undefined || newValue >= min) {
+        onChange(newValue.toString());
+      }
+    }
   };
 
   const hasValue = value !== '' && value !== null && value !== undefined;
 
   return (
-    <div className={`touch-input-group ${className}`}>
+    <div className={`touch-friendly-input ${className} ${isTouched ? 'touch-friendly-input--touched' : ''}`}>
       {label && (
         <label
           htmlFor={inputId}
@@ -136,15 +140,10 @@ export function TouchFriendlyInput({
         )}
       </div>
 
-      {type !== 'number' && hasValue && !disabled && isTouched && (
-        <button
-          type="button"
-          className="touch-input-clear"
-          onClick={() => onChange('')}
-          aria-label={`Rensa ${label || 'inmatning'}`}
-        >
-          ×
-        </button>
+      {required && !hasValue && isTouched && (
+        <div className="touch-input-error" role="alert">
+          Detta fält är obligatoriskt
+        </div>
       )}
     </div>
   );

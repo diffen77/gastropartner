@@ -1,0 +1,456 @@
+/* Recipe Version History Modal Styles */
+.version-history-modal {
+  position: relative;
+  width: 90vw;
+  max-width: 1000px;
+  max-height: 90vh;
+  background: var(--color-bg-primary);
+  border-radius: var(--border-radius);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.version-history-modal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.version-history-modal .modal-header h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.recipe-name {
+  font-size: 1rem;
+  color: var(--color-text-secondary);
+  font-style: italic;
+  flex: 1;
+  text-align: center;
+}
+
+.version-history-modal .modal-body {
+  flex: 1;
+  padding: var(--spacing-lg);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+/* Loading and Empty States */
+.loading-state,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.loading-state p {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.empty-state p {
+  font-size: 1.1rem;
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--color-text-primary);
+}
+
+.empty-state small {
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+/* Version Header */
+.version-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+.version-stats {
+  display: flex;
+  gap: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.stat {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+.stat strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+/* Versions List */
+.versions-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.version-card {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.version-card:hover {
+  border-color: var(--color-primary-light);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Version Summary */
+.version-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.version-summary:hover {
+  background: var(--color-bg-primary);
+}
+
+.version-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.version-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.version-number {
+  font-weight: 600;
+  color: var(--color-primary);
+  font-size: 1rem;
+}
+
+.version-time {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  font-family: monospace;
+}
+
+.version-reason {
+  font-size: 0.95rem;
+  color: var(--color-text-primary);
+  margin: var(--spacing-xs) 0;
+}
+
+.version-meta {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.relative-time {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.price-adjustments {
+  font-size: 0.8rem;
+  color: var(--color-success);
+  background: var(--color-success-light);
+  padding: 2px 6px;
+  border-radius: var(--border-radius-sm);
+}
+
+.expand-indicator {
+  font-size: 1.2rem;
+  color: var(--color-text-secondary);
+  margin-left: var(--spacing-md);
+  transition: transform 0.2s ease;
+}
+
+/* Version Details */
+.version-details {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-top: 1px solid var(--color-border-light);
+  background: var(--color-bg-primary);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.detail-section h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+/* Changes Grid */
+.changes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.change-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  background: var(--color-bg-secondary);
+  border-radius: var(--border-radius-sm);
+}
+
+.change-label {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.change-value {
+  font-size: 0.95rem;
+  color: var(--color-text-primary);
+}
+
+/* Previous Version */
+.previous-version {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: var(--color-bg-secondary);
+  border-radius: var(--border-radius-sm);
+  border-left: 3px solid var(--color-warning);
+}
+
+.previous-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.prev-label {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.prev-value {
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+  text-align: right;
+}
+
+/* Ingredients List */
+.ingredients-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.ingredient-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: var(--spacing-md);
+  align-items: center;
+  padding: var(--spacing-sm);
+  background: var(--color-bg-secondary);
+  border-radius: var(--border-radius-sm);
+}
+
+.ingredient-name {
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.ingredient-amount {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  text-align: right;
+}
+
+.ingredient-cost {
+  font-size: 0.85rem;
+  color: var(--color-success);
+  font-weight: 500;
+  text-align: right;
+}
+
+/* Modal Actions */
+.version-history-modal .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .version-history-modal {
+    width: 95vw;
+    max-height: 95vh;
+  }
+
+  .version-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .version-stats {
+    justify-content: space-between;
+  }
+
+  .changes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ingredient-item {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-xs);
+    text-align: left;
+  }
+
+  .ingredient-amount,
+  .ingredient-cost {
+    text-align: left;
+  }
+}
+
+@media (max-width: 768px) {
+  .version-history-modal {
+    width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .version-history-modal .modal-header {
+    padding: var(--spacing-md);
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .version-history-modal .modal-header h2 {
+    font-size: 1.2rem;
+  }
+
+  .recipe-name {
+    text-align: center;
+    order: -1;
+  }
+
+  .version-history-modal .modal-body {
+    padding: var(--spacing-md);
+  }
+
+  .version-title {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .version-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+
+  .previous-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+
+  .prev-value {
+    text-align: left;
+  }
+
+  .version-history-modal .modal-actions {
+    padding: var(--spacing-md);
+  }
+}
+
+/* Animation */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.version-history-modal {
+  animation: fadeInScale 0.3s ease-out;
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .version-history-modal {
+    animation: none;
+  }
+
+  .version-card {
+    transition: none;
+  }
+
+  .expand-indicator {
+    transition: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .version-card {
+    border-width: 2px;
+  }
+
+  .price-adjustments {
+    border: 1px solid currentColor;
+  }
+}

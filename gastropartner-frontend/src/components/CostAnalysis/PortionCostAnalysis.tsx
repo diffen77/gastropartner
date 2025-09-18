@@ -123,7 +123,7 @@ export const PortionCostAnalysis: React.FC<PortionCostAnalysisProps> = ({
         .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
         .join('&');
 
-      const response = await api.post(`${endpoint}?${queryString}`, null) as CostCalculationResult;
+      const response = await api.get(`${endpoint}?${queryString}`) as CostCalculationResult;
       const result = response;
 
       setAnalysis(result);

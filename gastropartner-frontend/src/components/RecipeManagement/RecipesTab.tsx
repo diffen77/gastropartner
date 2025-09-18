@@ -11,7 +11,7 @@ import { useFreemium } from '../../hooks/useFreemium';
 import { TabContentProps } from '../../pages/RecipeManagement';
 import { useRecipeManagement } from '../../contexts/RecipeManagementContext';
 
-export function RecipesTab({ isActive }: TabContentProps) {
+function RecipesTab({ isActive }: TabContentProps) {
   const { translateError } = useTranslation();
   const { getUsagePercentage, isAtLimit } = useFreemium();
   const {
@@ -403,3 +403,5 @@ export function RecipesTab({ isActive }: TabContentProps) {
     </div>
   );
 }
+
+export default RecipesTab;

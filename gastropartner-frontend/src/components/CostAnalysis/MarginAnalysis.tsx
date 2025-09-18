@@ -114,7 +114,7 @@ export const MarginAnalysis: React.FC<MarginAnalysisProps> = ({
         .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
         .join('&');
 
-      const response = await api.post(`${endpoint}?${queryString}`, null) as MarginAnalysisData;
+      const response = await api.get(`${endpoint}?${queryString}`) as MarginAnalysisData;
       const result = response;
 
       setAnalysis(result);

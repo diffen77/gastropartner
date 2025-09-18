@@ -1,0 +1,476 @@
+/**
+ * WizardStep Base Component Styles
+ *
+ * Comprehensive styling for wizard step panels with:
+ * - Smooth transitions and animations
+ * - Accessibility-compliant contrast and focus states
+ * - Mobile-responsive design patterns
+ * - Consistent visual hierarchy
+ * - Error and success state styling
+ */
+
+/* Main Step Panel */
+.wizard-step-panel {
+  background: var(--surface-color, #ffffff);
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s ease-in-out;
+  min-height: 400px;
+  position: relative;
+}
+
+.wizard-step-panel.active {
+  opacity: 1;
+  transform: translateY(0);
+  border-color: var(--primary-color, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.wizard-step-panel.completed {
+  border-color: var(--green-500, #10b981);
+}
+
+.wizard-step-panel.has-errors {
+  border-color: var(--red-500, #ef4444);
+  background: var(--red-50, #fef2f2);
+}
+
+.wizard-step-panel[hidden] {
+  display: none;
+}
+
+/* Step Header */
+.wizard-step-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.wizard-step-info {
+  flex: 1;
+}
+
+.wizard-step-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  margin: 0 0 0.5rem 0;
+  line-height: 1.2;
+}
+
+.wizard-step-completed-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background-color: var(--green-500, #10b981);
+  color: white;
+  border-radius: 50%;
+}
+
+.wizard-step-check-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.wizard-step-description {
+  font-size: 1rem;
+  color: var(--text-secondary, #6b7280);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Loading State */
+.wizard-step-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--blue-50, #eff6ff);
+  border: 1px solid var(--blue-200, #bfdbfe);
+  border-radius: 6px;
+  color: var(--blue-700, #1d4ed8);
+}
+
+.wizard-step-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(29, 78, 216, 0.3);
+  border-top: 2px solid var(--blue-700, #1d4ed8);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.wizard-step-loading-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error Display */
+.wizard-step-errors {
+  background: var(--red-50, #fef2f2);
+  border: 1px solid var(--red-200, #fecaca);
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.wizard-step-error-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.wizard-step-error-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--red-500, #ef4444);
+  flex-shrink: 0;
+}
+
+.wizard-step-error-title {
+  font-weight: 600;
+  color: var(--red-800, #991b1b);
+  font-size: 0.875rem;
+}
+
+.wizard-step-error-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  list-style: none;
+}
+
+.wizard-step-error-item {
+  color: var(--red-700, #b91c1c);
+  font-size: 0.875rem;
+  line-height: 1.4;
+  margin-bottom: 0.25rem;
+  position: relative;
+}
+
+.wizard-step-error-item::before {
+  content: '•';
+  color: var(--red-500, #ef4444);
+  position: absolute;
+  left: -1rem;
+}
+
+.wizard-step-error-item:last-child {
+  margin-bottom: 0;
+}
+
+/* Step Content */
+.wizard-step-content {
+  flex: 1;
+  min-height: 300px;
+}
+
+/* Step Sections */
+.wizard-step-section {
+  margin-bottom: 2rem;
+}
+
+.wizard-step-section:last-child {
+  margin-bottom: 0;
+}
+
+.wizard-step-section-header {
+  margin-bottom: 1rem;
+}
+
+.wizard-step-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  margin: 0 0 0.25rem 0;
+}
+
+.wizard-step-optional-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  background: var(--gray-100, #f3f4f6);
+  color: var(--gray-600, #4b5563);
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.wizard-step-section-description {
+  font-size: 0.875rem;
+  color: var(--text-secondary, #6b7280);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.wizard-step-section-content {
+  /* Content styling handled by individual step components */
+}
+
+/* Step Actions */
+.wizard-step-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color, #e5e7eb);
+}
+
+.wizard-step-actions-left {
+  justify-content: flex-start;
+}
+
+.wizard-step-actions-center {
+  justify-content: center;
+}
+
+.wizard-step-actions-right {
+  justify-content: flex-end;
+}
+
+/* Step Hints */
+.wizard-step-hint {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.wizard-hint-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.wizard-hint-content {
+  flex: 1;
+}
+
+.wizard-step-hint-info {
+  background: var(--blue-50, #eff6ff);
+  border: 1px solid var(--blue-200, #bfdbfe);
+  color: var(--blue-800, #1e40af);
+}
+
+.wizard-step-hint-info .wizard-hint-icon {
+  color: var(--blue-500, #3b82f6);
+}
+
+.wizard-step-hint-tip {
+  background: var(--purple-50, #faf5ff);
+  border: 1px solid var(--purple-200, #e9d5ff);
+  color: var(--purple-800, #6b21a8);
+}
+
+.wizard-step-hint-tip .wizard-hint-icon {
+  color: var(--purple-500, #8b5cf6);
+}
+
+.wizard-step-hint-warning {
+  background: var(--yellow-50, #fffbeb);
+  border: 1px solid var(--yellow-200, #fde68a);
+  color: var(--yellow-800, #92400e);
+}
+
+.wizard-step-hint-warning .wizard-hint-icon {
+  color: var(--yellow-500, #f59e0b);
+}
+
+.wizard-step-hint-success {
+  background: var(--green-50, #f0fdf4);
+  border: 1px solid var(--green-200, #bbf7d0);
+  color: var(--green-800, #166534);
+}
+
+.wizard-step-hint-success .wizard-hint-icon {
+  color: var(--green-500, #10b981);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .wizard-step-panel {
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    min-height: 350px;
+  }
+
+  .wizard-step-header {
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .wizard-step-title {
+    font-size: 1.25rem;
+  }
+
+  .wizard-step-description {
+    font-size: 0.875rem;
+  }
+
+  .wizard-step-loading {
+    align-self: flex-start;
+  }
+
+  .wizard-step-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .wizard-step-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .wizard-step-hint {
+    padding: 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .wizard-hint-icon {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .wizard-step-panel {
+    padding: 0.75rem;
+    border-radius: 6px;
+  }
+
+  .wizard-step-title {
+    font-size: 1.125rem;
+  }
+
+  .wizard-step-section-title {
+    font-size: 1rem;
+  }
+
+  .wizard-step-optional-badge {
+    font-size: 0.625rem;
+    padding: 0.0625rem 0.375rem;
+  }
+
+  .wizard-step-hint {
+    gap: 0.5rem;
+    padding: 0.625rem;
+  }
+}
+
+/* Focus Management */
+.wizard-step-panel:focus {
+  outline: 2px solid var(--primary-color, #3b82f6);
+  outline-offset: 2px;
+}
+
+/* Animation Preferences */
+@media (prefers-reduced-motion: reduce) {
+  .wizard-step-panel {
+    transition: none;
+  }
+
+  .wizard-step-spinner {
+    animation: none;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .wizard-step-panel {
+    border-width: 2px;
+  }
+
+  .wizard-step-panel.active {
+    border-width: 3px;
+  }
+
+  .wizard-step-hint {
+    border-width: 2px;
+  }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .wizard-step-panel {
+    background: var(--surface-dark, #1f2937);
+    border-color: var(--border-dark, #374151);
+  }
+
+  .wizard-step-panel.has-errors {
+    background: var(--red-900, #7f1d1d);
+  }
+
+  .wizard-step-title {
+    color: var(--text-primary-dark, #f9fafb);
+  }
+
+  .wizard-step-description {
+    color: var(--text-secondary-dark, #d1d5db);
+  }
+
+  .wizard-step-section-title {
+    color: var(--text-primary-dark, #f9fafb);
+  }
+
+  .wizard-step-section-description {
+    color: var(--text-secondary-dark, #d1d5db);
+  }
+
+  .wizard-step-optional-badge {
+    background: var(--gray-700, #374151);
+    color: var(--gray-300, #d1d5db);
+  }
+}
+
+/* Print Styles */
+@media print {
+  .wizard-step-panel {
+    border: 2px solid #000;
+    box-shadow: none;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .wizard-step-loading,
+  .wizard-step-actions {
+    display: none;
+  }
+
+  .wizard-step-hint {
+    border: 1px solid #000;
+    background: #f9f9f9 !important;
+    color: #000 !important;
+  }
+}

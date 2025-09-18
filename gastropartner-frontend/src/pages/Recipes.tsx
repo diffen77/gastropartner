@@ -369,6 +369,14 @@ export function Recipes() {
         onSubmit={editingRecipe ? handleUpdateRecipe : handleCreateRecipe}
         isLoading={isLoading}
         editingRecipe={editingRecipe}
+        onRecipeUpdate={(updatedRecipe) => {
+          // Update the recipe in the recipes list
+          setRecipes(prev => prev.map(recipe =>
+            recipe.recipe_id === updatedRecipe.recipe_id ? updatedRecipe : recipe
+          ));
+          // Update the editing recipe
+          setEditingRecipe(updatedRecipe);
+        }}
       />
 
       {/* Delete Confirmation Dialog */}

@@ -9,7 +9,7 @@ import { useTranslation } from '../../localization/sv';
 import { MenuItemForm } from '../MenuItems/MenuItemForm';
 import { useRecipeManagement } from '../../contexts/RecipeManagementContext';
 
-export function MenuItemsTab({ isActive }: TabContentProps) {
+function MenuItemsTab({ isActive }: TabContentProps) {
   const { getUsagePercentage } = useFreemium();
   const { translateError } = useTranslation();
   const {
@@ -371,3 +371,5 @@ export function MenuItemsTab({ isActive }: TabContentProps) {
     </div>
   );
 }
+
+export default MenuItemsTab;
