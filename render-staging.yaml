@@ -6,8 +6,8 @@ services:
     region: frankfurt
     plan: starter
     branch: staging
-    buildCommand: cd gastropartner-backend && pip install uv && uv sync --frozen --no-dev
-    startCommand: cd gastropartner-backend && uv run uvicorn src.gastropartner.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: cd backend && pip install uv && uv sync --frozen --no-dev
+    startCommand: cd backend && uv run uvicorn src.gastropartner.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     autoDeploy: true
     envVars:
@@ -29,8 +29,8 @@ services:
     name: gastropartner-frontend-staging
     region: frankfurt
     branch: staging
-    buildCommand: cd gastropartner-frontend && npm ci && npm run build
-    staticPublishPath: gastropartner-frontend/build
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: frontend/build
     pullRequestPreviewsEnabled: true
     autoDeploy: true
     envVars:
